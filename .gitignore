@@ -2,3 +2,9 @@
 .venv/
 venv/
 .env
+
+# Raw data
+data/raw/
+*.csv
+# keep the folder itself so the structure exists on clone
+!data/raw/.gitkeep
