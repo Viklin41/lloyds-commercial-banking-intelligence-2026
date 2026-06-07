@@ -8,3 +8,6 @@ data/raw/
 *.csv
 # keep the folder itself so the structure exists on clone
 !data/raw/.gitkeep
+
+# Draft code/notebooks
+drafts
