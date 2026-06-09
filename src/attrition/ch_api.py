@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from pathlib import Path
 from typing import Optional
@@ -102,7 +103,8 @@ class CompaniesHouseClient:
         self._last_call = time.monotonic()
 
     def _cache_path(self, key: str) -> Path:
-        safe = key.replace("/", "_").strip("_")
+        # Keep only filename-safe characters (Windows forbids ? & = % etc).
+        safe = re.sub(r"[^A-Za-z0-9._-]", "_", key).strip("_")
         return self.cache_dir / f"{safe}.json"
 
     def _get(self, path: str, use_cache: bool = True) -> Optional[dict]:
@@ -118,7 +120,8 @@ class CompaniesHouseClient:
             resp = session.get(url, timeout=30)
             if resp.status_code == 200:
                 data = resp.json()
-                cache_file.write_text(json.dumps(data), encoding="utf-8")
+                if use_cache:
+                    cache_file.write_text(json.dumps(data), encoding="utf-8")
                 return data
             if resp.status_code == 404:
                 return None
@@ -130,6 +133,16 @@ class CompaniesHouseClient:
         raise RuntimeError(f"Giving up on {url} after repeated rate limiting")
 
     # --- endpoints -------------------------------------------------------
+    def search_companies(self, query: str, items: int = 1) -> list:
+        """Search companies by name. Returns the raw 'items' list (top matches)."""
+        from urllib.parse import quote
+
+        data = self._get(
+            f"/search/companies?q={quote(query)}&items_per_page={items}",
+            use_cache=False,
+        )
+        return data.get("items", []) if data else []
+
     def get_company(self, company_number: str) -> Optional[dict]:
         return self._get(f"/company/{company_number}")
 
@@ -192,8 +205,54 @@ def lender_timeline(charges: list) -> list:
     return rows
 
 
+# Charge status vocabulary used by the API. A charge still owed is "outstanding"
+# or "part-satisfied"; a cleared charge is "satisfied" or "fully-satisfied".
+OUTSTANDING_STATUSES = {"outstanding", "part-satisfied"}
+SATISFIED_STATUSES = {"satisfied", "fully-satisfied"}
+
+
+def is_outstanding(charge: dict) -> bool:
+    return (charge.get("status") or "").lower() in OUTSTANDING_STATUSES
+
+
+def is_satisfied(charge: dict) -> bool:
+    return (charge.get("status") or "").lower() in SATISFIED_STATUSES
+
+
+# Major UK banking groups: map any subsidiary name containing a keyword to the
+# group, so 'Hsbc Equipment Finance' and 'Hsbc UK Bank' both become HSBC. This is
+# a coarse entity resolution on the lender side; it reduces false switch signals
+# between subsidiaries of the same group.
+_BANK_GROUPS = {
+    "LLOYDS": ("lloyds", "bank of scotland", "halifax", "hbos", "black horse", "mbna"),
+    "HSBC": ("hsbc", "midland bank"),
+    "BARCLAYS": ("barclays",),
+    "NATWEST": (
+        "natwest", "national westminster", "royal bank of scotland", "rbs",
+        "ulster bank", "coutts", "lombard north",
+    ),
+    "SANTANDER": ("santander", "abbey national"),
+    "NATIONWIDE": ("nationwide",),
+    "VIRGIN MONEY": ("virgin money", "clydesdale", "yorkshire bank", "cybg"),
+    "TSB": ("tsb",),
+    "METRO BANK": ("metro bank",),
+    "CO-OPERATIVE BANK": ("co-operative bank", "co-op bank"),
+    "ALDERMORE": ("aldermore",),
+    "SHAWBROOK": ("shawbrook",),
+    "CLOSE BROTHERS": ("close brothers",),
+}
+
+
 def _normalise_lender(name: str) -> str:
-    """Loose normalisation so 'Barclays Bank PLC' ~ 'BARCLAYS BANK PLC.'."""
+    """Normalise a lender name to a banking group where possible.
+
+    Falls back to a suffix-stripped upper-case name for non-bank or unknown
+    lenders, so 'Barclays Bank PLC' ~ 'BARCLAYS BANK PLC.'.
+    """
+    low = name.lower()
+    for group, keywords in _BANK_GROUPS.items():
+        if any(k in low for k in keywords):
+            return group
     n = name.upper().strip().rstrip(".")
     for suffix in (" PLC", " LIMITED", " LTD", " LLP"):
         if n.endswith(suffix):
@@ -201,23 +260,89 @@ def _normalise_lender(name: str) -> str:
     return n
 
 
+# Markers that a "person entitled" is a security trustee or agent acting for a
+# syndicate or bondholders, not the lender itself. These dominate large/complex
+# debt and must be stripped before reading a bank-supplier change.
+_AGENT_MARKERS = (
+    "security agent", "security trustee", "as trustee", "as security",
+    "nominee", "fiduciary", "trust corporation", "trustees limited",
+    "trustee company", "as agent",
+)
+
+LENDER_BANK = "bank"
+LENDER_AGENT = "security_agent"
+LENDER_OTHER = "other"  # non-bank lender, PE/credit fund, landlord, individual
+
+
+def lender_type(name: str) -> str:
+    """Classify a charge holder as a bank, a security agent, or other."""
+    low = name.lower()
+    for keywords in _BANK_GROUPS.values():
+        if any(k in low for k in keywords):
+            return LENDER_BANK
+    if any(m in low for m in _AGENT_MARKERS):
+        return LENDER_AGENT
+    return LENDER_OTHER
+
+
+def _bank_set(charges: list, status_pred) -> set:
+    """Recognised banking groups among lenders matching a status predicate."""
+    out = set()
+    for c in charges:
+        if not status_pred(c):
+            continue
+        for l in c["lenders"]:
+            if l and lender_type(l) == LENDER_BANK:
+                out.add(_normalise_lender(l))
+    return out
+
+
+def detect_bank_switch(charges: list) -> dict:
+    """Bank-supplier change restricted to recognised banks.
+
+    Ignores security agents, PE/credit funds, landlords, and individuals, so the
+    signal reflects a genuine move between high-street/commercial banks. A bank
+    is "lost" if its charge is cleared and it holds no outstanding charge, and a
+    different bank is "gained" on an outstanding charge.
+    """
+    current = _bank_set(charges, is_outstanding)
+    past = _bank_set(charges, is_satisfied)
+    lost = past - current
+    gained = current - past
+    return {
+        # Clean A -> B switch: a bank dropped and a different bank picked up.
+        "bank_switch": bool(lost) and bool(gained),
+        # More common and arguably stronger attrition signal: had bank charges,
+        # now holds no outstanding bank charge at all.
+        "lost_all_banks": bool(past) and not current,
+        # Reduced the number of bank relationships (consolidation).
+        "reduced_banks": len(lost) > 0,
+        "banks_lost": sorted(lost),
+        "banks_gained": sorted(gained),
+        "current_banks": sorted(current),
+        "past_banks": sorted(past),
+        "n_current_banks": len(current),
+        "n_past_banks": len(past),
+    }
+
+
 def current_lenders(charges: list) -> set:
-    """Distinct lenders on charges that are still outstanding."""
+    """Distinct lenders (grouped) on charges still owed."""
     return {
         _normalise_lender(l)
         for c in charges
-        if (c.get("status") or "").lower() == "outstanding"
+        if is_outstanding(c)
         for l in c["lenders"]
         if l
     }
 
 
 def past_lenders(charges: list) -> set:
-    """Distinct lenders whose charges are now satisfied (paid off)."""
+    """Distinct lenders (grouped) whose charges are cleared (paid off)."""
     return {
         _normalise_lender(l)
         for c in charges
-        if (c.get("status") or "").lower() == "satisfied"
+        if is_satisfied(c)
         for l in c["lenders"]
         if l
     }

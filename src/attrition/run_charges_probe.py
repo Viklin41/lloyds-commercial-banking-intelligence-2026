@@ -41,12 +41,8 @@ def main():
             "company_name": profile.get("company_name"),
             "company_status": profile.get("company_status"),
             "n_charges": len(charges),
-            "n_outstanding": sum(
-                1 for c in charges if (c.get("status") or "") == "outstanding"
-            ),
-            "n_satisfied": sum(
-                1 for c in charges if (c.get("status") or "") == "satisfied"
-            ),
+            "n_outstanding": sum(1 for c in charges if api.is_outstanding(c)),
+            "n_satisfied": sum(1 for c in charges if api.is_satisfied(c)),
             **switch,
         }
         results.append(row)
