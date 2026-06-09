@@ -3,6 +3,10 @@
 venv/
 .env
 
+# python cache
+__pycache__/
+*.pyc
+
 # Raw data
 data/raw/
 *.csv
