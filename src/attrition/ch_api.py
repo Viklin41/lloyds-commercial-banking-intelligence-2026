@@ -18,6 +18,7 @@ plain dictionaries, so they are unit tested without any network or install.
 
 from __future__ import annotations
 
+import datetime as _dt
 import json
 import os
 import re
@@ -326,6 +327,61 @@ def detect_bank_switch(charges: list) -> dict:
     }
 
 
+def _parse_iso(value):
+    """Parse a 'YYYY-MM-DD' string to a date, or return None."""
+    if not value:
+        return None
+    try:
+        return _dt.date.fromisoformat(value[:10])
+    except (ValueError, TypeError):
+        return None
+
+
+def _months_between(later, earlier) -> "float | None":
+    """Approximate months between two dates (later minus earlier)."""
+    a, b = _parse_iso(later) if isinstance(later, str) else later, \
+        _parse_iso(earlier) if isinstance(earlier, str) else earlier
+    if a is None or b is None:
+        return None
+    return (a - b).days / 30.44
+
+
+def bank_loss_date(charges: list):
+    """Date the company most recently lost a bank (latest satisfied bank charge
+    whose bank is no longer among its outstanding banks). Returns ISO str or None.
+    """
+    current = current_lenders_banks(charges)
+    dates = []
+    for c in charges:
+        if not is_satisfied(c):
+            continue
+        for l in c["lenders"]:
+            if l and lender_type(l) == LENDER_BANK:
+                grp = _normalise_lender(l)
+                if grp not in current and c.get("satisfied_on"):
+                    dates.append(c["satisfied_on"])
+    return max(dates) if dates else None
+
+
+def recent_bank_loss(charges: list, as_of: str, months: int = 24) -> bool:
+    """True if the company has lost all its banks and the loss is recent.
+
+    "Recent" means the latest lost-bank charge was satisfied within `months` of
+    the reference date. A fresh loss is a sharper attrition signal than an old one.
+    """
+    bs = detect_bank_switch(charges)
+    if not bs["lost_all_banks"]:
+        return False
+    loss = bank_loss_date(charges)
+    gap = _months_between(as_of, loss)
+    return gap is not None and 0 <= gap <= months
+
+
+def current_lenders_banks(charges: list) -> set:
+    """Banks (grouped) on charges still owed. Bank-only version of current_lenders."""
+    return _bank_set(charges, is_outstanding)
+
+
 def current_lenders(charges: list) -> set:
     """Distinct lenders (grouped) on charges still owed."""
     return {
@@ -370,4 +426,92 @@ def detect_switch(charges: list) -> dict:
         "gained_lenders": sorted(gained),
         "current_lenders": sorted(current),
         "past_lenders": sorted(past),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Filing history: the time dimension for a real attrition label
+# ---------------------------------------------------------------------------
+# A single snapshot shows a state, not a change. The filing history endpoint
+# lists a company's filings over time, so we can date when it first showed signs
+# of dormancy or closure. That lets us build an attrition event timeline without
+# waiting for a second snapshot.
+
+def parse_filing_history(response: "dict | None") -> list:
+    """Flatten a /filing-history response into simple per-filing dicts."""
+    if not response:
+        return []
+    out = []
+    for item in response.get("items", []):
+        out.append(
+            {
+                "date": item.get("date"),
+                "category": (item.get("category") or "").lower(),
+                "type": (item.get("type") or "").upper(),
+                "description": (item.get("description") or "").lower(),
+            }
+        )
+    return out
+
+
+def _is_strike_off(f: dict) -> bool:
+    return (
+        f["category"] == "gazette"
+        or f["type"].startswith("GAZ")
+        or f["type"] in {"DS01", "DS02"}
+        or "strike" in f["description"]
+        or "gazette" in f["description"]
+    )
+
+
+def _is_insolvency(f: dict) -> bool:
+    return (
+        f["category"] == "insolvency"
+        or any(
+            w in f["description"]
+            for w in ("insolvency", "liquidation", "administration", "receiver", "winding")
+        )
+    )
+
+
+def _is_dormant_accounts(f: dict) -> bool:
+    return f["category"] == "accounts" and "dormant" in f["description"]
+
+
+def _earliest_date(filings: list, predicate):
+    dates = [f["date"] for f in filings if f.get("date") and predicate(f)]
+    return min(dates) if dates else None
+
+
+def extract_attrition_events(filings: list) -> dict:
+    """Find the first date the company shows each kind of distress in its filings.
+
+    Returns the first date of a strike-off step, an insolvency filing, and a
+    dormant accounts filing, plus the earliest of the three and which it was.
+    Any field is None if that event never appears.
+    """
+    strike = _earliest_date(filings, _is_strike_off)
+    insolv = _earliest_date(filings, _is_insolvency)
+    dormant = _earliest_date(filings, _is_dormant_accounts)
+
+    candidates = {
+        "strike_off": strike,
+        "insolvency": insolv,
+        "dormant_accounts": dormant,
+    }
+    present = {k: v for k, v in candidates.items() if v}
+    if present:
+        earliest_type = min(present, key=present.get)
+        earliest_date = present[earliest_type]
+    else:
+        earliest_type = None
+        earliest_date = None
+
+    return {
+        "first_strike_off": strike,
+        "first_insolvency": insolv,
+        "first_dormant_accounts": dormant,
+        "first_event_type": earliest_type,
+        "first_event_date": earliest_date,
+        "has_event": earliest_date is not None,
     }

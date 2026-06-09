@@ -180,6 +180,88 @@ class TestLenderType(unittest.TestCase):
         self.assertEqual(result["current_banks"], [])
 
 
+class TestRecentBankLoss(unittest.TestCase):
+    def test_bank_loss_date(self):
+        charges = api.parse_charges(
+            {
+                "items": [
+                    _charge("2015-01-01", "2020-06-15", "fully-satisfied", ["Lloyds Bank PLC"]),
+                    _charge("2012-01-01", "2018-03-01", "fully-satisfied", ["Barclays Bank PLC"]),
+                ]
+            }
+        )
+        # Most recent satisfied bank charge wins.
+        self.assertEqual(api.bank_loss_date(charges), "2020-06-15")
+
+    def test_recent_vs_old_loss(self):
+        recent = api.parse_charges(
+            {"items": [_charge("2015-01-01", "2025-01-01", "fully-satisfied", ["Lloyds Bank PLC"])]}
+        )
+        old = api.parse_charges(
+            {"items": [_charge("2005-01-01", "2010-01-01", "fully-satisfied", ["Lloyds Bank PLC"])]}
+        )
+        self.assertTrue(api.recent_bank_loss(recent, "2026-06-01", months=24))
+        self.assertFalse(api.recent_bank_loss(old, "2026-06-01", months=24))
+
+    def test_no_recent_loss_if_still_banked(self):
+        charges = api.parse_charges(
+            {
+                "items": [
+                    _charge("2015-01-01", "2025-01-01", "fully-satisfied", ["Lloyds Bank PLC"]),
+                    _charge("2025-02-01", None, "outstanding", ["HSBC UK Bank PLC"]),
+                ]
+            }
+        )
+        # Still has an outstanding bank, so not "lost all banks".
+        self.assertFalse(api.recent_bank_loss(charges, "2026-06-01", months=24))
+
+
+class TestFilingHistory(unittest.TestCase):
+    def _fh(self, items):
+        return {"items": items}
+
+    def test_parse(self):
+        raw = self._fh(
+            [{"date": "2024-01-01", "category": "Accounts", "type": "AA",
+              "description": "accounts-with-accounts-type-dormant"}]
+        )
+        parsed = api.parse_filing_history(raw)
+        self.assertEqual(parsed[0]["category"], "accounts")
+        self.assertEqual(parsed[0]["type"], "AA")
+
+    def test_extract_events(self):
+        filings = api.parse_filing_history(
+            self._fh(
+                [
+                    {"date": "2023-05-01", "category": "accounts", "type": "AA",
+                     "description": "accounts-with-accounts-type-dormant"},
+                    {"date": "2024-02-01", "category": "gazette", "type": "GAZ1",
+                     "description": "first-gazette-notice-for-compulsory-strike-off"},
+                    {"date": "2020-01-01", "category": "confirmation-statement", "type": "CS01",
+                     "description": "confirmation-statement"},
+                ]
+            )
+        )
+        ev = api.extract_attrition_events(filings)
+        self.assertTrue(ev["has_event"])
+        self.assertEqual(ev["first_dormant_accounts"], "2023-05-01")
+        self.assertEqual(ev["first_strike_off"], "2024-02-01")
+        # Earliest distress event is the dormant filing in 2023.
+        self.assertEqual(ev["first_event_type"], "dormant_accounts")
+        self.assertEqual(ev["first_event_date"], "2023-05-01")
+
+    def test_no_events(self):
+        filings = api.parse_filing_history(
+            self._fh(
+                [{"date": "2024-01-01", "category": "confirmation-statement",
+                  "type": "CS01", "description": "confirmation-statement"}]
+            )
+        )
+        ev = api.extract_attrition_events(filings)
+        self.assertFalse(ev["has_event"])
+        self.assertIsNone(ev["first_event_date"])
+
+
 class TestLenderTimeline(unittest.TestCase):
     def test_sorted_by_creation(self):
         charges = api.parse_charges(

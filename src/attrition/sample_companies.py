@@ -44,6 +44,7 @@ KEEP_COLS = [
     "CompanyName",
     "sector",
     "size_band",
+    "status_class",
     "attrition_status",
     "is_distress",
     "is_dormant",
@@ -56,36 +57,49 @@ KEEP_COLS = [
 OUT_PATH = Path("data/processed/attrition_sample.csv")
 
 
-def build_population(df: pd.DataFrame) -> pd.DataFrame:
-    """Filter to companies worth probing for bank attrition."""
-    mask = (
-        df["has_charges"]
-        & df["size_band"].isin(TARGET_SIZES)
-        & (df["sector"] != d.SECTOR_OTHER)
-    )
+def status_class(row) -> str:
+    """A simple outcome class for a company: distress, dormant, or healthy."""
+    if row["is_distress"]:
+        return "distress"
+    if row["is_dormant"]:
+        return "dormant"
+    return "healthy"
+
+
+def build_population(df: pd.DataFrame, include_dormant: bool = False) -> pd.DataFrame:
+    """Filter to companies worth probing for bank attrition.
+
+    By default we keep SME and larger firms (where bank charges exist). When we
+    want a status-balanced sample we also let dormant firms in, because dormant
+    accounts carry no size band yet are exactly the attrition cases we want.
+    """
+    size_ok = df["size_band"].isin(TARGET_SIZES)
+    if include_dormant:
+        size_ok = size_ok | df["is_dormant"]
+    mask = df["has_charges"] & size_ok & (df["sector"] != d.SECTOR_OTHER)
     return df.loc[mask].copy()
 
 
-def stratified_sample(pop: pd.DataFrame, n: int, seed: int) -> pd.DataFrame:
-    """Take a roughly equal number of companies from each size band.
+def stratified_sample(pop: pd.DataFrame, column: str, n: int, seed: int) -> pd.DataFrame:
+    """Take a roughly equal number of companies from each value of `column`.
 
-    If a band has fewer companies than its share, we take all of it and spread
-    the remainder over the larger bands, so we still reach n where possible.
+    If a group has fewer companies than its share, we take all of it and spread
+    the remainder over the larger groups, so we still reach n where possible.
     """
-    bands = [b for b in TARGET_SIZES if (pop["size_band"] == b).any()]
-    if not bands:
+    groups = [g for g in pop[column].unique() if (pop[column] == g).any()]
+    if not groups:
         return pop.head(0)
 
-    per_band = n // len(bands)
+    per_group = n // len(groups)
     chosen = []
     shortfall = 0
-    for b in bands:
-        sub = pop[pop["size_band"] == b]
-        take = min(per_band, len(sub))
-        shortfall += per_band - take
+    for g in groups:
+        sub = pop[pop[column] == g]
+        take = min(per_group, len(sub))
+        shortfall += per_group - take
         chosen.append(sub.sample(take, random_state=seed))
 
-    # Spread any shortfall over the bands that still have spare companies.
+    # Spread any shortfall over the groups that still have spare companies.
     if shortfall > 0:
         already = pd.concat(chosen)
         spare = pop.drop(already.index)
@@ -101,6 +115,10 @@ def main():
     ap.add_argument("--csv", default=None, help="Path to the bulk CSV")
     ap.add_argument("--n", type=int, default=500, help="Sample size")
     ap.add_argument("--seed", type=int, default=42, help="Random seed")
+    ap.add_argument("--strata", choices=["size", "status"], default="size",
+                    help="Balance the sample across size bands or across "
+                         "outcome classes (healthy/distress/dormant)")
+    ap.add_argument("--out", default=str(OUT_PATH), help="Output CSV path")
     args = ap.parse_args()
 
     csv_path = args.csv or find_default_csv()
@@ -110,20 +128,23 @@ def main():
     df = load_bulk(csv_path)
     print(f"Loaded {len(df):,} rows. Adding features ...")
     df = add_derived(df, as_of)
+    df["status_class"] = df.apply(status_class, axis=1)
 
-    pop = build_population(df)
-    print(f"Population worth probing (charges + SME/Mid/Large + target sector): {len(pop):,}")
-    print("By size band:")
-    print(pop["size_band"].value_counts().to_string())
+    strat_col = "size_band" if args.strata == "size" else "status_class"
+    pop = build_population(df, include_dormant=(args.strata == "status"))
+    print(f"Population worth probing: {len(pop):,}")
+    print(f"By {strat_col}:")
+    print(pop[strat_col].value_counts().to_string())
 
-    sample = stratified_sample(pop, args.n, args.seed)
+    sample = stratified_sample(pop, strat_col, args.n, args.seed)
     sample = sample[[c for c in KEEP_COLS if c in sample.columns]]
 
-    OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    sample.to_csv(OUT_PATH, index=False)
-    print(f"\nWrote {len(sample):,} companies to {OUT_PATH}")
-    print("Sample by size band:")
-    print(sample["size_band"].value_counts().to_string())
+    out_path = Path(args.out)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    sample.to_csv(out_path, index=False)
+    print(f"\nWrote {len(sample):,} companies to {out_path}")
+    print(f"Sample by {strat_col}:")
+    print(sample[strat_col].value_counts().to_string())
     print("Sample by sector:")
     print(sample["sector"].value_counts().to_string())
 

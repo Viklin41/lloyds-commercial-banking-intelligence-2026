@@ -14,6 +14,7 @@ individuals are not counted as banks.
 | companies probed | 498.0 |
 | with any recognised bank charge | 383.0 |
 | lost_all_banks (% of bank firms) | 32.6 |
+| recent_bank_loss last 24m (% of bank firms) | 6.8 |
 | reduced_banks (% of bank firms) | 53.8 |
 | bank_switch (% of bank firms) | 12.5 |
 

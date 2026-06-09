@@ -17,6 +17,14 @@ up in the team's working notes.
 - `run_bulk_eda.py` - baseline cross-sectional attrition EDA on the bulk
   snapshot (rates by sector, size, age; charge presence; a sampling-bias check).
 - `run_charges_probe.py` - validate switch detection on real companies.
+- `sample_companies.py` - draw a fair sample of companies that hold charges,
+  balanced across size bands (default) or across outcome classes
+  (`--strata status`: healthy, distress, dormant).
+- `enrich_charges.py` - call the charges API per company and write the bank
+  picture, including lost-all-banks, reduced-banks, clean switch, and a recent
+  bank loss flag (last 24 months).
+- `build_attrition_labels.py` - use filing history to date the first distress
+  event per company, then test whether a bank loss tends to come first.
 
 ## Setup
 
@@ -46,6 +54,16 @@ cp .env.example .env   # then paste your CH_API_KEY
 
 # switch-detection probe (needs an API key)
 .venv/Scripts/python -m src.attrition.run_charges_probe 00445790 02065704
+
+# bank attrition signals on a fair sample (needs the bulk file and an API key)
+.venv/Scripts/python -m src.attrition.sample_companies --n 500
+.venv/Scripts/python -m src.attrition.enrich_charges
+
+# attrition labels from filing history, with a status-balanced sample
+.venv/Scripts/python -m src.attrition.sample_companies --strata status --n 600 \
+    --out data/processed/attrition_status_sample.csv
+.venv/Scripts/python -m src.attrition.build_attrition_labels \
+    --sample data/processed/attrition_status_sample.csv
 ```
 
 ## Why charges matter most here

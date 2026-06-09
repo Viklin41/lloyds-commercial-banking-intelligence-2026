@@ -40,7 +40,8 @@ OUT_CSV = Path("data/processed/attrition_charges_enriched.csv")
 OUT_MD = Path("reports/attrition/attrition_charges_summary.md")
 
 
-def enrich(sample: pd.DataFrame, client: api.CompaniesHouseClient) -> pd.DataFrame:
+def enrich(sample: pd.DataFrame, client: api.CompaniesHouseClient, as_of: str,
+           recent_months: int = 24) -> pd.DataFrame:
     """Call the charges API for each company and add the bank-attrition fields."""
     rows = []
     total = len(sample)
@@ -62,6 +63,9 @@ def enrich(sample: pd.DataFrame, client: api.CompaniesHouseClient) -> pd.DataFra
                 "bank_switch": bs["bank_switch"],
                 "lost_all_banks": bs["lost_all_banks"],
                 "reduced_banks": bs["reduced_banks"],
+                # When the company last lost a bank, and whether that is recent.
+                "bank_loss_date": api.bank_loss_date(charges),
+                "recent_bank_loss": api.recent_bank_loss(charges, as_of, recent_months),
                 "current_banks": "; ".join(bs["current_banks"]),
                 "banks_lost": "; ".join(bs["banks_lost"]),
                 "banks_gained": "; ".join(bs["banks_gained"]),
@@ -86,6 +90,7 @@ def summarise(res: pd.DataFrame) -> str:
         "companies probed": len(res),
         "with any recognised bank charge": n_bank,
         "lost_all_banks (% of bank firms)": pct(has_bank["lost_all_banks"]),
+        "recent_bank_loss last 24m (% of bank firms)": pct(has_bank["recent_bank_loss"]),
         "reduced_banks (% of bank firms)": pct(has_bank["reduced_banks"]),
         "bank_switch (% of bank firms)": pct(has_bank["bank_switch"]),
     }
@@ -152,13 +157,16 @@ def summarise(res: pd.DataFrame) -> str:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sample", default=str(SAMPLE_PATH), help="Path to the sample CSV")
+    ap.add_argument("--as-of", default="2026-06-01", help="Reference date YYYY-MM-DD")
+    ap.add_argument("--recent-months", type=int, default=24,
+                    help="Window for a 'recent' bank loss")
     args = ap.parse_args()
 
     sample = pd.read_csv(args.sample, dtype={"CompanyNumber": str})
     print(f"Probing charges for {len(sample):,} companies ...")
 
     client = api.CompaniesHouseClient()  # raises if no key
-    res = enrich(sample, client)
+    res = enrich(sample, client, args.as_of, args.recent_months)
 
     OUT_CSV.parent.mkdir(parents=True, exist_ok=True)
     res.to_csv(OUT_CSV, index=False)
