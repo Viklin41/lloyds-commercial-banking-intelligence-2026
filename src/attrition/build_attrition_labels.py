@@ -45,7 +45,8 @@ OUT_CSV = Path("data/processed/attrition_labels.csv")
 OUT_MD = Path("reports/attrition/attrition_labels_summary.md")
 
 
-def build(sample: pd.DataFrame, client: api.CompaniesHouseClient) -> pd.DataFrame:
+def build(sample: pd.DataFrame, client: api.CompaniesHouseClient,
+          as_of: str, window_months: int = 24) -> pd.DataFrame:
     rows = []
     total = len(sample)
     for i, rec in enumerate(sample.itertuples(index=False), start=1):
@@ -59,12 +60,23 @@ def build(sample: pd.DataFrame, client: api.CompaniesHouseClient) -> pd.DataFram
         loss = api.bank_loss_date(charges)
         had_bank = (bs["n_past_banks"] + bs["n_current_banks"]) > 0
 
-        # Did the bank loss come before the first distress event?
+        # Did the bank loss come before the first distress event (ever)?
         loss_before = None
         lead_months = None
         if ev["has_event"] and loss:
             lead_months = api._months_between(ev["first_event_date"], loss)
             loss_before = lead_months is not None and lead_months > 0
+
+        # Windowed version: did the firm lose a bank in the N months right before
+        # the event? This tests whether a recent loss is a tight early warning.
+        lost_window_before_event = (
+            api.lost_bank_within(charges, ev["first_event_date"], window_months)
+            if ev["has_event"]
+            else None
+        )
+        # Baseline for firms with no event: did they lose a bank in the N months
+        # before the snapshot date? Used as the control rate.
+        recent_loss_asof = api.recent_bank_loss(charges, as_of, window_months)
 
         rows.append(
             {
@@ -80,6 +92,8 @@ def build(sample: pd.DataFrame, client: api.CompaniesHouseClient) -> pd.DataFram
                 "first_event_date": ev["first_event_date"],
                 "bank_loss_before_event": loss_before,
                 "lead_months": round(lead_months, 1) if lead_months is not None else None,
+                "lost_window_before_event": lost_window_before_event,
+                "recent_loss_asof": recent_loss_asof,
             }
         )
         if i % 50 == 0 or i == total:
@@ -123,6 +137,23 @@ def summarise(res: pd.DataFrame) -> str:
         loss_first_rate = 0.0
         median_lead = None
 
+    # Windowed lead-lag: rate of a bank loss in the 24 months just before the
+    # event (for event firms) versus a bank loss in the last 24 months (for firms
+    # with no event). If the event group is clearly higher, a recent loss is a
+    # real near-term warning sign.
+    event_firms = res[res["has_event"]]
+    no_event = res[~res["has_event"]]
+    windowed = pd.DataFrame(
+        {
+            "n": [len(event_firms), len(no_event)],
+            "recent_bank_loss_rate": [
+                pct(event_firms["lost_window_before_event"]),
+                pct(no_event["recent_loss_asof"]),
+            ],
+        },
+        index=["event firms (24m before event)", "no-event firms (last 24m)"],
+    )
+
     lines = [
         "# Attrition labels from filing history (sample)",
         "",
@@ -153,6 +184,14 @@ def summarise(res: pd.DataFrame) -> str:
         f"- typical lead time when it did: "
         f"{median_lead if median_lead is not None else 'n/a'} months",
         "",
+        "## Windowed lead-lag (the sharper test)",
+        "",
+        "Did the firm lose a bank in the 24 months just before its event, compared",
+        "with firms that had no event losing a bank in the last 24 months? A clear",
+        "gap here would mean a recent loss is a genuine near-term warning.",
+        "",
+        df_to_md(windowed, "group"),
+        "",
         "Note: cell counts can be small, so read these as indicative, not final.",
     ]
     return "\n".join(lines)
@@ -161,13 +200,16 @@ def summarise(res: pd.DataFrame) -> str:
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--sample", required=True, help="Path to a sample CSV")
+    ap.add_argument("--as-of", default="2026-06-01", help="Snapshot date YYYY-MM-DD")
+    ap.add_argument("--window-months", type=int, default=24,
+                    help="Window for the recent / pre-event bank loss test")
     args = ap.parse_args()
 
     sample = pd.read_csv(args.sample, dtype={"CompanyNumber": str})
     print(f"Building labels for {len(sample):,} companies (2 API calls each) ...")
 
     client = api.CompaniesHouseClient()
-    res = build(sample, client)
+    res = build(sample, client, args.as_of, args.window_months)
 
     OUT_CSV.parent.mkdir(parents=True, exist_ok=True)
     res.to_csv(OUT_CSV, index=False)

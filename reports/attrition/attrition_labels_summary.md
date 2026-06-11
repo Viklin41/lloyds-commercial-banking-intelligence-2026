@@ -31,4 +31,15 @@ Among firms that had both a distress event and a datable bank loss (n = 135):
 - bank loss happened before the event: 88.1% of them
 - typical lead time when it did: 59.4 months
 
+## Windowed lead-lag (the sharper test)
+
+Did the firm lose a bank in the 24 months just before its event, compared
+with firms that had no event losing a bank in the last 24 months? A clear
+gap here would mean a recent loss is a genuine near-term warning.
+
+| group | n | recent_bank_loss_rate |
+| --- | --- | --- |
+| event firms (24m before event) | 417.0 | 7.2 |
+| no-event firms (last 24m) | 183.0 | 5.5 |
+
 Note: cell counts can be small, so read these as indicative, not final.

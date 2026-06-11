@@ -363,6 +363,33 @@ def bank_loss_date(charges: list):
     return max(dates) if dates else None
 
 
+def lost_bank_within(charges: list, ref_date: str, months: int = 24) -> bool:
+    """True if a bank was lost in the window of `months` ending at ref_date.
+
+    A bank is "lost" when its charge is satisfied and that bank holds no current
+    outstanding charge. We then check the satisfied date falls inside the window
+    just before ref_date. ref_date is an ISO string (for example an event date).
+    This is the windowed version used for the lead-lag test.
+    """
+    ref = _parse_iso(ref_date)
+    if ref is None:
+        return False
+    current = current_lenders_banks(charges)
+    window_days = months * 30.44
+    for c in charges:
+        if not is_satisfied(c):
+            continue
+        sat = _parse_iso(c.get("satisfied_on"))
+        if sat is None:
+            continue
+        for l in c["lenders"]:
+            if l and lender_type(l) == LENDER_BANK and _normalise_lender(l) not in current:
+                gap_days = (ref - sat).days
+                if 0 <= gap_days <= window_days:
+                    return True
+    return False
+
+
 def recent_bank_loss(charges: list, as_of: str, months: int = 24) -> bool:
     """True if the company has lost all its banks and the loss is recent.
 

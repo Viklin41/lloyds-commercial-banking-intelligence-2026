@@ -203,6 +203,17 @@ class TestRecentBankLoss(unittest.TestCase):
         self.assertTrue(api.recent_bank_loss(recent, "2026-06-01", months=24))
         self.assertFalse(api.recent_bank_loss(old, "2026-06-01", months=24))
 
+    def test_lost_bank_within_window(self):
+        charges = api.parse_charges(
+            {"items": [_charge("2010-01-01", "2021-06-01", "fully-satisfied", ["Lloyds Bank PLC"])]}
+        )
+        # Event in 2022: the loss (2021-06) is within 24 months before it.
+        self.assertTrue(api.lost_bank_within(charges, "2022-12-01", months=24))
+        # Event in 2026: the loss is more than 24 months before it.
+        self.assertFalse(api.lost_bank_within(charges, "2026-12-01", months=24))
+        # Loss after the reference date does not count.
+        self.assertFalse(api.lost_bank_within(charges, "2020-01-01", months=24))
+
     def test_no_recent_loss_if_still_banked(self):
         charges = api.parse_charges(
             {
