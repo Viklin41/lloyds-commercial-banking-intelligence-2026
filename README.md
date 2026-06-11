@@ -15,15 +15,6 @@ media coverage (news) to look for patterns that point to lending needs, growth,
 or risk. Everything here uses public data and free APIs only. No Lloyds internal
 data is used.
 
-## Team and workstreams
-
-The work maps onto the three aims the bank cares about:
-
-- Grow the client base: Vishal and Viktor.
-- Defend against attrition (dormant accounts, closures, and bank supplier
-  changes): Sam.
-- Deepen relationships with existing clients: Sneha.
-
 This branch holds the shared data pipeline and the attrition workstream.
 
 ## Data sources
