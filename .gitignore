@@ -6,8 +6,8 @@ venv/
 # Raw data
 data/raw/
 *.csv
-# keep the folder itself so the structure exists on clone
-!data/raw/.gitkeep
+# Allow processed data
+!data/processed/**
 
 # Draft code/notebooks
 drafts
