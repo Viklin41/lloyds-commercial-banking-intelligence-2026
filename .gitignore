@@ -1,13 +1,24 @@
-# virtual environment
+# Virtual environments
 .venv/
 venv/
+env/
+.env/
+
+# Environment variables
 .env
 
-# Raw data
-data/raw/
-*.csv
-# keep the folder itself so the structure exists on clone
-!data/raw/.gitkeep
+# Data (all raw, processed, and output files)
+data/
 
 # Draft code/notebooks
-drafts
+drafts/
+
+# Python cache
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.idea/
+*.swp
