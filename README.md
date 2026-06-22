@@ -15,7 +15,8 @@ media coverage (news) to look for patterns that point to lending needs, growth,
 or risk. Everything here uses public data and free APIs only. No Lloyds internal
 data is used.
 
-This branch holds the shared data pipeline and the attrition workstream.
+This branch holds the attrition workstream, written as a single self-contained
+notebook so the whole analysis can be read in one place.
 
 ## Data sources
 
@@ -28,13 +29,13 @@ This branch holds the shared data pipeline and the attrition workstream.
 ## Repository layout
 
 ```
-notebooks/        exploratory notebooks (the original Companies House EDA)
-src/
-  data_collection/  shared pipeline: SIC lookup, static dataset, news
-  attrition/        the attrition workstream (Sam)
-tests/            unit tests for the pure logic (46 tests)
-reports/          generated summaries and figures
-data/             raw and processed data (gitignored, not in the repo)
+notebooks/
+  attrition_analysis.ipynb   the whole attrition workstream, code and explanation in one notebook
+  01_companies_house.ipynb   the team's original Companies House exploration
+src/data_collection/
+  SIC_converter.py           builds the SIC code lookup table
+reports/                     the project brief
+data/                        raw and processed data (gitignored, not in the repo)
 ```
 
 ## Setup
@@ -51,43 +52,23 @@ https://download.companieshouse.gov.uk/en_output.html and unzip the CSV into
 
 ## How to run
 
-```
-# tests (no data or key needed)
-.venv/Scripts/python -m unittest discover -s tests -v
+Open `notebooks/attrition_analysis.ipynb` and run the cells top to bottom. It is
+self-contained: it explains each step, holds all the code, and shows the results.
+You need the bulk file in `data/raw/` and your API key in `.env` (above) for the
+live cells; the rest runs on their own.
 
-# 1. Build the agreed static dataset (three sectors, BB and SME) and a sample
-.venv/Scripts/python -m src.data_collection.build_static_dataset --sample 100
+## What the notebook covers
 
-# 2. Link the sample to news and build the first joined dataset
-.venv/Scripts/python -m src.data_collection.build_joined_dataset
+`notebooks/attrition_analysis.ipynb` runs end to end:
 
-# 3. Attrition: baseline rates, bank signals, and filing-history labels
-.venv/Scripts/python -m src.attrition.run_bulk_eda
-.venv/Scripts/python -m src.attrition.sample_companies --n 500
-.venv/Scripts/python -m src.attrition.enrich_charges
-.venv/Scripts/python -m src.attrition.sample_companies --strata status --n 600 \
-    --out data/processed/attrition_status_sample.csv
-.venv/Scripts/python -m src.attrition.build_attrition_labels \
-    --sample data/processed/attrition_status_sample.csv
-```
-
-## What we have done so far
-
-Companies House side:
-- Loaded and described the full bulk file (5,698,274 companies).
-- Built a reusable feature layer: company status to an attrition state, dormancy
-  flag, size band from the account category, SIC code to a Lloyds target sector,
-  and filing punctuality.
-- Built the agreed static dataset to the criteria the group set (Technology legal
-  and professional, Manufacturing, Fast growth and emerging; BB and SME turnover;
-  still trading). Result: 824,632 companies.
-
-News side:
-- Built a free GDELT news client and a first joined company plus news dataset.
-
-Attrition side (Sam):
-- Built and tested signals for the three kinds of attrition (dormancy, closure,
-  and bank supplier change) using charges and filing history from the API.
+- Loads and describes the full bulk file (5,698,274 companies).
+- Turns the raw fields into signals: company status to an attrition state,
+  dormancy flag, size band from the account category, SIC code to a Lloyds target
+  sector, and filing punctuality.
+- Reads the live Companies House service for loans and filing history, and builds
+  the signals for the three kinds of attrition (dormancy, closure, and bank
+  supplier change), including the bank-switch detector.
+- Checks news coverage from GDELT.
 
 ## Key findings so far
 
@@ -125,4 +106,4 @@ media linkage is better aimed at larger firms.
 
 - The bulk data, processed datasets, API cache, and the `.env` key are not in
   git. See `.gitignore`.
-- Tests cover the pure logic and can run without any data or key.
+- The whole workstream lives in `notebooks/attrition_analysis.ipynb`.
