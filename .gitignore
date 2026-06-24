@@ -9,5 +9,9 @@ data/raw/
 # Allow processed data
 !data/processed/**
 
+# Build artifacts, rebuilt from the notebooks (do not commit)
+*.duckdb
+data/processed/cache/
+
 # Draft code/notebooks
 drafts
