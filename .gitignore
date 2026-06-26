@@ -12,6 +12,9 @@ data/raw/
 # Build artifacts, rebuilt from the notebooks (do not commit)
 *.duckdb
 data/processed/cache/
+*.parquet
+# stray Colab downloads landing next to the notebooks (the data zip lives in data/processed/)
+notebooks/*.zip
 
 # Draft code/notebooks
 drafts
