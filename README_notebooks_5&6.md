@@ -1,9 +1,7 @@
 # Task 6 explained simply: joining outside data to our company list
 
-This is a plain-English write up of everything we did for Sam's part of the Lloyds project:
-linking unstructured and outside data onto the main Companies House dataset. It is written so a
-non-coder can follow it, and so it can be copied into a paper notebook. It covers the idea, the
-steps, the results, and the mistakes we made and fixed along the way.
+ Lloyds project:
+linking unstructured and outside data onto the main Companies House dataset.
 
 ------------------------------------------------------------------------
 
