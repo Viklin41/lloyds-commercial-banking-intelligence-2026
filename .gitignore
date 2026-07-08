@@ -15,6 +15,10 @@ data/processed/cache/
 *.parquet
 # stray Colab downloads landing next to the notebooks (the data zip lives in data/processed/)
 notebooks/*.zip
+# presentation / slide files (kept in the private docs folder, not in the code repo)
+*.pptx
+# Colab download folders (the rebuilt database, data zip and caches land here)
+LLoyds_googledrive/
 
 # Draft code/notebooks
 drafts
