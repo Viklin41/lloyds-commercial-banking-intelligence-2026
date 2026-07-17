@@ -8,7 +8,7 @@ env/
 .env
 
 # Data (all raw, processed, and output files)
-data/
+/data/
 
 # Draft code/notebooks
 drafts/
