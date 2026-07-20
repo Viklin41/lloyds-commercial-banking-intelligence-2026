@@ -104,6 +104,7 @@ PREV_NAME_COLS = [f"PreviousName_{i}.CompanyName" for i in range(1, 11)]
 
 STAGE_DIR = Path("data/processed/panel_stage")
 PANEL_DIR = Path("data/processed/panel")
+DELTA_DIR = Path("data/processed/panel_deltas")
 UNIVERSE_PATH = Path("data/processed/panel_universe.parquet")
 
 
@@ -299,6 +300,265 @@ def extract_partition(
     part_dir.mkdir(parents=True, exist_ok=True)
     df.to_parquet(out, index=False, compression="zstd")
     return out
+
+
+# ---------------------------------------------------------------------------
+# Step 3: deltas
+# ---------------------------------------------------------------------------
+
+# Every delta is strictly backward-looking from month t.
+#
+# **The gap problem.** June 2025 is genuinely missing from the register, so a bare
+# positional LAG(3) would silently reach back *four* calendar months around the hole
+# and quietly corrupt every delta in that region. Nothing would error or look odd.
+#
+# **The fix: a dense month spine.** We materialise every company against all 34 calendar
+# months (universe CROSS JOIN months, LEFT JOIN the panel), so June 2025 exists as an
+# explicit all-NULL row. Positional LAG(N) is then *exactly* N calendar months back by
+# construction: reaching over the hole lands on the NULL row and the delta is NULL,
+# while months either side still compute normally.
+#
+# Two rejected alternatives, recorded so nobody re-treads them:
+#   - Four calendar self-joins (``l3.m = b.m - INTERVAL 3 MONTH``): correct, and the
+#     semantics we want, but it materialises four hash tables over 49.6M rows and had
+#     spilled 27GB without finishing. The spine gets the same answer with one join.
+#   - Validating a positional LAG against the calendar and nulling mismatches: correct
+#     but badly lossy. After the hole, LAG(12) is off-by-one for a whole year, so
+#     ``d_charges_12m`` would be NULL from Jul 2025 to May 2026 even though the true
+#     lag month exists and is perfectly usable.
+#
+# ``present`` distinguishes "no row for this company this month" from a real NULL, so a
+# missing lag never masquerades as a change.
+#
+# **Streaks and recency** use window functions over the observed months, then express
+# the answer with calendar arithmetic (``datediff('month', ...)``) so the output is
+# still in real months. Note these are *censored* at the panel edges: a company whose
+# first observed month is already overdue has an unknowable true streak start, so the
+# streak counts from Oct 2023 rather than from whenever it really began.
+
+DELTA_SQL = """
+WITH months AS (
+    SELECT CAST(unnest(generate_series(DATE '{first_month}', DATE '{last_month}',
+                                       INTERVAL 1 MONTH)) AS DATE) AS m
+),
+universe AS (
+    SELECT "CompanyNumber" AS cn FROM read_parquet('{universe_path}')
+),
+spine AS (
+    -- Every company against every calendar month, including the missing June 2025.
+    SELECT u.cn, mo.m FROM universe u CROSS JOIN months mo
+),
+observed AS (
+    SELECT
+        "CompanyNumber" AS cn,
+        snapshot_date   AS m,
+        source_date,
+        "Mortgages.NumMortCharges"     AS charges,
+        "Mortgages.NumMortOutstanding" AS outstanding,
+        "Mortgages.NumMortSatisfied"   AS satisfied,
+        debt_ratio, "CompanyStatus" AS status, is_active,
+        size_tier, segment, sector, accounts_overdue, company_age_years,
+        "SICCode.SicText_1"   AS sic1,
+        "CompanyName"         AS cname,
+        "RegAddress.PostCode" AS postcode,
+        try_strptime("Accounts.NextDueDate", '%d/%m/%Y') AS accounts_next_due,
+        try_strptime("ConfStmtNextDueDate", '%d/%m/%Y')  AS confstmt_next_due,
+        -- Only the four real size tiers rank; Dormant/No Filings/Subsidiary/Unknown
+        -- are filing buckets, not sizes, so they stay NULL and never fake an upgrade.
+        CASE size_tier WHEN 'Micro' THEN 1 WHEN 'Small' THEN 2
+                       WHEN 'Medium' THEN 3 WHEN 'Large' THEN 4 END AS tier_rank
+    FROM read_parquet('{panel_glob}')
+),
+base AS (
+    SELECT
+        s.cn, s.m,
+        o.cn IS NOT NULL AS present,
+        o.source_date, o.charges, o.outstanding, o.satisfied, o.debt_ratio,
+        o.status, o.is_active, o.size_tier, o.segment, o.sector, o.accounts_overdue,
+        o.company_age_years, o.sic1, o.cname, o.postcode,
+        o.accounts_next_due, o.confstmt_next_due, o.tier_rank
+    FROM spine s
+    LEFT JOIN observed o ON o.cn = s.cn AND o.m = s.m
+),
+lagged AS (
+    SELECT
+        *,
+        -- On a dense spine LAG(N) IS the N-calendar-month lag. `present` at the lag
+        -- position tells us whether that month held real data.
+        COALESCE(LAG(present, 1)  OVER w, false) AS has_l1,
+        COALESCE(LAG(present, 12) OVER w, false) AS has_l12,
+        LAG(charges, 1)      OVER w AS charges_l1,
+        LAG(status, 1)       OVER w AS status_l1,
+        LAG(charges, 3)      OVER w AS charges_l3,
+        LAG(charges, 6)      OVER w AS charges_l6,
+        LAG(charges, 12)     OVER w AS charges_l12,
+        LAG(outstanding, 3)  OVER w AS outstanding_l3,
+        LAG(outstanding, 6)  OVER w AS outstanding_l6,
+        LAG(outstanding, 12) OVER w AS outstanding_l12,
+        LAG(satisfied, 12)   OVER w AS satisfied_l12,
+        LAG(debt_ratio, 12)  OVER w AS debt_ratio_l12,
+        LAG(tier_rank, 12)   OVER w AS tier_rank_l12,
+        LAG(sic1, 12)        OVER w AS sic1_l12,
+        LAG(cname, 12)       OVER w AS cname_l12,
+        LAG(postcode, 12)    OVER w AS postcode_l12,
+        -- Previous *observed* month, skipping absent rows, for run detection.
+        LAG(status IGNORE NULLS)           OVER w AS status_prev_obs,
+        LAG(segment IGNORE NULLS)          OVER w AS segment_prev_obs,
+        LAG(accounts_overdue IGNORE NULLS) OVER w AS overdue_prev_obs
+    FROM base
+    WINDOW w AS (PARTITION BY cn ORDER BY m)
+),
+deltas AS (
+    SELECT
+        *,
+        -- Arithmetic deltas go NULL automatically when the lag month held no data.
+        charges     - charges_l3      AS d_charges_3m,
+        charges     - charges_l6      AS d_charges_6m,
+        charges     - charges_l12     AS d_charges_12m,
+        outstanding - outstanding_l3  AS d_outstanding_3m,
+        outstanding - outstanding_l6  AS d_outstanding_6m,
+        outstanding - outstanding_l12 AS d_outstanding_12m,
+        satisfied   - satisfied_l12   AS d_satisfied_12m,
+        debt_ratio  - debt_ratio_l12  AS debt_ratio_trend_12m,
+        CASE WHEN tier_rank IS NOT NULL AND tier_rank_l12 IS NOT NULL
+             THEN tier_rank > tier_rank_l12 END AS segment_upgraded_12m,
+        CASE WHEN tier_rank IS NOT NULL AND tier_rank_l12 IS NOT NULL
+             THEN tier_rank < tier_rank_l12 END AS segment_downgraded_12m,
+        -- IS DISTINCT FROM never returns NULL, so it would read an absent lag month as
+        -- "changed". has_l12 is the guard that keeps missingness missing.
+        CASE WHEN has_l12 THEN sic1     IS DISTINCT FROM sic1_l12     END AS sic_changed_12m,
+        CASE WHEN has_l12 THEN cname    IS DISTINCT FROM cname_l12    END AS name_changed_12m,
+        CASE WHEN has_l12 THEN postcode IS DISTINCT FROM postcode_l12 END AS postcode_changed_12m,
+        CASE WHEN has_l1  THEN charges > charges_l1              END AS is_new_charge,
+        CASE WHEN has_l1  THEN status IS DISTINCT FROM status_l1 END AS status_changed
+    FROM lagged
+),
+runs AS (
+    SELECT *,
+        -- Only present rows can break a run; the gap month must not reset everyone.
+        CASE WHEN present THEN status_prev_obs  IS NOT NULL
+                           AND status_prev_obs  IS DISTINCT FROM status
+             ELSE false END AS status_break,
+        CASE WHEN present THEN segment_prev_obs IS NOT NULL
+                           AND segment_prev_obs IS DISTINCT FROM segment
+             ELSE false END AS segment_break,
+        CASE WHEN present THEN overdue_prev_obs IS NOT NULL
+                           AND overdue_prev_obs IS DISTINCT FROM accounts_overdue
+             ELSE false END AS overdue_break
+    FROM deltas
+),
+islands AS (
+    SELECT *,
+        SUM(CASE WHEN status_break  THEN 1 ELSE 0 END) OVER w AS status_grp,
+        SUM(CASE WHEN segment_break THEN 1 ELSE 0 END) OVER w AS segment_grp,
+        SUM(CASE WHEN overdue_break THEN 1 ELSE 0 END) OVER w AS overdue_grp,
+        -- Trailing 12 calendar months inclusive of t. A RANGE frame keyed on the date
+        -- is calendar-aware for free; the gap month simply contributes nothing.
+        COALESCE(SUM(CASE WHEN is_new_charge THEN 1 ELSE 0 END)
+                 OVER (PARTITION BY cn ORDER BY m
+                       RANGE BETWEEN INTERVAL 11 MONTHS PRECEDING AND CURRENT ROW), 0)
+            AS new_charge_events_12m,
+        MAX(CASE WHEN is_new_charge THEN m END) OVER w AS last_new_charge_m,
+        -- Strictly *before* t: the frame stops at 1 PRECEDING so month t never labels itself.
+        COALESCE(MAX(CASE WHEN present AND NOT is_active THEN 1 ELSE 0 END)
+                 OVER (PARTITION BY cn ORDER BY m
+                       ROWS BETWEEN UNBOUNDED PRECEDING AND 1 PRECEDING), 0)::BOOLEAN
+            AS ever_distressed_before
+    FROM runs
+    WINDOW w AS (PARTITION BY cn ORDER BY m ROWS UNBOUNDED PRECEDING)
+)
+SELECT
+    cn AS "CompanyNumber", m AS snapshot_date, source_date,
+    charges AS "Mortgages.NumMortCharges",
+    outstanding AS "Mortgages.NumMortOutstanding",
+    satisfied AS "Mortgages.NumMortSatisfied",
+    status AS "CompanyStatus", is_active, sector, segment, size_tier, tier_rank,
+    sic1 AS "SICCode.SicText_1", cname AS "CompanyName", postcode AS "RegAddress.PostCode",
+    company_age_years, debt_ratio, accounts_overdue,
+    d_charges_3m, d_charges_6m, d_charges_12m,
+    d_outstanding_3m, d_outstanding_6m, d_outstanding_12m,
+    d_satisfied_12m, debt_ratio_trend_12m,
+    new_charge_events_12m,
+    datediff('month', last_new_charge_m, m) AS months_since_last_new_charge,
+    status_changed,
+    -- Island starts are measured over present months only, so a company that joins the
+    -- register mid-panel does not inherit the spine's start date.
+    datediff('month', MIN(CASE WHEN present THEN m END) OVER (PARTITION BY cn, status_grp),  m)
+        AS months_in_current_status,
+    ever_distressed_before,
+    segment_upgraded_12m, segment_downgraded_12m,
+    datediff('month', MIN(CASE WHEN present THEN m END) OVER (PARTITION BY cn, segment_grp), m)
+        AS months_since_segment_change,
+    CASE WHEN accounts_overdue
+         THEN datediff('month', MIN(CASE WHEN present THEN m END) OVER (PARTITION BY cn, overdue_grp), m) + 1
+         ELSE 0 END AS accounts_overdue_streak_months,
+    -- Point-in-time: compared against the real snapshot date, never against "now".
+    confstmt_next_due < source_date AS confstmt_late,
+    datediff('day', source_date, accounts_next_due) AS days_to_next_accounts_due,
+    sic_changed_12m, name_changed_12m, postcode_changed_12m
+FROM islands
+WHERE present
+"""
+
+# The panel's calendar span. June 2025 sits inside this range but has no snapshot, which
+# is exactly why the spine is built from the calendar rather than from the manifest.
+FIRST_MONTH = "2023-10-01"
+LAST_MONTH = "2026-07-01"
+
+DELTA_FEATURE_COLS = [
+    "d_charges_3m", "d_charges_6m", "d_charges_12m",
+    "d_outstanding_3m", "d_outstanding_6m", "d_outstanding_12m",
+    "d_satisfied_12m", "debt_ratio_trend_12m",
+    "new_charge_events_12m", "months_since_last_new_charge",
+    "status_changed", "months_in_current_status", "ever_distressed_before",
+    "segment_upgraded_12m", "segment_downgraded_12m", "months_since_segment_change",
+    "accounts_overdue_streak_months", "confstmt_late", "days_to_next_accounts_due",
+    "sic_changed_12m", "name_changed_12m", "postcode_changed_12m",
+]
+
+
+def build_deltas(
+    panel_dir: Path = PANEL_DIR,
+    out_dir: Path = DELTA_DIR,
+    threads: int | None = None,
+    memory_limit: str = "10GB",
+) -> int:
+    """Compute the backward-looking delta features over the whole panel at once.
+
+    Deltas need the full history in scope (a 12-month lag reaches across partitions),
+    so unlike the panel build this is one query, not a per-month loop. Output is
+    written back out partitioned by ``snapshot_date`` to match the panel layout.
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    tmp_dir = out_dir.parent / "duckdb_tmp"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+
+    con = duckdb.connect()
+    con.execute("PRAGMA disable_progress_bar")
+    con.execute(f"SET memory_limit='{memory_limit}'")
+    con.execute(f"SET temp_directory='{tmp_dir.as_posix()}'")  # spill rather than OOM
+    if threads:
+        con.execute(f"PRAGMA threads={threads}")
+
+    panel_glob = (panel_dir / "**" / "*.parquet").as_posix()
+    sql = DELTA_SQL.format(
+        panel_glob=panel_glob,
+        universe_path=UNIVERSE_PATH.as_posix(),
+        first_month=FIRST_MONTH,
+        last_month=LAST_MONTH,
+    )
+    con.execute(
+        f"""
+        COPY ({sql}) TO '{out_dir.as_posix()}'
+        (FORMAT PARQUET, COMPRESSION ZSTD,
+         PARTITION_BY (snapshot_date), OVERWRITE_OR_IGNORE)
+        """
+    )
+    n = con.execute(
+        f"SELECT count(*) FROM read_parquet('{(out_dir / '**' / '*.parquet').as_posix()}')"
+    ).fetchone()[0]
+    con.close()
+    return n
 
 
 def build_panel(
