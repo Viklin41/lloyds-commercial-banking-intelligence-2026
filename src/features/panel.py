@@ -357,12 +357,16 @@ observed AS (
         "Mortgages.NumMortOutstanding" AS outstanding,
         "Mortgages.NumMortSatisfied"   AS satisfied,
         debt_ratio, "CompanyStatus" AS status, is_active,
-        size_tier, segment, sector, accounts_overdue, company_age_years,
+        size_tier, segment, sector, accounts_overdue, accounts_stale, company_age_years,
         "SICCode.SicText_1"   AS sic1,
         "CompanyName"         AS cname,
         "RegAddress.PostCode" AS postcode,
         try_strptime("Accounts.NextDueDate", '%d/%m/%Y') AS accounts_next_due,
         try_strptime("ConfStmtNextDueDate", '%d/%m/%Y')  AS confstmt_next_due,
+        -- The period each last filing was made up to. These advance when a fresh filing
+        -- lands and freeze when a company stops filing, so months-since them climbs.
+        try_strptime("Accounts.LastMadeUpDate", '%d/%m/%Y') AS accounts_last_made,
+        try_strptime("ConfStmtLastMadeUpDate", '%d/%m/%Y')  AS confstmt_last_made,
         -- Only the four real size tiers rank; Dormant/No Filings/Subsidiary/Unknown
         -- are filing buckets, not sizes, so they stay NULL and never fake an upgrade.
         CASE size_tier WHEN 'Micro' THEN 1 WHEN 'Small' THEN 2
@@ -375,8 +379,9 @@ base AS (
         o.cn IS NOT NULL AS present,
         o.source_date, o.charges, o.outstanding, o.satisfied, o.debt_ratio,
         o.status, o.is_active, o.size_tier, o.segment, o.sector, o.accounts_overdue,
-        o.company_age_years, o.sic1, o.cname, o.postcode,
-        o.accounts_next_due, o.confstmt_next_due, o.tier_rank
+        o.accounts_stale, o.company_age_years, o.sic1, o.cname, o.postcode,
+        o.accounts_next_due, o.confstmt_next_due, o.accounts_last_made, o.confstmt_last_made,
+        o.tier_rank
     FROM spine s
     LEFT JOIN observed o ON o.cn = s.cn AND o.m = s.m
 ),
@@ -404,7 +409,8 @@ lagged AS (
         -- Previous *observed* month, skipping absent rows, for run detection.
         LAG(status IGNORE NULLS)           OVER w AS status_prev_obs,
         LAG(segment IGNORE NULLS)          OVER w AS segment_prev_obs,
-        LAG(accounts_overdue IGNORE NULLS) OVER w AS overdue_prev_obs
+        LAG(accounts_overdue IGNORE NULLS) OVER w AS overdue_prev_obs,
+        LAG(accounts_stale IGNORE NULLS)   OVER w AS stale_prev_obs
     FROM base
     WINDOW w AS (PARTITION BY cn ORDER BY m)
 ),
@@ -444,7 +450,10 @@ runs AS (
              ELSE false END AS segment_break,
         CASE WHEN present THEN overdue_prev_obs IS NOT NULL
                            AND overdue_prev_obs IS DISTINCT FROM accounts_overdue
-             ELSE false END AS overdue_break
+             ELSE false END AS overdue_break,
+        CASE WHEN present THEN stale_prev_obs IS NOT NULL
+                           AND stale_prev_obs IS DISTINCT FROM accounts_stale
+             ELSE false END AS stale_break
     FROM deltas
 ),
 islands AS (
@@ -452,6 +461,7 @@ islands AS (
         SUM(CASE WHEN status_break  THEN 1 ELSE 0 END) OVER w AS status_grp,
         SUM(CASE WHEN segment_break THEN 1 ELSE 0 END) OVER w AS segment_grp,
         SUM(CASE WHEN overdue_break THEN 1 ELSE 0 END) OVER w AS overdue_grp,
+        SUM(CASE WHEN stale_break   THEN 1 ELSE 0 END) OVER w AS stale_grp,
         -- Trailing 12 calendar months inclusive of t. A RANGE frame keyed on the date
         -- is calendar-aware for free; the gap month simply contributes nothing.
         COALESCE(SUM(CASE WHEN is_new_charge THEN 1 ELSE 0 END)
@@ -492,9 +502,19 @@ SELECT
     CASE WHEN accounts_overdue
          THEN datediff('month', MIN(CASE WHEN present THEN m END) OVER (PARTITION BY cn, overdue_grp), m) + 1
          ELSE 0 END AS accounts_overdue_streak_months,
+    -- Same island logic as the overdue streak: how long accounts have been *stale*
+    -- (last made-up date missing or older than 24 months), a slower-burning liveness tell.
+    CASE WHEN accounts_stale
+         THEN datediff('month', MIN(CASE WHEN present THEN m END) OVER (PARTITION BY cn, stale_grp), m) + 1
+         ELSE 0 END AS accounts_stale_streak_months,
     -- Point-in-time: compared against the real snapshot date, never against "now".
     confstmt_next_due < source_date AS confstmt_late,
     datediff('day', source_date, accounts_next_due) AS days_to_next_accounts_due,
+    -- Months since the last accounts / confirmation statement were made up to. Normally
+    -- cycle ~annually; a value that only ever climbs means the company stopped filing,
+    -- which tends to lead the formal status flip toward strike-off or insolvency.
+    datediff('month', accounts_last_made, source_date) AS months_since_last_accounts_filing,
+    datediff('month', confstmt_last_made, source_date) AS months_since_last_confstmt,
     sic_changed_12m, name_changed_12m, postcode_changed_12m
 FROM islands
 WHERE present
@@ -512,7 +532,9 @@ DELTA_FEATURE_COLS = [
     "new_charge_events_12m", "months_since_last_new_charge",
     "status_changed", "months_in_current_status", "ever_distressed_before",
     "segment_upgraded_12m", "segment_downgraded_12m", "months_since_segment_change",
-    "accounts_overdue_streak_months", "confstmt_late", "days_to_next_accounts_due",
+    "accounts_overdue_streak_months", "accounts_stale_streak_months",
+    "confstmt_late", "days_to_next_accounts_due",
+    "months_since_last_accounts_filing", "months_since_last_confstmt",
     "sic_changed_12m", "name_changed_12m", "postcode_changed_12m",
 ]
 
