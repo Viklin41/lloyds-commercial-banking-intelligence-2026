@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import re
 from pathlib import Path
 from typing import Iterator
 
@@ -56,6 +57,12 @@ SOURCES = {
 RAW_DIR = Path("data/raw/contracts")
 FLAT_PATH = Path("data/processed/contracts_flat.parquet")
 ASOF_DIR = Path("data/processed/contracts_asof")
+
+# The wider set, adding suppliers resolved by name+postcode. Same schema, same
+# partitioning; consumers switch by pointing at this directory instead. See
+# src/features/matching.py for how those rows are resolved and what they cost.
+FLAT_EXT_PATH = Path("data/processed/contracts_flat_ext.parquet")
+ASOF_EXT_DIR = Path("data/processed/contracts_asof_ext")
 
 REQUEST_TIMEOUT = 60
 CHUNK_BYTES = 1 << 20
@@ -113,17 +120,38 @@ def iter_releases(path: Path) -> Iterator[dict]:
                 yield json.loads(line)
 
 
-def _ch_numbers(release: dict) -> dict[str, str]:
-    """Party id -> Companies House number, for parties published with GB-COH.
+# A UK postcode sitting anywhere in a free-text address. Contracts Finder never
+# fills address.postalCode but does put the postcode at the end of streetAddress,
+# so this recovers it for ~87% of CF supplier parties.
+POSTCODE_RE = re.compile(r"\b[A-Z]{1,2}\d[A-Z\d]?\s*\d[A-Z]{2}\b", re.I)
 
-    Same normalisation as NB05 (strip, upper, pad to 8). Parties without a
-    ``GB-COH`` identifier are simply absent, so callers drop those suppliers.
+
+def _supplier_index(release: dict) -> dict[str, dict]:
+    """Party id -> what we know about that organisation.
+
+    ``cn`` is the Companies House number when the party carries a ``GB-COH``
+    identifier (normalised as in NB05: strip, upper, pad to 8) and ``None``
+    otherwise. ``name`` and ``pc`` are kept for every party so an unmatched
+    supplier can still be resolved later by :mod:`src.features.matching`.
     """
-    out: dict[str, str] = {}
+    out: dict[str, dict] = {}
     for party in release.get("parties") or []:
         ident = party.get("identifier") or {}
+        cn = None
         if ident.get("scheme") == "GB-COH" and ident.get("id"):
-            out[party.get("id")] = str(ident["id"]).strip().upper().zfill(8)
+            cn = str(ident["id"]).strip().upper().zfill(8)
+
+        address = party.get("address") or {}
+        pc = address.get("postalCode") or ""
+        if not pc:
+            found = POSTCODE_RE.search(address.get("streetAddress") or "")
+            pc = found.group(0) if found else ""
+
+        out[party.get("id")] = {
+            "cn": cn,
+            "name": party.get("name") or ident.get("legalName") or "",
+            "pc": pc.upper().replace(" ", ""),
+        }
     return out
 
 
@@ -132,11 +160,19 @@ def _date(value) -> str | None:
     return str(value)[:10] if value else None
 
 
-def _row(cn, name, release, buyer, published, signed, amount, currency, n_suppliers):
-    """One (supplier company, award) row in the shared cross-source schema."""
+def _row(party, release, buyer, published, signed, amount, currency, n_suppliers):
+    """One (supplier company, award) row in the shared cross-source schema.
+
+    ``CompanyNumber`` is NULL for a supplier with no ``GB-COH`` identifier. Those
+    rows are dropped on the strict path and resolved by name+postcode on the
+    extended one, which is why ``match_name`` / ``match_pc`` travel with the row.
+    """
     return {
-        "CompanyNumber": cn,
-        "company_name_src": name,
+        "CompanyNumber": party["cn"],
+        "match_method": "coh" if party["cn"] else None,
+        "match_name": party["name"],
+        "match_pc": party["pc"],
+        "company_name_src": party["name"],
         "ocid": release.get("ocid"),
         "buyer_name": buyer,
         "publication_date": published,
@@ -152,8 +188,8 @@ def _row(cn, name, release, buyer, published, signed, amount, currency, n_suppli
 
 def flatten_cf(release: dict) -> list[dict]:
     """Contracts Finder: money and dates live on ``awards[]``."""
-    party_ch = _ch_numbers(release)
-    if not party_ch:
+    parties = _supplier_index(release)
+    if not parties:
         return []
 
     buyer = (release.get("buyer") or {}).get("name")
@@ -170,10 +206,10 @@ def flatten_cf(release: dict) -> list[dict]:
         published = _date(award.get("datePublished")) or release_date
         signed = _date(award.get("date"))
         for supplier in suppliers:
-            cn = party_ch.get(supplier.get("id"))
-            if cn is None:
+            party = parties.get(supplier.get("id"))
+            if party is None:
                 continue
-            rows.append(_row(cn, supplier.get("name"), release, buyer, published,
+            rows.append(_row(party, release, buyer, published,
                              signed, amount, value.get("currency"), len(suppliers)))
     return rows
 
@@ -186,8 +222,8 @@ def flatten_fts(release: dict) -> list[dict]:
     recover the supplier list. Publication is release-level; FTS has no
     ``datePublished`` on the award.
     """
-    party_ch = _ch_numbers(release)
-    if not party_ch:
+    parties = _supplier_index(release)
+    if not parties:
         return []
 
     buyer = (release.get("buyer") or {}).get("name")
@@ -206,10 +242,10 @@ def flatten_fts(release: dict) -> list[dict]:
         amount = value.get("amount")
         signed = _date(contract.get("dateSigned")) or _date(award.get("date"))
         for supplier in suppliers:
-            cn = party_ch.get(supplier.get("id"))
-            if cn is None:
+            party = parties.get(supplier.get("id"))
+            if party is None:
                 continue
-            rows.append(_row(cn, supplier.get("name"), release, buyer, published,
+            rows.append(_row(party, release, buyer, published,
                              signed, amount, value.get("currency"), len(suppliers)))
     return rows
 
@@ -217,8 +253,27 @@ def flatten_fts(release: dict) -> list[dict]:
 FLATTENERS = {"CF": flatten_cf, "FTS": flatten_fts}
 
 
-def build_flat(raw_dir: Path = RAW_DIR, out_path: Path = FLAT_PATH) -> pd.DataFrame:
-    """Flatten both bulk files into one contract-grain table and write it out.
+def flatten_sources(raw_dir: Path = RAW_DIR, keep_unmatched: bool = False) -> pd.DataFrame:
+    """Flatten both bulk files to contract grain, before any de-duplication.
+
+    With ``keep_unmatched`` the result also carries suppliers that published no
+    ``GB-COH`` identifier, with a NULL ``CompanyNumber`` and their ``match_name`` /
+    ``match_pc`` intact. :mod:`src.features.matching` resolves those; the strict
+    path drops them here.
+    """
+    frames = []
+    for source, flatten in FLATTENERS.items():
+        path = raw_dir / f"{source.lower()}_full.jsonl.gz"
+        df = pd.DataFrame([row for release in iter_releases(path) for row in flatten(release)])
+        df["source"] = source
+        if not keep_unmatched:
+            df = df[df["CompanyNumber"].notna()]
+        frames.append(df)
+    return pd.concat(frames, ignore_index=True)
+
+
+def postprocess(flat: pd.DataFrame) -> pd.DataFrame:
+    """De-duplicate, clean dates and money. Shared by the strict and extended paths.
 
     Deduplicated within source on ``(ocid, CompanyNumber)``: a compiled release can
     list the same company on more than one award of the same process, and we count
@@ -226,19 +281,12 @@ def build_flat(raw_dir: Path = RAW_DIR, out_path: Path = FLAT_PATH) -> pd.DataFr
     Then deduplicated *across* sources, because the pre-Act regime required
     above-threshold awards to be published on both services; see the comment below.
     """
-    frames = []
-    for source, flatten in FLATTENERS.items():
-        path = raw_dir / f"{source.lower()}_full.jsonl.gz"
-        rows = [row for release in iter_releases(path) for row in flatten(release)]
-        df = pd.DataFrame(rows)
-        df["source"] = source
-        before = len(df)
-        df = df.drop_duplicates(["ocid", "CompanyNumber"])
-        print(f"  {source:<4} {before:>9,} rows -> {len(df):>9,} after dedup, "
-              f"{df['CompanyNumber'].nunique():>7,} companies", flush=True)
-        frames.append(df)
+    before = len(flat)
+    flat = flat.drop_duplicates(["source", "ocid", "CompanyNumber"])
+    print(f"  {before:,} rows -> {len(flat):,} after within-source dedup, "
+          f"{flat['CompanyNumber'].nunique():,} companies", flush=True)
 
-    flat = pd.concat(frames, ignore_index=True)
+    flat = flat.copy()
     flat["publication_date"] = pd.to_datetime(flat["publication_date"], errors="coerce")
     flat["signature_date"] = pd.to_datetime(flat["signature_date"], errors="coerce")
 
@@ -284,6 +332,12 @@ def build_flat(raw_dir: Path = RAW_DIR, out_path: Path = FLAT_PATH) -> pd.DataFr
         print(f"  dropping {undated:,} rows with no usable publication date")
         flat = flat[flat["publication_date"].notna()]
 
+    return flat
+
+
+def build_flat(raw_dir: Path = RAW_DIR, out_path: Path = FLAT_PATH) -> pd.DataFrame:
+    """The strict path: ``GB-COH`` matched suppliers only, written to ``out_path``."""
+    flat = postprocess(flatten_sources(raw_dir, keep_unmatched=False))
     out_path.parent.mkdir(parents=True, exist_ok=True)
     flat.to_parquet(out_path, index=False)
     return flat
