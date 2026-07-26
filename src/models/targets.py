@@ -16,14 +16,24 @@ index                label                                       H     measured 
 ===================  ==========================================  ====  ===============
 Lending Readiness    ``Mortgages.NumMortCharges`` increases      3m    0.25 - 0.31%
 Credit Risk          enters genuine insolvency                   6m    0.30 - 0.41%
-Attrition            status becomes "Proposal to Strike off"     6m    6.7 - 8.5%
+Voluntary Exit       status becomes "Proposal to Strike off"     6m    6.7 - 8.5%
 Growth Signal        size band moves up                          12m   2.1 - 2.2%
 ===================  ==========================================  ====  ===============
+
+**Voluntary Exit is not attrition, and used to be called that.** This label fires when
+a company proposes to strike itself off: it is winding down, and its revenue is going
+to zero. That is *not* what the client means by attrition. Lloyds means a client
+moving their banking to a competitor, and a struck-off company is not a relationship
+to win back, it is a dead company. The two need different teams and different actions,
+so the word is reserved for provider switching (see
+``reports/client-requirements.md``) and this label says what it actually measures.
+Real attrition is measured from charge-level lender identity in
+``src/features/charges.py``, which the bulk file cannot see at all.
 
 **Event, not state.** A label fires if the thing happened at *any* observed month in
 ``t+1 ... t+H``, not if it is still true at ``t+H``. For lending and insolvency the
 two are near-identical, because a charge count only climbs and liquidation does not
-reverse. For attrition they differ by 2x: the earlier scoping note in
+reverse. For voluntary exit they differ by 2x: the earlier scoping note in
 ``reports/steps-5-6-modelling-guide.md`` quotes 3.4 - 3.8%, which is the strike-off
 *state* at ``t+6`` (verified: 3.49% for the 2024-01 origin). Strike-off proposals are
 routinely withdrawn when a company files its overdue accounts, so "ever proposed
@@ -87,7 +97,7 @@ ORIGIN_STEP_MONTHS = 3
 # pattern is a calendar artefact, and in an out-of-time split it lands entirely in
 # train and never in test - exactly the kind of thing a tree happily splits on and
 # then cannot use. Step 6 should filter to this origin onwards for any target that
-# can afford it (lending, insolvency and attrition have 7+ origins left; growth has
+# can afford it (lending, insolvency and voluntary exit have 7+ origins left; growth has
 # only 4, so there it is a genuine trade against sample size).
 FIRST_FULL_ORIGIN = pd.Timestamp("2024-10-01")
 
@@ -118,11 +128,14 @@ STRIKE_OFF_STATUS = "active - proposal to strike off"
 KNOWN_STATUSES = INSOLVENT_STATUSES | {"active", STRIKE_OFF_STATUS}
 
 # target -> (label column, horizon in months)
+#
+# `voluntary_exit` was called `attrition` until 26 Jul 2026. Renamed because the
+# client uses "attrition" for provider switching; see the docstring above.
 TARGETS = {
-    "lending":    ("y_lending", 3),
-    "insolvency": ("y_insolvency", 6),
-    "attrition":  ("y_attrition", 6),
-    "growth":     ("y_growth", 12),
+    "lending":        ("y_lending", 3),
+    "insolvency":     ("y_insolvency", 6),
+    "voluntary_exit": ("y_voluntary_exit", 6),
+    "growth":         ("y_growth", 12),
 }
 
 # Plausible per-origin base rates, bracketing the measured table in the module
@@ -130,10 +143,10 @@ TARGETS = {
 # *wrong*, not one that drifted a few basis points: a 20% "insolvency" rate means the
 # definition broke.
 EXPECTED_BASE_RATES = {
-    "lending":    (0.0015, 0.0060),
-    "insolvency": (0.0020, 0.0060),
-    "attrition":  (0.0500, 0.1100),
-    "growth":     (0.0150, 0.0300),
+    "lending":        (0.0015, 0.0060),
+    "insolvency":     (0.0020, 0.0060),
+    "voluntary_exit": (0.0500, 0.1100),
+    "growth":         (0.0150, 0.0300),
 }
 
 # Features carried straight off the panel at month t. `size_tier` is deliberately
@@ -254,8 +267,8 @@ SELECT
          THEN (max_charges_f3 > charges)::INT END AS y_lending,
     CASE WHEN m <= DATE '{max_insolvency}' AND n_obs_f6  > 0
          THEN insolvent_f6 END                    AS y_insolvency,
-    CASE WHEN m <= DATE '{max_attrition}'  AND n_obs_f6  > 0
-         THEN strikeoff_f6 END                    AS y_attrition,
+    CASE WHEN m <= DATE '{max_voluntary_exit}' AND n_obs_f6 > 0
+         THEN strikeoff_f6 END                    AS y_voluntary_exit,
     -- Growth only means something for a company that has a size band at t; the
     -- filing buckets (No Filings / Dormant / Subsidiary / Unknown) rank NULL and are
     -- excluded rather than squeezed into the ladder.
@@ -298,7 +311,7 @@ def build_labels(
         origins=_quote(m.date() for m in origin_months()),
         max_lending=max_origin(TARGETS["lending"][1]).date(),
         max_insolvency=max_origin(TARGETS["insolvency"][1]).date(),
-        max_attrition=max_origin(TARGETS["attrition"][1]).date(),
+        max_voluntary_exit=max_origin(TARGETS["voluntary_exit"][1]).date(),
         max_growth=max_origin(TARGETS["growth"][1]).date(),
     )
     con.execute(

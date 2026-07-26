@@ -106,16 +106,25 @@ These belong in the client deliverable, not just in a working note.
   three-way partition and the attrition label would stop being a proxy. The join seam is designed so
   that could drop in later without rework.
 
-## 5. A naming correction we owe the client
+## 5. A naming correction we owed the client (done)
 
-The fourth target in `src/models/targets.py` is currently called **`attrition`**, and it means
-"status becomes Proposal to Strike off". That is a company winding itself up, not a client moving to
-Barclays. A struck-off company is not a relationship to win back, it is a dead company.
+The fourth target in `src/models/targets.py` was called **`attrition`** and means "status becomes
+Proposal to Strike off". That is a company winding itself up, not a client moving to Barclays. A
+struck-off company is not a relationship to win back, it is a dead company. Left alone, the
+deliverable would have used the client's own word for something they never asked about.
 
-Left alone, the deliverable would use the client's own word for something they did not ask about.
-The label is being renamed to **Voluntary Exit** and the word attrition reserved for provider
-switching. The rename is deferred until the in-flight step 5 and 6 work lands, because it touches
-`targets.py`, `data/processed/labels/` and `data/processed/model_matrix/`.
+Renamed to **`voluntary_exit`** on 26 Jul 2026, and the word attrition reserved for provider
+switching. Changed: `src/models/targets.py` (`TARGETS`, `EXPECTED_BASE_RATES`, the label column
+`y_attrition` -> `y_voluntary_exit`), `notebooks/15_targets.ipynb`,
+`reports/steps-5-6-modelling-guide.md`, and the regenerated artefacts
+`data/processed/labels/` and `data/processed/model_matrix/voluntary_exit/`.
+
+The rename is **data-neutral**: `build_labels` was re-run and every per-origin base rate reproduced
+its previous value (lending 0.25 - 0.31%, insolvency 0.30 - 0.41%, voluntary exit 6.7 - 8.5%, growth
+~2.1%), and the rebuilt matrix kept the same 9.09% sampled positive rate and 72 - 92% negative keep
+rates. Only names changed. One detail for anyone comparing row-by-row: `build_matrix` hashes the
+target name when choosing which negatives to keep, so the voluntary-exit matrix samples a slightly
+different set of negatives than the old attrition one did. Still reproducible, just not identical.
 
 Related and worth knowing when reading the older notes: `reports/steps-5-6-modelling-guide.md` quotes
 the strike-off rate as 3.4 to 3.8% while `targets.py` measures 6.7 to 8.5%. Both are right. The guide

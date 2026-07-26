@@ -90,12 +90,25 @@ what":
 |---|---|---|---|
 | Lending Readiness | `Mortgages.NumMortCharges` increases | 3m | **0.25 - 0.31%** |
 | Credit Risk Exposure | enters liquidation / administration / receivership / voluntary arrangement | 6m | **0.32 - 0.41%** |
-| Attrition (strike-off) | status becomes "Proposal to Strike off" | 6m | **3.4 - 3.8%** |
+| Voluntary Exit (strike-off) | status becomes "Proposal to Strike off" | 6m | **3.4 - 3.8%** |
 | Growth Signal | size band moves up | 12m | **2.3 - 2.4%** |
 
 I measured all of these on the panel at quarterly origins from 2024-01 to 2025-01. They are stable
 across origins, which is good news for the out-of-time split: no drift to explain away. **Use them
 as the assertion in step 5.** If a label comes out at 20%, it is wrong.
+
+> **Two corrections from later work, left here rather than rewritten** (26 Jul 2026).
+>
+> 1. The strike-off label was called **Attrition** throughout this note and is now **Voluntary
+>    Exit**. Lloyds uses "attrition" for a client switching to a competitor; a struck-off company is
+>    not a relationship to win back. Real attrition needs lender identity, which the bulk file does
+>    not carry, and is being built from the Charges API in `src/features/charges.py`. See
+>    `reports/client-requirements.md`.
+> 2. The **3.4 - 3.8%** above is the strike-off *state* at `t+6`. `targets.py` labels the *event*
+>    anywhere in `t+1 ... t+6` and measures **6.7 - 8.5%**. Both are correct; proposals are routinely
+>    withdrawn once a company files its overdue accounts, so "ever proposed" is about twice "still
+>    proposed". The event definition is the one that shipped. Notebook 15 verifies the reconciliation
+>    (3.49% state vs 7.16% event at the 2024-01 origin).
 
 Then: pick quarterly origins (this makes the 3-month lending windows non-overlapping, so each
 company-quarter is an independent observation rather than fifteen near-copies), join
@@ -110,8 +123,8 @@ strike-off**: dormant micro-companies quietly closing. That is not a credit even
 about it in a risk model. Filtering to genuine insolvency drops the rate to 0.34%, which is both
 more meaningful and exactly where the plan predicted a real distress rate should sit.
 
-I decided to model **both**, separately: insolvency as Credit Risk Exposure, strike-off as an
-attrition signal. They are different questions with different audiences, and mixing them into one
+I decided to model **both**, separately: insolvency as Credit Risk Exposure, strike-off as a
+voluntary-exit signal. They are different questions with different audiences, and mixing them into one
 label would have let the loud one drown the important one.
 
 **Trap 2: `segment` is not a size ladder.** The plan's growth label says "size tier moves up", but
@@ -195,7 +208,7 @@ a handful of companies, not a direction.
 
 Note that a model is not needed for every index. Lending Readiness and Growth Signal map cleanly to
 the lending and growth models. Credit Risk Exposure is best read as the insolvency model, with the
-attrition model kept beside it rather than blended in.
+voluntary-exit model kept beside it rather than blended in.
 
 ---
 
