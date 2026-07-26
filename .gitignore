@@ -13,6 +13,9 @@ env/
 # Draft code/notebooks
 drafts/
 
+# Long-running harvest logs
+logs/
+
 # Python cache
 __pycache__/
 *.py[cod]
