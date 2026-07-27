@@ -2,7 +2,7 @@
 
 Written the day step 6 first ran end to end, before the Charges API lender harvest finished. That timing is the point of the document. Everything here is a **baseline**: the out-of-time numbers that will say, later, whether twenty-four hours of harvesting bought anything. Without them the harvest is an act of faith.
 
-Machine-readable twin: `reports/step6_model_results.json`, under the tag `baseline`. Re-running `notebooks/16_shap_models.ipynb` with a grown `targets.FEATURE_COLS` writes a second tag and the comparison becomes a diff.
+Machine-readable twin: `reports/step6/model_results.json`, under the tag `baseline`. Re-running `notebooks/16_shap_models.ipynb` with a grown `targets.FEATURE_COLS` writes a second tag and the comparison becomes a diff.
 
 ## The split
 

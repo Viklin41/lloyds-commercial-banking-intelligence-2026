@@ -64,7 +64,18 @@ from . import targets
 
 EVAL_MATRIX_DIR = Path("data/processed/eval_matrix")
 SCORE_DIR = Path("data/processed/scores")
-RESULTS_PATH = Path("reports/step6_model_results.json")
+
+# Everything step 6 emits lives together under one directory. It is a set of
+# artefacts that only mean anything as a set (the metrics reference the feature
+# list, the SHAP tables reference the models the metrics describe), and they will
+# be joined by a second run's worth once the lender features land.
+STEP6_DIR = Path("reports/step6")
+RESULTS_PATH = STEP6_DIR / "model_results.json"
+
+
+def shap_importance_path(target: str, tag: str = "baseline", dir: Path = STEP6_DIR) -> Path:
+    """Where one target's SHAP importance table goes."""
+    return dir / f"shap_importance_{tag}_{target}.csv"
 
 # Number of trailing origins held out as the out-of-time test period.
 N_TEST_ORIGINS = 2
