@@ -121,3 +121,17 @@ Insolvency is where most of them land, and the interesting pair is `tier_rank` a
 - **Category levels are positional.** `train.apply_categories` pins the scoring frame's `sector`/`segment` levels to the training frame's before predicting. A mismatch would produce a plausible ranked list and no error at all.
 
 - **The live scoring month is past the contract harvest watermark.** Fine to score on, not fine to train on; `targets._check_contract_watermark` enforces the latter.
+
+## Addendum, 27 July 2026: the pipeline refactor
+
+Every number in this document was produced before the supervisor call and is unchanged by what follows. `src/models/train.py` was reorganised the same day to meet Fernando's requirements, and the reorganisation was checked against these results the boring way: insolvency re-run through the new code reproduces ROC-AUC 0.761520, PR-AUC 0.016923 and P@100 19.0% to every digit. The `baseline` tag in `reports/step6/model_results.json` therefore stays the fixed reference for the lender-harvest comparison, and the refactor run writes a separate `refactor` tag beside it.
+
+What changed:
+
+- `fit_lightgbm` and `fit_logistic` are gone, replaced by a `MODELS` registry of `ModelSpec`. `run_target` loops over it, so adding a model family is one dict entry.
+- `dense_preprocessor` was lifted out of the old `fit_logistic` and is now shared, so no model comparison is confounded by differences in preprocessing.
+- `mlp` (`MLPClassifier`) joins the registry as the complex, hard-to-explain end of the interpretability/accuracy trade-off the dissertation argues.
+- `tune_model` plus `OriginEmbargoSplit` do hyperparameter search with a time-aware, embargoed CV. A default `KFold` inside a search would reintroduce both leaks the primary split exists to prevent. Note that insolvency affords exactly **one** legal fold under a six-month embargo across three training origins; that is the real amount of evidence available, not a defect.
+- `explain` dispatches to the right SHAP explainer per family. Measured cost on the insolvency test sample: `TreeExplainer` does 100k rows in seconds, `KernelExplainer` on the MLP does 20 rows in 2.3s, which extrapolates to several hours for the same 100k.
+
+The split, the unsampled evaluation population and the recalibration are untouched.
