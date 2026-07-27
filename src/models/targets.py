@@ -383,6 +383,7 @@ WITH lab AS (
     SELECT "CompanyNumber", origin_month, {ycol} AS y
     FROM read_parquet('{label_glob}')
     WHERE {ycol} IS NOT NULL
+      AND {origin_filter}
 ),
 rates AS (
     SELECT origin_month,
@@ -433,7 +434,8 @@ def build_matrix(
     label_dir: Path = LABEL_DIR,
     contracts_dir: Path = contracts.ASOF_DIR,
     out_dir: Path = MATRIX_DIR,
-    neg_ratio: int = 10,
+    neg_ratio: float = 10,
+    origins: list | None = None,
     threads: int | None = None,
     memory_limit: str = "10GB",
 ) -> pd.DataFrame:
@@ -442,6 +444,12 @@ def build_matrix(
     ``contracts_dir`` is the A/B switch set up in step 4b: point it at
     ``contracts.ASOF_EXT_DIR`` to re-run with the name-matched contract rows and
     compare out-of-time AUC.
+
+    ``origins`` restricts the build to a subset of the quarterly grid, and
+    ``neg_ratio`` set high enough (the keep rate is capped at 1.0) turns off
+    downsampling entirely. Together they are how step 6 builds the *unsampled*
+    evaluation population for its test origins: precision@N is only truthful
+    against the population the model would actually be ranking.
 
     Returns the per-origin summary (rows, positives, negative keep rate).
     """
@@ -464,6 +472,10 @@ def build_matrix(
         ycol=ycol,
         target=target,
         neg_ratio=neg_ratio,
+        origin_filter=(
+            "TRUE" if origins is None
+            else f"origin_month IN ({_quote(pd.Timestamp(m).date() for m in origins)})"
+        ),
         label_glob=(label_dir / "**" / "*.parquet").as_posix(),
         delta_glob=(delta_dir / "**" / "*.parquet").as_posix(),
         contracts_glob=(contracts_dir / "**" / "*.parquet").as_posix(),
