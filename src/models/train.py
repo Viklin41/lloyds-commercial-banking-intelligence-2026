@@ -46,8 +46,8 @@ changed here, and nothing else did:
   cost of explaining a complex model becomes visible and measurable.
 
 The split, the unsampled evaluation population and the recalibration are byte-for-byte
-the same, so the ``baseline`` tag already in ``reports/step6/model_results.json``
-stays a valid reference to compare against.
+the same, so the ``baseline`` run already recorded under ``reports/runs/`` stays a
+valid reference to compare against.
 
 Three things that are easy to get wrong and are handled explicitly:
 
@@ -82,23 +82,43 @@ from sklearn.model_selection import GroupKFold, GroupShuffleSplit
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
-from ..features import contracts, panel
+from ..features import charges, contracts, panel
 from . import targets
 
 EVAL_MATRIX_DIR = Path("data/processed/eval_matrix")
+EVAL_MATRIX_LENDER_DIR = Path("data/processed/eval_matrix_lender")
 SCORE_DIR = Path("data/processed/scores")
 
-# Everything step 6 emits lives together under one directory. It is a set of
-# artefacts that only mean anything as a set (the metrics reference the feature
-# list, the SHAP tables reference the models the metrics describe), and they will
-# be joined by a second run's worth once the lender features land.
-STEP6_DIR = Path("reports/step6")
-RESULTS_PATH = STEP6_DIR / "model_results.json"
+# ### ONE DIRECTORY PER RUN (restructured 28 Jul 2026)
+#
+# This used to be a flat `reports/step6/` with the tag baked into each filename and
+# a single `model_results.json` keyed by tag. That worked for one run and stopped
+# working at three, for two reasons: the SHAP tables did not travel with the metrics
+# they describe, and nothing recorded *what was run* beyond the feature list, so
+# "which matrix was this?" had to be answered from memory or the git log.
+#
+# Now every run owns a directory:
+#
+#     reports/runs/<tag>/manifest.json                 how it was run (the RunConfig)
+#                        metrics.json                  what came out
+#                        shap_importance_<target>.csv  one per target
+#     reports/runs/index.csv                           one row per run x target x model
+#
+# A run is therefore append-only by construction: a new tag cannot overwrite an old
+# one, and the index is regenerated from the directories rather than maintained by
+# hand, so it cannot drift from what is on disk.
+RUNS_DIR = Path("reports/runs")
+INDEX_PATH = RUNS_DIR / "index.csv"
 
 
-def shap_importance_path(target: str, tag: str = "baseline", dir: Path = STEP6_DIR) -> Path:
-    """Where one target's SHAP importance table goes."""
-    return dir / f"shap_importance_{tag}_{target}.csv"
+def run_dir(tag: str, root: Path = RUNS_DIR) -> Path:
+    """Where one run's artefacts live."""
+    return root / tag
+
+
+def shap_importance_path(target: str, tag: str, root: Path = RUNS_DIR) -> Path:
+    """Where one target's SHAP importance table goes, inside its run."""
+    return run_dir(tag, root) / f"shap_importance_{target}.csv"
 
 # Number of trailing origins held out as the out-of-time test period.
 N_TEST_ORIGINS = 2
@@ -156,6 +176,85 @@ RANDOM_STATE = 42
 
 
 # --------------------------------------------------------------------------- #
+# What a run is
+# --------------------------------------------------------------------------- #
+#
+# ### WHY A CONFIG OBJECT (restructured 28 Jul 2026)
+#
+# There are three axes we compare along and they are independent of each other:
+#
+#   matrix       model_matrix/ vs model_matrix_lender/, strict vs extended contracts
+#   feature set  FEATURE_COLS (41) vs FEATURE_COLS_LENDER (54)
+#   model set    which entries of the MODELS registry get fitted
+#
+# Before this, each of those was a separate keyword argument threaded through six
+# functions, and they had to agree: a lender matrix read with the baseline feature
+# list silently drops the lender columns, and the lender categorical read with the
+# baseline categorical list arrives as a string column that LightGBM rejects. Tying
+# them together in one frozen object makes the illegal combinations unrepresentable
+# and makes a run reproducible from a single value, which is also exactly what gets
+# written to `manifest.json`.
+#
+# Adding a fourth comparison is a new `RunConfig(...)` constant and nothing else.
+
+@dataclass(frozen=True)
+class RunConfig:
+    """One comparable run: which matrix, which columns, which models, which tag.
+
+    ``tag`` is the run's identity and its directory name under ``reports/runs/``.
+    Everything else has a default that reproduces the original baseline, so
+    ``RunConfig(tag="something")`` is the "same thing again, recorded separately"
+    case and each field is one deliberate deviation from it.
+    """
+
+    tag: str
+    matrix_dir: Path = targets.MATRIX_DIR
+    eval_dir: Path = EVAL_MATRIX_DIR
+    feature_cols: tuple[str, ...] = tuple(targets.FEATURE_COLS)
+    categorical_cols: tuple[str, ...] = tuple(targets.CATEGORICAL_COLS)
+    target_names: tuple[str, ...] = tuple(targets.TARGETS)
+    # None means "every registered model", resolved late so the registry can grow
+    # without this default going stale.
+    models: tuple[str, ...] | None = None
+    # Passed through to `targets.build_matrix` when rebuilding the unsampled
+    # evaluation origins, so the eval population is built exactly like the training
+    # matrix it is compared against.
+    contracts_dir: Path = contracts.ASOF_DIR
+    lender_dir: Path | None = None
+
+    def cols(self) -> list[str]:
+        return list(self.feature_cols)
+
+    def cats(self) -> list[str]:
+        """Categoricals actually present in this run's feature list."""
+        return [c for c in self.categorical_cols if c in self.feature_cols]
+
+    def model_names(self) -> tuple[str, ...]:
+        return self.models if self.models is not None else DEFAULT_MODELS
+
+    def matrix_kwargs(self) -> dict:
+        """The `targets.build_matrix` arguments implied by this config."""
+        return {"contracts_dir": self.contracts_dir, "lender_dir": self.lender_dir}
+
+
+# The reference run: the four targets, 41 features, the plain matrix. This is what
+# `reports/runs/baseline/` records and what every later tag is a diff against.
+BASELINE = RunConfig(tag="baseline")
+
+# The lender A/B: same targets, same models, +13 columns from the Charges API
+# harvest (notebook 14b). `switching` is deliberately not in `target_names`; it is
+# built and measured in 14b and left untrained.
+LENDER = RunConfig(
+    tag="lender",
+    matrix_dir=targets.LENDER_MATRIX_DIR,
+    eval_dir=EVAL_MATRIX_LENDER_DIR,
+    feature_cols=tuple(targets.FEATURE_COLS_LENDER),
+    categorical_cols=tuple(targets.CATEGORICAL_COLS_LENDER),
+    lender_dir=charges.LENDER_PANEL_DIR,
+)
+
+
+# --------------------------------------------------------------------------- #
 # Splitting
 # --------------------------------------------------------------------------- #
 
@@ -209,7 +308,7 @@ def matrix_origins(target: str, matrix_dir: Path = targets.MATRIX_DIR) -> list[p
 
 def split_origins(
     target: str,
-    matrix_dir: Path = targets.MATRIX_DIR,
+    config: RunConfig = BASELINE,
     n_test: int = N_TEST_ORIGINS,
     min_train_origins: int = MIN_TRAIN_ORIGINS,
 ) -> Split:
@@ -230,8 +329,8 @@ def split_origins(
     ``min_train_origins`` training origins, which is the trade `targets` flags for
     the 12-month growth label.
     """
-    _, horizon = targets.TARGETS[target]
-    all_months = matrix_origins(target, matrix_dir)
+    _, horizon = targets.ALL_TARGETS[target]
+    all_months = matrix_origins(target, config.matrix_dir)
 
     def build(months: list[pd.Timestamp], applied: bool) -> Split:
         test = months[-n_test:]
@@ -267,11 +366,17 @@ def load_origins(
     origins: list[pd.Timestamp],
     matrix_dir: Path = targets.MATRIX_DIR,
     columns: list[str] | None = None,
+    categorical: list[str] | None = None,
 ) -> pd.DataFrame:
     """Read the given origin partitions of a target's matrix.
 
     Only the partitions asked for are touched, so the out-of-time split never has
     the test months in memory while training.
+
+    ``categorical`` must name every string column in ``columns``, because
+    ``cast_features`` sends everything else through ``to_numeric``: a categorical
+    left out of the list arrives as all-NaN rather than as an error. Callers holding
+    a ``RunConfig`` should pass ``config.cats()``.
     """
     cols = columns or targets.FEATURE_COLS
     select = ", ".join(f'"{c}"' for c in ["CompanyNumber", "origin_month", "y", "neg_keep_rate", *cols])
@@ -286,7 +391,7 @@ def load_origins(
         "hive_partitioning=true)"
     ).df()
     con.close()
-    return cast_features(df)
+    return cast_features(df, categorical)
 
 
 ID_COLS = ("CompanyNumber", "CompanyName", "origin_month")
@@ -364,8 +469,7 @@ def feature_frame(df: pd.DataFrame, columns: list[str] | None = None) -> pd.Data
 def build_eval_matrix(
     target: str,
     origins: list[pd.Timestamp],
-    contracts_dir: Path = contracts.ASOF_DIR,
-    out_dir: Path = EVAL_MATRIX_DIR,
+    config: RunConfig = BASELINE,
     **kwargs,
 ) -> pd.DataFrame:
     """Rebuild the given origins with **no** negative downsampling.
@@ -373,13 +477,18 @@ def build_eval_matrix(
     ``targets.build_matrix`` caps the keep rate at 1.0, so a large enough
     ``neg_ratio`` simply keeps everything. This is the population the model would
     really be ranking, and it is the only place precision@N means what it says.
+
+    The config's ``contracts_dir`` and ``lender_dir`` come along, so the evaluation
+    population is assembled from exactly the same sources as the training matrix it
+    is scored against. Getting that wrong is silent: the columns would still be
+    there, just NULL.
     """
     return targets.build_matrix(
         target,
-        contracts_dir=contracts_dir,
-        out_dir=out_dir,
+        out_dir=config.eval_dir,
         neg_ratio=10**9,
         origins=origins,
+        **config.matrix_kwargs(),
         **kwargs,
     )
 
@@ -409,7 +518,7 @@ def build_eval_matrix(
 # or a second neural net is literally one dict entry. `tune_model` is (3).
 #
 # Nothing about the split, the evaluation population or the recalibration changed,
-# so the `baseline` numbers already in `reports/step6/model_results.json` remain
+# so the `baseline` numbers already recorded under `reports/runs/` remain
 # valid and comparable. That was the constraint on the refactor: it had to be a
 # reorganisation, not a re-specification.
 #
@@ -681,8 +790,7 @@ class OriginEmbargoSplit:
 def tune_model(
     name: str,
     target: str,
-    matrix_dir: Path = targets.MATRIX_DIR,
-    columns: list[str] | None = None,
+    config: RunConfig = BASELINE,
     n_iter: int = 12,
     max_rows: int = 300_000,
     n_splits: int = 3,
@@ -707,12 +815,12 @@ def tune_model(
     if not spec.search_space:
         raise ValueError(f"{name} has no search_space; nothing to validate")
 
-    cols = columns or targets.FEATURE_COLS
-    split = split_origins(target, matrix_dir)
-    df = load_origins(target, split.train, matrix_dir, cols)
+    cols, cats = config.cols(), config.cats()
+    split = split_origins(target, config)
+    df = load_origins(target, split.train, config.matrix_dir, cols, cats)
     if len(df) > max_rows:
         df = df.sample(max_rows, random_state=random_state).reset_index(drop=True)
-    align_categories([df], [c for c in targets.CATEGORICAL_COLS if c in cols])
+    align_categories([df], cats)
 
     X, y = feature_frame(df, cols), df["y"].to_numpy()
     origins = df["origin_month"].to_numpy()
@@ -811,11 +919,8 @@ def evaluate(y: np.ndarray, p: np.ndarray, top_n=TOP_N) -> dict:
 
 def run_target(
     target: str,
-    matrix_dir: Path = targets.MATRIX_DIR,
-    eval_dir: Path = EVAL_MATRIX_DIR,
-    columns: list[str] | None = None,
+    config: RunConfig = BASELINE,
     n_test: int = N_TEST_ORIGINS,
-    models: tuple[str, ...] | list[str] = DEFAULT_MODELS,
     model_params: dict[str, dict] | None = None,
 ) -> dict:
     """Train every requested model on one target, evaluate out-of-time, record it all.
@@ -827,21 +932,25 @@ def run_target(
     and, behind a `fit_floor` flag, a logistic regression, both named in the body.
     It now loops over `models`, which defaults to every entry in the `MODELS`
     registry, so comparing a new model family means adding one dict entry and
-    nothing here changes. `fit_floor` is gone; pass `models=("lightgbm",)` for the
-    same effect.
+    nothing here changes. `fit_floor` is gone; pass
+    `config=replace(cfg, models=("lightgbm",))` for the same effect.
+
+    **Restructured 28 Jul 2026.** The matrix, the feature list, the categoricals and
+    the model set now arrive together as a `RunConfig` rather than as four keyword
+    arguments that had to be kept consistent by hand.
 
     Everything downstream of the fit is deliberately untouched: the same out-of-time
     split, the same unsampled evaluation population, the same odds recalibration.
-    That is what makes the new numbers directly comparable to the `baseline` tag in
-    `reports/step6/model_results.json`.
+    That is what makes the new numbers directly comparable to the `baseline` run in
+    `reports/runs/`.
     """
-    cols = columns or targets.FEATURE_COLS
-    cats = [c for c in targets.CATEGORICAL_COLS if c in cols]
+    cols = config.cols()
+    cats = config.cats()
     params = model_params or {}
-    split = split_origins(target, matrix_dir, n_test=n_test)
+    split = split_origins(target, config, n_test=n_test)
 
-    train = load_origins(target, split.train, matrix_dir, cols)
-    test = load_origins(target, split.test, eval_dir, cols)  # unsampled
+    train = load_origins(target, split.train, config.matrix_dir, cols, cats)
+    test = load_origins(target, split.test, config.eval_dir, cols, cats)  # unsampled
     align_categories([train, test], cats)
 
     X_tr, y_tr = feature_frame(train, cols), train["y"].to_numpy()
@@ -857,7 +966,7 @@ def run_target(
     keep = float(train["neg_keep_rate"].mean())
 
     fitted, metrics, preds, calibration = {}, {}, {}, {}
-    for name in models:
+    for name in config.model_names():
         model = fit_model(name, X_tr, y_tr, groups, cats, params.get(name))
         p_raw = model.predict_proba(X_te)[:, 1]
         fitted[name] = model
@@ -871,6 +980,7 @@ def run_target(
     gbm = fitted.get("lightgbm")
     return {
         "target": target,
+        "tag": config.tag,
         "horizon_m": split.horizon_m,
         "n_features": len(cols),
         "models": list(fitted),
@@ -894,8 +1004,7 @@ def run_target(
 
 def grouped_cv_auc(
     target: str,
-    matrix_dir: Path = targets.MATRIX_DIR,
-    columns: list[str] | None = None,
+    config: RunConfig = BASELINE,
     n_splits: int = 3,
     max_rows: int = 2_000_000,
     model: str = "lightgbm",
@@ -914,9 +1023,9 @@ def grouped_cv_auc(
     ``model`` takes any registry name; it defaults to LightGBM because the check is
     about the *data*, not the estimator, and repeating it per model buys nothing.
     """
-    cols = columns or targets.FEATURE_COLS
-    cats = [c for c in targets.CATEGORICAL_COLS if c in cols]
-    df = load_origins(target, matrix_origins(target, matrix_dir), matrix_dir, cols)
+    cols, cats = config.cols(), config.cats()
+    origins = matrix_origins(target, config.matrix_dir)
+    df = load_origins(target, origins, config.matrix_dir, cols, cats)
     if len(df) > max_rows:
         df = df.sample(max_rows, random_state=random_state).reset_index(drop=True)
     align_categories([df], cats)
@@ -1040,84 +1149,225 @@ SELECT f."CompanyNumber", f."CompanyName", f.snapshot_date AS origin_month,
 FROM read_parquet('{delta_glob}') f
 LEFT JOIN read_parquet('{contracts_glob}') c
   ON c."CompanyNumber" = f."CompanyNumber" AND c.snapshot_date = f.snapshot_date
+{lender_join}
 WHERE f.snapshot_date = DATE '{month}' AND f.is_active
 """
 
+SCORE_LENDER_JOIN = """LEFT JOIN read_parquet('{lender_glob}') g
+  ON g."CompanyNumber" = f."CompanyNumber" AND g.snapshot_date = f.snapshot_date"""
+
 
 def load_scoring_frame(
+    config: RunConfig = BASELINE,
     month: str = panel.LAST_MONTH,
     delta_dir: Path = panel.DELTA_DIR,
-    contracts_dir: Path = contracts.ASOF_DIR,
-    columns: list[str] | None = None,
 ) -> pd.DataFrame:
     """Features for every active company in the latest month, with no label.
 
     The label table stops where a forward window would run off the register, so the
     live month is not in it and this reads the panel directly. It reuses
     ``targets._feature_select`` so the column set and the contract coalescing are
-    literally the same code the training matrix used.
+    literally the same code the training matrix used, and it takes the same
+    ``RunConfig`` the models were trained under, so a lender run scores on the
+    lender columns rather than silently scoring on 41 of its 54 features.
 
     Note the contract features here are past
     ``contracts.harvest_watermark()``: fine to score on, not fine to train on.
     """
+    with_lender = config.lender_dir is not None
     sql = SCORE_SQL.format(
         month=pd.Timestamp(month).date(),
-        feature_select=targets._feature_select(),
+        feature_select=targets._feature_select(with_lender=with_lender),
         delta_glob=(delta_dir / "**" / "*.parquet").as_posix(),
-        contracts_glob=(contracts_dir / "**" / "*.parquet").as_posix(),
+        contracts_glob=(config.contracts_dir / "**" / "*.parquet").as_posix(),
+        lender_join=(
+            SCORE_LENDER_JOIN.format(
+                lender_glob=(config.lender_dir / "**" / "*.parquet").as_posix()
+            ) if with_lender else ""
+        ),
     )
     con = duckdb.connect()
     con.execute("PRAGMA disable_progress_bar")
     df = con.execute(sql).df()
     con.close()
-    return cast_features(df)
+    return cast_features(df, config.cats())
 
 
-def score_frame(model, df: pd.DataFrame, neg_keep_rate: float, columns: list[str] | None = None) -> pd.Series:
+def score_frame(
+    model,
+    df: pd.DataFrame,
+    neg_keep_rate: float,
+    config: RunConfig = BASELINE,
+) -> pd.Series:
     """Recalibrated probability per row, ready to rank."""
-    cols = columns or targets.FEATURE_COLS
     return pd.Series(
-        recalibrate(model.predict_proba(df[cols])[:, 1], neg_keep_rate),
+        recalibrate(model.predict_proba(df[config.cols()])[:, 1], neg_keep_rate),
         index=df.index,
     )
+
+
+def score_path(config: RunConfig, month: str = panel.LAST_MONTH, dir: Path = SCORE_DIR) -> Path:
+    """Where a run's live scores go. Tagged, so a second run cannot overwrite them."""
+    return dir / f"scores_{config.tag}_{pd.Timestamp(month):%Y-%m}.parquet"
 
 
 # --------------------------------------------------------------------------- #
 # Persistence
 # --------------------------------------------------------------------------- #
 
-def save_results(
-    results: list[dict],
-    path: Path = RESULTS_PATH,
-    tag: str = "baseline",
-    **extra,
-) -> Path:
-    """Write the metrics to JSON so the lender-feature re-run is a diff, not a memory.
+def _git_sha() -> str | None:
+    """The commit the run was made from, or None outside a repo."""
+    import subprocess
 
-    Private keys (models, held-out frames) are stripped. The whole reason for
-    training before the Charges API harvest finishes is to have this file to compare
-    against; without it the harvest is an act of faith.
+    try:
+        out = subprocess.run(["git", "rev-parse", "--short", "HEAD"],
+                             capture_output=True, text=True, timeout=5)
+        return out.stdout.strip() or None
+    except (OSError, subprocess.SubprocessError):
+        return None
+
+
+def manifest(config: RunConfig, **extra) -> dict:
+    """Everything needed to say what a run *was*, without reading its code.
+
+    The feature hash is the cheap way to answer "did these two runs use the same
+    columns" without diffing two 54-element lists by eye, and it catches a reordering
+    that a length comparison would miss.
     """
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {}
-    if path.exists():
-        payload = json.loads(path.read_text())
-    payload[tag] = {
-        "feature_cols": list(targets.FEATURE_COLS),
-        "categorical_cols": list(targets.CATEGORICAL_COLS),
+    import hashlib
+
+    cols = config.cols()
+    return {
+        "tag": config.tag,
+        "created_at": pd.Timestamp.utcnow().isoformat(),
+        "git_sha": _git_sha(),
+        "matrix_dir": str(config.matrix_dir),
+        "eval_dir": str(config.eval_dir),
+        "contracts_dir": str(config.contracts_dir),
+        "lender_dir": str(config.lender_dir) if config.lender_dir else None,
+        "n_features": len(cols),
+        "feature_cols": cols,
+        "feature_hash": hashlib.sha256("|".join(cols).encode()).hexdigest()[:12],
+        "categorical_cols": config.cats(),
+        "targets": list(config.target_names),
+        "models": list(config.model_names()),
         "lgb_params": dict(LGB_PARAMS),
-        # Which models the registry held at run time, so a later tag that added a
-        # model family is self-describing rather than requiring the git history.
+        # Which models the registry held at run time, so a run that added a model
+        # family is self-describing rather than requiring the git history.
         "registry": {
             name: {"explainer": s.explainer, "max_rows": s.max_rows,
                    "early_stopping": s.early_stopping}
             for name, s in MODELS.items()
         },
+        **extra,
+    }
+
+
+def record_run(
+    results: list[dict],
+    config: RunConfig,
+    root: Path = RUNS_DIR,
+    overwrite: bool = False,
+    **extra,
+) -> Path:
+    """Write one run's manifest and metrics into ``reports/runs/<tag>/``.
+
+    Private keys (fitted models, held-out frames) are stripped from the results.
+
+    **Refuses to overwrite an existing run unless asked.** That is the whole point of
+    the layout: the `baseline` numbers are the fixed reference the lender comparison
+    is measured against, and a second `record_run(tag="baseline")` destroying them is
+    a mistake with no error message under the old flat scheme. Pass a new tag, or
+    ``overwrite=True`` if you really mean it.
+
+    ``extra`` goes into ``metrics.json`` alongside the per-target results, which is
+    where the grouped CV, the direction check and any tuning table belong: they
+    describe this run's outputs, not its configuration.
+    """
+    out = run_dir(config.tag, root)
+    if out.exists() and not overwrite:
+        raise FileExistsError(
+            f"{out} already exists. Use a new tag, or overwrite=True to replace it."
+        )
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "manifest.json").write_text(
+        json.dumps(manifest(config), indent=2, default=str)
+    )
+    (out / "metrics.json").write_text(json.dumps({
+        "tag": config.tag,
         "targets": {
             r["target"]: {k: v for k, v in r.items() if not k.startswith("_")}
             for r in results
         },
         **extra,
+    }, indent=2, default=str))
+    write_index(root)
+    return out
+
+
+def load_run(tag: str, root: Path = RUNS_DIR) -> dict:
+    """One run's manifest and metrics, as they were written."""
+    d = run_dir(tag, root)
+    return {
+        "manifest": json.loads((d / "manifest.json").read_text()),
+        "metrics": json.loads((d / "metrics.json").read_text()),
     }
-    path.write_text(json.dumps(payload, indent=2, default=str))
+
+
+def load_runs(root: Path = RUNS_DIR) -> pd.DataFrame:
+    """Every recorded run, flattened to one row per run x target x model.
+
+    This is the comparison table: filter to a target and read the tags against each
+    other. It is derived from the directories on every call rather than maintained,
+    so it cannot disagree with what is on disk.
+    """
+    rows = []
+    for d in sorted(p for p in root.glob("*") if (p / "metrics.json").exists()):
+        man = json.loads((d / "manifest.json").read_text()) if (d / "manifest.json").exists() else {}
+        met = json.loads((d / "metrics.json").read_text())
+        for target, r in met.get("targets", {}).items():
+            for model, m in r.get("metrics", {}).items():
+                rows.append({
+                    "tag": met.get("tag", d.name),
+                    "created_at": man.get("created_at"),
+                    "git_sha": man.get("git_sha"),
+                    "matrix": man.get("matrix_dir"),
+                    "n_features": r.get("n_features", man.get("n_features")),
+                    "feature_hash": man.get("feature_hash"),
+                    "target": target,
+                    "model": model,
+                    "horizon_m": r.get("horizon_m"),
+                    "train_rows": r.get("train_rows"),
+                    "train_positives": r.get("train_positives"),
+                    "base_rate": m.get("base_rate"),
+                    "roc_auc": m.get("roc_auc"),
+                    "pr_auc": m.get("pr_auc"),
+                    **{f"precision_at_{n}": m.get(f"precision_at_{n}") for n in TOP_N},
+                })
+    return pd.DataFrame(rows)
+
+
+def write_index(root: Path = RUNS_DIR) -> Path:
+    """Regenerate ``index.csv`` from the run directories under ``root``."""
+    root.mkdir(parents=True, exist_ok=True)
+    path = root / INDEX_PATH.name
+    load_runs(root).to_csv(path, index=False)
     return path
+
+
+def compare_runs(
+    tags: list[str] | None = None,
+    metric: str = "roc_auc",
+    model: str = "lightgbm",
+    root: Path = RUNS_DIR,
+) -> pd.DataFrame:
+    """One metric, targets down the rows, runs across the columns.
+
+    The A/B in one line: ``compare_runs(["baseline", "lender"])`` is the answer to
+    whether the Charges API harvest bought predictive power.
+    """
+    df = load_runs(root)
+    df = df[df["model"] == model]
+    if tags:
+        df = df[df["tag"].isin(tags)]
+    return df.pivot(index="target", columns="tag", values=metric)

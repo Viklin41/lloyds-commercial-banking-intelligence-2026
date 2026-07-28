@@ -81,10 +81,19 @@ from pathlib import Path
 import duckdb
 import pandas as pd
 
-from ..features import contracts, panel
+from ..features import charges, contracts, panel
 
 LABEL_DIR = Path("data/processed/labels")
 MATRIX_DIR = Path("data/processed/model_matrix")
+
+# Step 4 of the lender extension writes *beside* the originals rather than over
+# them. `model_matrix/` is what notebook 16 trained on and what the `baseline` run
+# under `reports/runs/` describes; overwriting it with wider rows would silently
+# invalidate every number in that run and leave nothing to measure the lender
+# features against. Same A/B
+# shape as contracts strict-vs-extended: two directories, one switch.
+SWITCHING_LABEL_DIR = Path("data/processed/labels_switching")
+LENDER_MATRIX_DIR = Path("data/processed/model_matrix_lender")
 
 # Quarterly, anchored on the first panel month.
 ORIGIN_STEP_MONTHS = 3
@@ -147,7 +156,23 @@ EXPECTED_BASE_RATES = {
     "insolvency":     (0.0020, 0.0060),
     "voluntary_exit": (0.0500, 0.1100),
     "growth":         (0.0150, 0.0300),
+    "switching":      (0.0000, 0.0200),
 }
+
+# The fifth label, from the lender extension. Kept out of `TARGETS` deliberately:
+# notebooks 15 and 16 iterate `for t in targets.TARGETS` and their matrices are on
+# disk with four names. Adding a fifth key there would make a re-run of either
+# notebook go looking for a matrix built on a different base population and a wider
+# feature list. Anything that *looks up* a target by name uses `ALL_TARGETS`.
+#
+# Different base population is the point: the other four are conditioned on Active
+# at t, this one on **having an outstanding LBG charge at t**. You cannot switch
+# away from a bank you do not bank with.
+LENDER_TARGETS = {
+    "switching": ("y_switching", 6),
+}
+
+ALL_TARGETS = {**TARGETS, **LENDER_TARGETS}
 
 # Features carried straight off the panel at month t. `size_tier` is deliberately
 # absent: `tier_rank` is the same information as a number LightGBM can split on.
@@ -169,6 +194,13 @@ FEATURE_COLS = (
     + contracts.ASOF_FEATURE_COLS
     + CATEGORICAL_COLS
 )
+
+# The same list plus the lender columns, used only by matrices built with a
+# `lender_dir`. FEATURE_COLS itself is left alone so that step 6's existing results,
+# which record the exact feature list they were trained on, stay reproducible.
+LENDER_FEATURE_COLS = charges.LENDER_FEATURE_COLS + charges.LENDER_CATEGORICAL_COLS
+FEATURE_COLS_LENDER = FEATURE_COLS + LENDER_FEATURE_COLS
+CATEGORICAL_COLS_LENDER = CATEGORICAL_COLS + charges.LENDER_CATEGORICAL_COLS
 
 
 def _quote(values) -> str:
@@ -196,7 +228,7 @@ def max_origin(horizon: int, last_month: str = panel.LAST_MONTH) -> pd.Timestamp
 
 def target_origins(target: str, **kwargs) -> list[pd.Timestamp]:
     """Origin months usable for one target, i.e. those with a complete window."""
-    _, horizon = TARGETS[target]
+    _, horizon = ALL_TARGETS[target]
     cap = max_origin(horizon, kwargs.get("last_month", panel.LAST_MONTH))
     return [m for m in origin_months(**kwargs) if m <= cap]
 
@@ -328,7 +360,7 @@ def build_labels(
     return n
 
 
-def base_rates(label_dir: Path = LABEL_DIR) -> pd.DataFrame:
+def base_rates(label_dir: Path = LABEL_DIR, targets_map: dict | None = None) -> pd.DataFrame:
     """Positive rate per target per origin month, with the labelled row count.
 
     This is the cheapest possible check that the labels mean what we think they mean,
@@ -342,16 +374,16 @@ def base_rates(label_dir: Path = LABEL_DIR) -> pd.DataFrame:
         FROM read_parquet('{(label_dir / "**" / "*.parquet").as_posix()}')
         WHERE {col} IS NOT NULL GROUP BY 2
         """
-        for name, (col, _) in TARGETS.items()
+        for name, (col, _) in (targets_map or TARGETS).items()
     )
     df = con.execute(f"{parts} ORDER BY target, origin_month").df()
     con.close()
     return df
 
 
-def check_base_rates(label_dir: Path = LABEL_DIR) -> pd.DataFrame:
+def check_base_rates(label_dir: Path = LABEL_DIR, targets_map: dict | None = None) -> pd.DataFrame:
     """Assert every per-origin base rate sits in its plausible band. Returns the table."""
-    rates = base_rates(label_dir)
+    rates = base_rates(label_dir, targets_map)
     bad = [
         f"  {r.target} @ {r.origin_month:%Y-%m}: {r.base_rate:.4%} "
         f"(expected {EXPECTED_BASE_RATES[r.target][0]:.2%} - {EXPECTED_BASE_RATES[r.target][1]:.2%})"
@@ -412,17 +444,32 @@ JOIN read_parquet('{delta_glob}') f
   ON f."CompanyNumber" = s."CompanyNumber" AND f.snapshot_date = s.origin_month
 LEFT JOIN read_parquet('{contracts_glob}') c
   ON c."CompanyNumber" = s."CompanyNumber" AND c.snapshot_date = s.origin_month
+{lender_join}
 """
 
+LENDER_JOIN_SQL = """LEFT JOIN read_parquet('{lender_glob}') g
+  ON g."CompanyNumber" = s."CompanyNumber" AND g.snapshot_date = s.origin_month"""
 
-def _feature_select() -> str:
-    """SELECT list for FEATURE_COLS, taking contract columns from `c` and the rest from `f`."""
+
+def _feature_select(with_lender: bool = False) -> str:
+    """SELECT list for the feature columns, each taken from the table that owns it.
+
+    `f` is the delta panel, `c` the contract as-of table, `g` the lender panel. The
+    two sparse tables coalesce their counts and flags to 0 (absent means "none")
+    and leave their `months_since_*` columns NULL (absent means "never"), which is
+    the convention `contracts.ASOF_COALESCE_ZERO` and `charges.LENDER_COALESCE_ZERO`
+    each declare for themselves.
+    """
     parts = []
-    for col in FEATURE_COLS:
+    for col in (FEATURE_COLS_LENDER if with_lender else FEATURE_COLS):
         if col in contracts.ASOF_COALESCE_ZERO:
             parts.append(f'coalesce(c."{col}", 0) AS "{col}"')
         elif col in contracts.ASOF_FEATURE_COLS:
             parts.append(f'c."{col}"')
+        elif col in charges.LENDER_COALESCE_ZERO:
+            parts.append(f'coalesce(g."{col}", 0) AS "{col}"')
+        elif col in LENDER_FEATURE_COLS:
+            parts.append(f'g."{col}"')
         else:
             parts.append(f'f."{col}"')
     return ",\n    ".join(parts)
@@ -438,6 +485,7 @@ def build_matrix(
     origins: list | None = None,
     threads: int | None = None,
     memory_limit: str = "10GB",
+    lender_dir: Path | None = None,
 ) -> pd.DataFrame:
     """Assemble and sample the modelling matrix for one target.
 
@@ -451,9 +499,14 @@ def build_matrix(
     evaluation population for its test origins: precision@N is only truthful
     against the population the model would actually be ranking.
 
+    ``lender_dir`` switches on the step-4 lender join: pass
+    ``charges.LENDER_PANEL_DIR`` and the matrix gains
+    ``FEATURE_COLS_LENDER``. Pair it with ``out_dir=LENDER_MATRIX_DIR`` so the
+    baseline matrices notebook 16 trained on are not overwritten.
+
     Returns the per-origin summary (rows, positives, negative keep rate).
     """
-    ycol, horizon = TARGETS[target]
+    ycol, horizon = ALL_TARGETS[target]
     _check_contract_watermark(target, contracts_dir)
 
     target_dir = out_dir / target
@@ -479,7 +532,13 @@ def build_matrix(
         label_glob=(label_dir / "**" / "*.parquet").as_posix(),
         delta_glob=(delta_dir / "**" / "*.parquet").as_posix(),
         contracts_glob=(contracts_dir / "**" / "*.parquet").as_posix(),
-        feature_select=_feature_select(),
+        feature_select=_feature_select(with_lender=lender_dir is not None),
+        lender_join=(
+            "" if lender_dir is None
+            else LENDER_JOIN_SQL.format(
+                lender_glob=(lender_dir / "**" / "*.parquet").as_posix()
+            )
+        ),
     )
     con.execute(
         f"""
@@ -503,6 +562,125 @@ def build_matrix(
     summary.insert(0, "target", target)
     summary.insert(1, "horizon_m", horizon)
     return summary
+
+
+# --------------------------------------------------------------------------- #
+# The fifth label: switching away from LBG
+# --------------------------------------------------------------------------- #
+#
+# The client's "attrition" - a client moving their lending elsewhere - and the only
+# label here that is not derivable from the bulk file. It needs the charge-level
+# lender identity harvested in `src/features/charges.py`.
+#
+# **Full exit plus replacement**, both halves required:
+#
+#   - at origin t the company has at least one outstanding LBG charge (the base
+#     population: you cannot leave a bank you do not use);
+#   - by t+6m it has none left, and at least one LBG charge was satisfied inside
+#     that window (so the exit is an event, not a company that simply dissolved);
+#   - a competitor charge was created within +/- 3 months of that satisfaction.
+#
+# The replacement clause is what separates switching from deleveraging. A company
+# that pays off its Lloyds loan and borrows nothing has not gone anywhere, and
+# calling that attrition would put the RM in front of a client who did not leave.
+# `lbg_retail` and `unclassified` count as neither ours nor theirs, so a Halifax
+# charge or a private individual cannot fake a defection.
+#
+# The panel's June 2025 hole does not apply: the lender panel is computed from charge
+# event dates over a full calendar spine, so t+6 always exists for it.
+SWITCHING_SQL = """
+WITH lp AS (
+    SELECT "CompanyNumber" AS cn, snapshot_date AS m, n_lbg_charges_outstanding AS lbg_out
+    FROM read_parquet('{lender_glob}')
+),
+ch AS (
+    SELECT "CompanyNumber" AS cn, charge_id, created_on, satisfied_on, is_lbg,
+           lender_group NOT IN ('lbg', 'lbg_retail', 'unclassified') AS is_competitor
+    FROM read_parquet('{flat_path}')
+    WHERE created_on IS NOT NULL
+),
+-- Active at t as well, so the population is comparable with the other four labels
+-- and a company that simply died is not counted as having switched.
+base AS (
+    SELECT l.cn, l.m
+    FROM lp l
+    JOIN read_parquet('{delta_glob}') f
+      ON f."CompanyNumber" = l.cn AND f.snapshot_date = l.m AND f.is_active
+    WHERE l.m IN ({origins}) AND l.lbg_out > 0
+),
+future AS (
+    SELECT b.cn, b.m, l6.lbg_out AS lbg_out_t6
+    FROM base b
+    LEFT JOIN lp l6 ON l6.cn = b.cn AND l6.m = b.m + INTERVAL {horizon} MONTH
+),
+-- The LBG satisfactions inside the window, each paired with whether a competitor
+-- charge landed within three months either side of it.
+exits AS (
+    SELECT DISTINCT s.cn, s.m
+    FROM (
+        SELECT b.cn, b.m, c.satisfied_on
+        FROM base b
+        JOIN ch c ON c.cn = b.cn AND c.is_lbg
+                 AND c.satisfied_on > b.m
+                 AND c.satisfied_on <= b.m + INTERVAL {horizon} MONTH
+    ) s
+    WHERE EXISTS (
+        SELECT 1 FROM ch r
+        WHERE r.cn = s.cn AND r.is_competitor
+          AND r.created_on BETWEEN s.satisfied_on - INTERVAL 3 MONTH
+                               AND s.satisfied_on + INTERVAL 3 MONTH
+    )
+)
+SELECT f.cn AS "CompanyNumber",
+       f.m  AS origin_month,
+       -- NULL, not 0, where the window runs off the lender panel: "cannot say".
+       CASE WHEN f.lbg_out_t6 IS NULL THEN NULL
+            ELSE (f.lbg_out_t6 = 0 AND e.cn IS NOT NULL)::INT END AS y_switching
+FROM future f
+LEFT JOIN exits e ON e.cn = f.cn AND e.m = f.m
+"""
+
+
+def build_switching_labels(
+    lender_dir: Path = charges.LENDER_PANEL_DIR,
+    flat_path: Path = charges.FLAT_PATH,
+    delta_dir: Path = panel.DELTA_DIR,
+    out_dir: Path = SWITCHING_LABEL_DIR,
+    threads: int | None = None,
+    memory_limit: str = "10GB",
+) -> int:
+    """Write the switching label: one row per (LBG client, quarterly origin)."""
+    _, horizon = LENDER_TARGETS["switching"]
+    out_dir.mkdir(parents=True, exist_ok=True)
+    tmp_dir = out_dir.parent / "duckdb_tmp"
+    tmp_dir.mkdir(parents=True, exist_ok=True)
+
+    con = duckdb.connect()
+    con.execute("PRAGMA disable_progress_bar")
+    con.execute(f"SET memory_limit='{memory_limit}'")
+    con.execute(f"SET temp_directory='{tmp_dir.as_posix()}'")
+    if threads:
+        con.execute(f"PRAGMA threads={threads}")
+
+    sql = SWITCHING_SQL.format(
+        lender_glob=(lender_dir / "**" / "*.parquet").as_posix(),
+        flat_path=flat_path.as_posix(),
+        delta_glob=(delta_dir / "**" / "*.parquet").as_posix(),
+        origins=_quote(m.date() for m in target_origins("switching")),
+        horizon=horizon,
+    )
+    con.execute(
+        f"""
+        COPY ({sql}) TO '{out_dir.as_posix()}'
+        (FORMAT PARQUET, COMPRESSION ZSTD,
+         PARTITION_BY (origin_month), OVERWRITE_OR_IGNORE)
+        """
+    )
+    n = con.execute(
+        f"SELECT count(*) FROM read_parquet('{(out_dir / '**' / '*.parquet').as_posix()}')"
+    ).fetchone()[0]
+    con.close()
+    return n
 
 
 def _check_contract_watermark(target: str, contracts_dir: Path) -> None:
