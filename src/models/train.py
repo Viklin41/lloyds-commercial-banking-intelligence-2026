@@ -239,7 +239,18 @@ class RunConfig:
 
 # The reference run: the four targets, 41 features, the plain matrix. This is what
 # `reports/runs/baseline/` records and what every later tag is a diff against.
+#
+# Careful: the recorded `baseline` run predates the MLP, so it holds two models while
+# this config resolves to every registered model (three today). Re-running it under
+# the same tag is refused by `record_run`, which is the intended behaviour; the
+# three-model repeat of it is `REFACTOR` below.
 BASELINE = RunConfig(tag="baseline")
+
+# Same matrix, same 41 features, the full registry. This is the **control** in the
+# comparison: it is what isolates "we added a model family" from "we added features",
+# and its LightGBM and logistic rows should reproduce `baseline` to the digit, which
+# doubles as proof the 27 Jul refactor changed nothing it was not meant to.
+REFACTOR = RunConfig(tag="refactor")
 
 # The lender A/B: same targets, same models, +13 columns from the Charges API
 # harvest (notebook 14b). `switching` is deliberately not in `target_names`; it is

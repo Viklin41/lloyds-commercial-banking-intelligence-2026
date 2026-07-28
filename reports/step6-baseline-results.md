@@ -2,7 +2,7 @@
 
 Written the day step 6 first ran end to end, before the Charges API lender harvest finished. That timing is the point of the document. Everything here is a **baseline**: the out-of-time numbers that will say, later, whether twenty-four hours of harvesting bought anything. Without them the harvest is an act of faith.
 
-Machine-readable twin: `reports/step6/model_results.json`, under the tag `baseline`. Re-running `notebooks/16_shap_models.ipynb` with a grown `targets.FEATURE_COLS` writes a second tag and the comparison becomes a diff.
+Machine-readable twin: `reports/runs/baseline/` (`manifest.json` for how it was run, `metrics.json` for what came out). Re-running `notebooks/16_shap_models.ipynb` under a different `RunConfig` writes a second run directory and the comparison becomes a diff.
 
 ## The split
 
@@ -124,7 +124,7 @@ Insolvency is where most of them land, and the interesting pair is `tier_rank` a
 
 ## Addendum, 27 July 2026: the pipeline refactor
 
-Every number in this document was produced before the supervisor call and is unchanged by what follows. `src/models/train.py` was reorganised the same day to meet Fernando's requirements, and the reorganisation was checked against these results the boring way: insolvency re-run through the new code reproduces ROC-AUC 0.761520, PR-AUC 0.016923 and P@100 19.0% to every digit. The `baseline` tag in `reports/step6/model_results.json` therefore stays the fixed reference for the lender-harvest comparison, and the refactor run writes a separate `refactor` tag beside it.
+Every number in this document was produced before the supervisor call and is unchanged by what follows. `src/models/train.py` was reorganised the same day to meet Fernando's requirements, and the reorganisation was checked against these results the boring way: insolvency re-run through the new code reproduces ROC-AUC 0.761520, PR-AUC 0.016923 and P@100 19.0% to every digit. The `baseline` run in `reports/runs/` therefore stays the fixed reference for the lender-harvest comparison, and the refactor run writes a separate `refactor` run beside it.
 
 What changed:
 
