@@ -22,3 +22,9 @@ __pycache__/
 .vscode/
 .idea/
 *.swp
+
+# Lloyds brand assets. Kept local: this repository is public and these are
+# trademarked marks. The dashboard renders without them.
+dashboard/Lloyds_Banking_Group_Logo.png
+dashboard/Lloyds-Bank-Symbol.png
+dashboard/assets/horse-mark.png
