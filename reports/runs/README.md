@@ -32,6 +32,8 @@ train.load_run("baseline")                     # manifest + metrics as written
 |---|---|
 | `baseline` | The first recorded run: `model_matrix/`, 41 features, LightGBM and logistic. Migrated here unchanged from the old flat `reports/step6/`; the numbers are the same bytes. This is the fixed reference every later run is a diff against. |
 | `lender` | The A/B: `model_matrix_lender/`, 54 features, three models. Same targets, same splits and the same evaluation population as `refactor` (identical `n` and positives per target), so the deltas are a clean feature-set comparison. **Its `lending` numbers are contaminated, see below.** |
+| `lender_fixed` | The same A/B with the as-of gate moved to `delivered_on`. Halves the distortion and is **still contaminated** (`lending` P@500 = 0.742). Kept because "the obvious fix was not enough" is part of the finding. |
+| `lender_asof21` | The same A/B again with the gate at `delivered_on` + the measured 21-day registration lag. **This is the run the lender verdict should be read off.** |
 | `refactor` | The control. Same matrix, same 41 features (same `feature_hash`), the full registry including the MLP. Run from `notebooks/16_refactor_run.ipynb`, which is `16_shap_models.ipynb` with `CFG = train.REFACTOR` and nothing else changed. It isolates "we added a model family" from "we added features". |
 
 `baseline`'s manifest carries `migrated_from` and `created_at_source`, because it predates the manifest
@@ -56,11 +58,30 @@ by the lender features at the start of that month while the bulk register, which
 - **46.6% of the model's top 500 contain such a charge, against 0.01% of the eval population**, a
   roughly 4,600x enrichment.
 
-The fix is to gate on `delivered_on` (already harvested, `charges.py:85`, and currently unused)
-rather than `created_on`, then rebuild `lender_panel/` and `model_matrix_lender/` and re-run. This is
-the same distinction the contract features already get right by gating on `publication_date` rather
-than `signature_date`. The other three targets move by less than 0.001 ROC-AUC either way, so they are
-not materially affected, but they share the gate and should be rebuilt with it.
+**Fixing it took two passes.** Gating on `delivered_on` (`lender_fixed`) removed about half the
+distortion and left `lending` at P@500 = 0.742, still nowhere near the control's 0.282. Delivery is
+not registration: Companies House takes about three weeks to process a delivered charge into the
+register, and the monthly bulk extract is itself taken on a drifting date, so a charge delivered
+shortly before a snapshot is visible in the API and absent from the register that defines the label.
+Sweeping the margin and comparing the two sources puts the knee at **21 days**, where the mean
+discrepancy is +0.0013 charges against +0.10 at delivery and +0.29 at creation. That is
+`charges.REGISTRATION_LAG_DAYS`, and `lender_asof21` is the run built on it.
+
+```
+lending          refactor   lender   lender_fixed   lender_asof21
+ROC-AUC            0.8767   0.8951         0.8861          0.8763
+precision@100        0.55     1.00           0.98            0.48
+precision@500       0.282    0.992          0.742           0.310
+```
+
+**The corrected verdict: the lender features buy nothing on any of the four targets.** At the correct
+gate `lending` is 0.8763 against the control's 0.8767, matching the other three, which never moved by
+more than 0.001 either way. The entire apparent win was a clock error.
+
+The full post-mortem, with the evidence re-derived from disk and the margin sweep plotted, is
+`notebooks/nb16_lender_leakage_fix.ipynb`. It also records why verification 7 in notebook 14b passed
+while the leak was live: that test replays the harvest against `created_on`, the same wrong clock, so
+it inherited the bug instead of catching it.
 
 **On reproducing `baseline` from `refactor`.** Seven of the eight shared rows (4 targets x LightGBM
 and logistic) reproduce exactly. The eighth, `voluntary_exit` LightGBM, agrees to 6 decimal places on

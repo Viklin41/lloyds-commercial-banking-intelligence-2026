@@ -264,6 +264,33 @@ LENDER = RunConfig(
     lender_dir=charges.LENDER_PANEL_DIR,
 )
 
+# The same A/B again after the as-of gate in `charges.py` was moved from `created_on`
+# to `delivered_on` (7 Aug 2026). It gets its own directories rather than overwriting
+# the leaky ones, because the before/after is the finding: `lender` is what a
+# registration lag buys you, `lender_fixed` is what the lender features are actually
+# worth. Both are reproducible from what is on disk.
+LENDER_FIXED = RunConfig(
+    tag="lender_fixed",
+    matrix_dir=Path("data/processed/model_matrix_lender_fixed"),
+    eval_dir=Path("data/processed/eval_matrix_lender_fixed"),
+    feature_cols=tuple(targets.FEATURE_COLS_LENDER),
+    categorical_cols=tuple(targets.CATEGORICAL_COLS_LENDER),
+    lender_dir=Path("data/processed/lender_panel_fixed"),
+)
+
+# `delivered_on` alone was not enough: it halved the distortion and left `lending`
+# at P@500 = 0.742 against the 41-feature control's 0.282. This adds the measured
+# 21-day registration lag on top, which is the gate that finally makes the API view
+# and the register view agree. This is the run the lender verdict is read off.
+LENDER_ASOF21 = RunConfig(
+    tag="lender_asof21",
+    matrix_dir=Path("data/processed/model_matrix_lender_asof21"),
+    eval_dir=Path("data/processed/eval_matrix_lender_asof21"),
+    feature_cols=tuple(targets.FEATURE_COLS_LENDER),
+    categorical_cols=tuple(targets.CATEGORICAL_COLS_LENDER),
+    lender_dir=Path("data/processed/lender_panel_asof21"),
+)
+
 
 # --------------------------------------------------------------------------- #
 # Splitting

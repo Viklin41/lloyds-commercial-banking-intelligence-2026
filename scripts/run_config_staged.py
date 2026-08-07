@@ -26,7 +26,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from src.features import panel
 from src.models import targets, train
 
-CONFIGS = {"refactor": train.REFACTOR, "lender": train.LENDER}
+CONFIGS = {"refactor": train.REFACTOR, "lender": train.LENDER,
+           "lender_fixed": train.LENDER_FIXED,
+           "lender_asof21": train.LENDER_ASOF21}
 CFG = CONFIGS[sys.argv[1]]
 STAGE = Path("data/processed/run_stage") / CFG.tag
 STAGE.mkdir(parents=True, exist_ok=True)
