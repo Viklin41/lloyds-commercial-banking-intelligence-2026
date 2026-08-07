@@ -1,0 +1,13 @@
+check,pass,detail
+MANIFEST == panel source_date,True,"33 months, mean drift 0.394d"
+G4 created: calibrated lag < 21d,True,"L = 4d, 95% CI [4, 4], n = 51,669"
+G4 satisfied: calibrated lag < 21d,True,"L = 1d, 95% CI [1, 1], n = 47,480"
+G4 corroboration: unconditioned sweep crossing < 21d,True,"1.81d over 4,740,553 company-months"
+21d withholds more than half of all charges,True,"stale at 21d = 52.28%, at 7d = 8.94%"
+G4b: lender_panel_calib differs from lender_panel_asof21,True,"26,819.0 of 5,142,357 rows (0.52%)"
+lender_calib: training matrices built,True,"growth, insolvency, lending, voluntary_exit"
+lender_calib: eval matrices built,True,"growth, insolvency, lending, voluntary_exit"
+lender_calib_lo: training matrices built,True,"growth, insolvency, lending, voluntary_exit"
+lender_calib_lo: eval matrices built,True,"growth, insolvency, lending, voluntary_exit"
+lender_calib_hi: training matrices built,True,"growth, insolvency, lending, voluntary_exit"
+lender_calib_hi: eval matrices built,True,"growth, insolvency, lending, voluntary_exit"

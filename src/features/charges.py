@@ -52,6 +52,7 @@ import pandas as pd
 import requests
 from requests.auth import HTTPBasicAuth
 
+from src.data import ch_bulk
 from src.features import ch_api, lenders, panel
 
 BASE_URL = "https://api.company-information.service.gov.uk"
@@ -61,27 +62,84 @@ TARGET_PATH = Path("data/processed/charge_universe.parquet")
 FLAT_PATH = Path("data/processed/charges_flat.parquet")
 LENDER_PANEL_DIR = Path("data/processed/lender_panel")
 
+# ### THE GATE IS AGAINST `source_date`, THE REAL EXTRACT DATE (recalibrated 7 Aug 2026)
+#
 # Days from `delivered_on` to the charge actually showing up in the bulk register.
 #
-# Delivery is not registration. Companies House takes time to process a delivered
-# charge, and the monthly bulk extract is itself taken on a drifting date, so a
-# charge delivered shortly before a snapshot is visible in the API and still absent
-# from the register file that the `lending` label is computed from. Gating only on
-# `delivered_on` therefore still leaks, just less.
+# Delivery is not registration: Companies House takes some time to process a delivered
+# charge, so a charge delivered shortly before an extract can be visible in the API and
+# still absent from the register file the `lending` label is computed from. That
+# residual is what these two constants hold. **The gate compares against
+# `source_date`, the date the bulk file was actually taken**, which is a recorded
+# quantity (`ch_bulk.MANIFEST`, and `source_date` in `data/processed/panel/`), not an
+# estimated one. It is the nominal 1st in 29 of the 33 months and 1 to 6 days later in
+# the other four; mean drift 0.394 days.
 #
-# Measured by sweeping the margin and comparing the API's outstanding count at `t`
-# against the register's, over company-months that go on to borrow (nb16b, section 5):
+# The previous value was 21 days against the nominal 1st, read off a sweep of
+# mean(API count - register count) over company-months that go on to borrow. Here is
+# that sweep as nb16b actually computed it, restored in full: the copy of this table
+# that used to sit here silently dropped the 45-day row, which is the row that shows
+# most clearly that the curve keeps going rather than flattening past the "knee".
 #
 #     margin   mean(api - bulk)   % already at the post-borrowing value
 #      0 days       +0.1014                 6.16
 #     14 days       +0.0121                 0.81
-#     21 days       +0.0013                 0.79   <- the knee
+#     21 days       +0.0013                 0.79   <- what I called the knee
 #     30 days       -0.0128                 0.78
+#     45 days       -0.0314                 0.72   <- the row that went missing
 #     60 days       -0.0511                 0.70
 #
-# 21 days is where the discrepancy reaches zero and stops improving; beyond it the
-# gap goes negative, which is the features going stale rather than getting safer.
-REGISTRATION_LAG_DAYS = 21
+# Sweeping the margin one change at a time shows where that 21 came from
+# (nb16b, section 8):
+#
+#     the sweep                                                     zero crossing
+#     old: nominal 1st, 7 origins, NumMortOutstanding, conditioned      22.1 d
+#     + all 33 origins                                                  23.7 d
+#     + the real extract date                                           23.6 d   (-0.1)
+#     + NumMortCharges, the register the label is computed from          5.3 d   (-18.2)
+#     + unconditioned, every company-month                               1.8 d   (-3.5)
+#
+# Almost none of the 21 days was extract drift. **Eighteen of them were the
+# satisfaction clock**: the old sweep calibrated the creation clock against
+# `NumMortOutstanding`, which moves when a charge is created *and* when one is
+# satisfied, so an unlagged satisfaction gate was being paid for with creation-side
+# margin. Three and a half more were the sweep conditioning on companies that go on to
+# borrow, which is a property of borrowers rather than of the registry.
+#
+# Calibrated independently by reading first appearance straight off the register: for
+# the 99.8% of companies whose register history reconciles exactly with their API
+# charge history, find the first monthly extract in which each charge appears. That
+# brackets the true lag, and a candidate `L` can then be scored without estimating
+# anything (n = 51,669 charges / 47,480 satisfactions, nb16b section 9):
+#
+#      L    % admitted early   % held back stale       (created / satisfied)
+#      0     13.89 /  4.57       0.02 /  0.29
+#      1     10.21 /  1.77       0.02 /  0.33   <- satisfied_on
+#      4      2.99 /  0.69       1.99 /  8.19   <- created_on
+#      7      0.62 /  0.13       8.94 / 17.04
+#     14      0.03 /  0.00      30.36 / 39.78
+#     21      0.02 /  0.00      52.28 / 62.96
+#     30      0.02 /  0.00      81.75 / 91.08
+#     45      0.01 /  0.00      98.08 / 98.36
+#
+# The old 21 days bought 0.6 percentage points of leak and cost **43 points of
+# staleness**: at 21 days more than half of all charges are withheld from the features
+# for a whole month after the register already had them. That is the overshoot, and the
+# reason it went unnoticed is that a mean-matching sweep against a monthly register
+# mostly measures the *sampling interval*, not the processing lag.
+#
+# Both values minimise (% early + % stale); bootstrapped over companies the argmin is
+# degenerate at these points, 95% CI [4, 4] and [1, 1]. Sensitivity is therefore run
+# over the criterion rather than over a standard error: `_lo` takes the mean-matching
+# answer, `_hi` the leak-averse one (% early below 1 on both clocks).
+REGISTRATION_LAG_DAYS = 4
+SATISFACTION_LAG_DAYS = 1
+
+# The gate `lender`, `lender_fixed` and `lender_asof21` were built under: no
+# satisfaction lag, and everything compared against the nominal first of the month.
+# Kept so those three recorded runs stay reproducible from this file rather than only
+# from the parquet that happens to still exist. See `build_lender_panel(asof_clock=)`.
+LEGACY_REGISTRATION_LAG_DAYS = 21
 
 # Companies House allows 600 requests per rolling 5 minutes = 2/s. We pace on the
 # interval between request *starts*, not with a fixed sleep after each one: a fixed
@@ -448,37 +506,46 @@ LENDER_COALESCE_ZERO = [
 # whether a charge created before the cut was *knowable* by then. A blind-replay test
 # is only as good as the clock you replay against.
 #
-# `satisfied_on` keeps the same treatment as before, because the API gives no
-# delivery date for a satisfaction. Those features carry the same class of lag and
-# are the obvious next thing to check if a satisfaction-driven target ever matters.
+# `satisfied_on` now has its own clock too. The API gives no delivery date for a
+# satisfaction, but the register does: `Mortgages.NumMortSatisfied` is a second oracle,
+# and calibrating against it gives 1 day. That matters more than it sounds, because the
+# satisfaction gate decides the `outstanding` flag, which nearly every column below is
+# built from. Leaving it unlagged is what made the old creation-side estimate come out
+# at 21 days.
 #
-# The gate compares against the *first* of the month, not
-# `last_day(snapshot_date)` as the contract table uses. Two different clocks:
-# contracts are dated by publication and the panel row for month t is the register as
-# it stood at the start of t, so anything a charge does later in the month is
-# genuinely not knowable at t. Gating on month end would put up to 30 days of future
-# charge activity into the feature row and break verification 7.
+# The gate compares against `source_date`, the date the bulk file was actually taken,
+# rather than `last_day(snapshot_date)` as the contract table uses. Two different
+# clocks: contracts are dated by publication, and the panel row for month t is the
+# register as extracted on `source_date(t)`, so anything a charge does after that
+# extract is genuinely not knowable at t. Gating on month end would put up to 30 days
+# of future charge activity into the feature row and break verification 7. Gating on
+# the nominal 1st, which is what this did until 7 Aug 2026, is the same error in
+# miniature: it silently throws away the four months where the extract is late.
+#
+# `months_since_*` stay on `snapshot_date`. They are month-grained by construction, so
+# a drift of one to six days cannot move them and anchoring them on the extract date
+# would only make the same number look less stable than it is.
 #
 # June 2025 is computed like every other month. This table is built from event dates
 # on a calendar spine, not from register snapshots, so it has no hole to step over -
 # the same reason contracts.ASOF_SQL needs no special case. The panel simply never
 # asks for that month because it has no partition there.
 LENDER_PANEL_SQL = """
-WITH months AS (
-    SELECT (DATE '{first_month}' + INTERVAL (n) MONTH)::DATE AS snapshot_date
-    FROM range(0, DATEDIFF('month', DATE '{first_month}', DATE '{last_month}') + 1) t(n)
-),
+WITH {months_cte},
 charges AS (
     SELECT "CompanyNumber", charge_id, created_on, satisfied_on,
            -- The date the charge became visible **in the register the label is
            -- computed from**, which is what every as-of gate below uses. `created_on`
            -- is when the charge was made, `delivered_on` is when it reached Companies
-           -- House, and CH then takes about three weeks to register it and have it
-           -- appear in a bulk extract. GREATEST because a handful of rows carry a
+           -- House, and CH then takes a few days to register it so that it lands in
+           -- the next bulk extract. GREATEST because a handful of rows carry a
            -- delivered date before the created one, and COALESCE because a few carry
            -- no delivered date at all. See REGISTRATION_LAG_DAYS for the measurement.
            GREATEST(created_on, COALESCE(delivered_on, created_on))
                + INTERVAL {lag_days} DAY AS visible_on,
+           -- A satisfaction has its own registration lag and its own oracle
+           -- (`Mortgages.NumMortSatisfied`); see SATISFACTION_LAG_DAYS.
+           satisfied_on + INTERVAL {satisfied_lag_days} DAY AS satisfaction_visible_on,
            lender_group, is_lbg,
            lender_group NOT IN ('lbg', 'lbg_retail', 'unclassified') AS is_competitor
     FROM read_parquet('{flat_path}')
@@ -486,16 +553,18 @@ charges AS (
 ),
 companies AS (SELECT DISTINCT "CompanyNumber" FROM charges),
 spine AS (SELECT * FROM companies CROSS JOIN months),
--- Everything a company's charge history says as at month t. `outstanding` is the
--- plan's definition verbatim: created on or before t, and either never satisfied or
--- satisfied after t.
+-- Everything a company's charge history says as at month t, where "as at t" means
+-- "as the register stood when the month-t bulk file was extracted", i.e. `source_date`.
+-- `outstanding` is the plan's definition, with both clocks applied: the charge was
+-- visible by then, and its satisfaction (if any) was not yet.
 joined AS (
-    SELECT s."CompanyNumber", s.snapshot_date, c.*,
-           (c.satisfied_on IS NULL OR c.satisfied_on > s.snapshot_date) AS outstanding
+    SELECT s."CompanyNumber", s.snapshot_date, s.source_date, c.*,
+           (c.satisfaction_visible_on IS NULL
+            OR c.satisfaction_visible_on > s.source_date) AS outstanding
     FROM spine s
     JOIN charges c
       ON c."CompanyNumber" = s."CompanyNumber"
-     AND c.visible_on <= s.snapshot_date
+     AND c.visible_on <= s.source_date
 ),
 agg AS (
     SELECT
@@ -511,32 +580,38 @@ agg AS (
             AS n_competitor_lenders,
         max(is_lbg::INT)::BOOLEAN AS ever_lbg_client,
         max(CASE WHEN is_lbg THEN created_on END)   AS last_lbg_created,
-        max(CASE WHEN is_lbg AND satisfied_on <= snapshot_date THEN satisfied_on END)
+        max(CASE WHEN is_lbg AND satisfaction_visible_on <= source_date
+                 THEN satisfied_on END)
             AS last_lbg_satisfied,
         max(CASE WHEN is_competitor THEN created_on END) AS last_competitor_created,
         -- "the company was LBG-only a year ago": every charge outstanding at t-12m
         -- was ours. Compared against a competitor charge arriving since, this is the
         -- wallet-share erosion signal, which leads full defection.
-        count(DISTINCT CASE WHEN visible_on <= snapshot_date - INTERVAL 12 MONTH
-                             AND (satisfied_on IS NULL
-                                  OR satisfied_on > snapshot_date - INTERVAL 12 MONTH)
+        count(DISTINCT CASE WHEN visible_on <= source_date - INTERVAL 12 MONTH
+                             AND (satisfaction_visible_on IS NULL
+                                  OR satisfaction_visible_on
+                                     > source_date - INTERVAL 12 MONTH)
                             THEN charge_id END) AS n_outstanding_12m_ago,
-        count(DISTINCT CASE WHEN visible_on <= snapshot_date - INTERVAL 12 MONTH
-                             AND (satisfied_on IS NULL
-                                  OR satisfied_on > snapshot_date - INTERVAL 12 MONTH)
+        count(DISTINCT CASE WHEN visible_on <= source_date - INTERVAL 12 MONTH
+                             AND (satisfaction_visible_on IS NULL
+                                  OR satisfaction_visible_on
+                                     > source_date - INTERVAL 12 MONTH)
                              AND NOT is_lbg
                             THEN charge_id END) AS n_nonlbg_outstanding_12m_ago,
+        -- Named `visible`, not `created`: the window is on the date the charge became
+        -- knowable, which is what the gate above admits on, not on when it was made.
         count(DISTINCT CASE WHEN is_competitor
-                             AND visible_on > snapshot_date - INTERVAL 12 MONTH
-                            THEN charge_id END) AS n_competitor_created_12m,
+                             AND visible_on > source_date - INTERVAL 12 MONTH
+                            THEN charge_id END) AS n_competitor_visible_12m,
         count(DISTINCT CASE WHEN is_competitor
-                             AND visible_on > snapshot_date - INTERVAL 6 MONTH
-                            THEN charge_id END) AS n_competitor_created_6m,
-        count(DISTINCT CASE WHEN is_lbg AND satisfied_on <= snapshot_date
-                             AND satisfied_on > snapshot_date - INTERVAL 6 MONTH
+                             AND visible_on > source_date - INTERVAL 6 MONTH
+                            THEN charge_id END) AS n_competitor_visible_6m,
+        count(DISTINCT CASE WHEN is_lbg AND satisfaction_visible_on <= source_date
+                             AND satisfaction_visible_on
+                                 > source_date - INTERVAL 6 MONTH
                             THEN charge_id END) AS n_lbg_satisfied_6m
     FROM joined
-    GROUP BY 1, 2
+    GROUP BY 1, 2, source_date
 ),
 -- Who holds the most of what is outstanding. Ties break on the most recent charge,
 -- which is the more useful answer for an RM: the newest money is the live relationship.
@@ -567,14 +642,44 @@ SELECT
     DATEDIFF('month', a.last_lbg_created, a.snapshot_date) AS months_since_last_lbg_charge_created,
     DATEDIFF('month', a.last_lbg_satisfied, a.snapshot_date) AS months_since_last_lbg_satisfaction,
     (a.n_outstanding_12m_ago > 0 AND a.n_nonlbg_outstanding_12m_ago = 0
-        AND a.n_competitor_created_12m > 0)               AS competitor_entered_12m,
+        AND a.n_competitor_visible_12m > 0)               AS competitor_entered_12m,
     a.n_lbg_satisfied_6m > 0                              AS lbg_charge_satisfied_6m,
-    a.n_competitor_created_6m > 0                         AS competitor_charge_created_6m,
+    a.n_competitor_visible_6m > 0                         AS competitor_charge_created_6m,
     a.ever_lbg_client,
     p.primary_lender_group
 FROM agg a
 LEFT JOIN primary_lender p USING ("CompanyNumber", snapshot_date)
 """
+
+
+def months_cte(
+    first_month: str = panel.FIRST_MONTH,
+    last_month: str = panel.LAST_MONTH,
+    asof_clock: str = "source",
+) -> str:
+    """The month spine carrying the **real** extract date alongside each month.
+
+    ``ch_bulk.MANIFEST`` holds the 33 dates the bulk files were actually taken, which
+    is the same value the panel stores as ``source_date`` (verified identical). The
+    spine is still the calendar, not the manifest, because June 2025 has no extract;
+    that month falls back to its nominal 1st and the panel never asks for it, exactly
+    as before.
+
+    ``asof_clock="snapshot"`` collapses ``source_date`` back onto the nominal 1st,
+    which is the gate ``lender``, ``lender_fixed`` and ``lender_asof21`` were built
+    under. It exists so those three runs stay reproducible from this file.
+    """
+    if asof_clock not in ("source", "snapshot"):
+        raise ValueError(f"asof_clock must be 'source' or 'snapshot', got {asof_clock!r}")
+    real = {d[:7]: d for d in ch_bulk.MANIFEST}
+    rows = []
+    for m in pd.date_range(first_month, last_month, freq="MS"):
+        ms = f"{m:%Y-%m-01}"
+        src = ms if asof_clock == "snapshot" else real.get(f"{m:%Y-%m}", ms)
+        rows.append(f"(DATE '{ms}', DATE '{src}')")
+    return ("months AS (SELECT * FROM (VALUES\n        "
+            + ",\n        ".join(rows)
+            + "\n    ) AS t(snapshot_date, source_date))")
 
 
 def build_lender_panel(
@@ -583,6 +688,8 @@ def build_lender_panel(
     threads: int | None = None,
     memory_limit: str = "10GB",
     lag_days: int = REGISTRATION_LAG_DAYS,
+    satisfied_lag_days: int = SATISFACTION_LAG_DAYS,
+    asof_clock: str = "source",
 ) -> int:
     """Replay the charge history as-of every panel month.
 
@@ -591,8 +698,15 @@ def build_lender_panel(
     coalesce convention. Only the 158,684 companies that have ever held a charge get
     rows; everyone else is absent, which is the correct "not a client, no lenders".
 
-    ``lag_days`` is the registration lag applied on top of ``delivered_on``; see
-    :data:`REGISTRATION_LAG_DAYS`. Pass 0 to reproduce the un-lagged panel.
+    ``lag_days`` is the registration lag applied on top of ``delivered_on`` and
+    ``satisfied_lag_days`` the one applied to ``satisfied_on``; see
+    :data:`REGISTRATION_LAG_DAYS` and :data:`SATISFACTION_LAG_DAYS`. Pass 0 to both
+    to reproduce the un-lagged panel.
+
+    ``asof_clock`` chooses what "as at month t" compares against: ``"source"``, the
+    date the bulk file was really taken, or ``"snapshot"``, the nominal 1st. The three
+    runs recorded before 7 Aug 2026 used ``asof_clock="snapshot"``,
+    ``lag_days=LEGACY_REGISTRATION_LAG_DAYS`` and ``satisfied_lag_days=0``.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     tmp_dir = out_dir.parent / "duckdb_tmp"
@@ -607,9 +721,9 @@ def build_lender_panel(
 
     sql = LENDER_PANEL_SQL.format(
         flat_path=flat_path.as_posix(),
-        first_month=panel.FIRST_MONTH,
-        last_month=panel.LAST_MONTH,
+        months_cte=months_cte(panel.FIRST_MONTH, panel.LAST_MONTH, asof_clock),
         lag_days=lag_days,
+        satisfied_lag_days=satisfied_lag_days,
     )
     con.execute(
         f"""

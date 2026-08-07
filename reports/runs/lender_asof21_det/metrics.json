@@ -1,0 +1,1417 @@
+{
+  "tag": "lender_asof21_det",
+  "targets": {
+    "lending": {
+      "target": "lending",
+      "tag": "lender_asof21_det",
+      "horizon_m": 3,
+      "n_features": 54,
+      "models": [
+        "lightgbm",
+        "logistic",
+        "mlp"
+      ],
+      "split": {
+        "target": "lending",
+        "horizon_m": 3,
+        "train": [
+          "2024-10-01",
+          "2025-01-01",
+          "2025-04-01",
+          "2025-07-01",
+          "2025-10-01"
+        ],
+        "embargo": [],
+        "test": [
+          "2026-01-01",
+          "2026-04-01"
+        ],
+        "dropped_early": [
+          "2023-10-01",
+          "2024-01-01",
+          "2024-04-01",
+          "2024-07-01"
+        ],
+        "first_full_origin_applied": true
+      },
+      "train_rows": 214708,
+      "train_positives": 19624,
+      "best_iteration": 119,
+      "metrics": {
+        "lightgbm": {
+          "n": 2782591,
+          "positives": 7544,
+          "base_rate": 0.0027111421804875135,
+          "roc_auc": 0.8762658118943571,
+          "pr_auc": 0.05579223933089704,
+          "precision_at_100": 0.47999998927116394,
+          "lift_at_100": 177.04714740738942,
+          "precision_at_500": 0.3100000023841858,
+          "lift_at_500": 114.34295280243917,
+          "precision_at_1000": 0.21699999272823334,
+          "lift_at_1000": 80.04006366394725
+        },
+        "logistic": {
+          "n": 2782591,
+          "positives": 7544,
+          "base_rate": 0.0027111421804875135,
+          "roc_auc": 0.8624692198090085,
+          "pr_auc": 0.04292380565146948,
+          "precision_at_100": 0.17000000178813934,
+          "lift_at_100": 62.70420010121719,
+          "precision_at_500": 0.18799999356269836,
+          "lift_at_500": 69.34346524345413,
+          "precision_at_1000": 0.16500000655651093,
+          "lift_at_1000": 60.85996069997364
+        },
+        "mlp": {
+          "n": 2782591,
+          "positives": 7544,
+          "base_rate": 0.0027111421804875135,
+          "roc_auc": 0.86799079357811,
+          "pr_auc": 0.04653150669251306,
+          "precision_at_100": 0.38999998569488525,
+          "lift_at_100": 143.8508052074038,
+          "precision_at_500": 0.23000000417232513,
+          "lift_at_500": 84.83509490120761,
+          "precision_at_1000": 0.16899999976158142,
+          "lift_at_1000": 62.33535112171509
+        }
+      },
+      "metrics_by_origin": {
+        "lightgbm": {
+          "2026-01-01": {
+            "n": 1385254,
+            "positives": 3568,
+            "base_rate": 0.002575700869783759,
+            "roc_auc": 0.8782729033367428,
+            "pr_auc": 0.05697218136861737,
+            "precision_at_100": 0.4699999988079071,
+            "lift_at_100": 182.4746049984312,
+            "precision_at_500": 0.2160000056028366,
+            "lift_at_500": 83.86067191916223,
+            "precision_at_1000": 0.16099999845027924,
+            "lift_at_1000": 62.507257864845094
+          },
+          "2026-04-01": {
+            "n": 1397337,
+            "positives": 3976,
+            "base_rate": 0.002845412353053689,
+            "roc_auc": 0.8745431366469487,
+            "pr_auc": 0.05521213668046089,
+            "precision_at_100": 0.38999998569488525,
+            "lift_at_100": 137.0627302142476,
+            "precision_at_500": 0.2160000056028366,
+            "lift_at_500": 75.91167071831468,
+            "precision_at_1000": 0.14499999582767487,
+            "lift_at_1000": 50.95922061070033
+          }
+        },
+        "logistic": {
+          "2026-01-01": {
+            "n": 1385254,
+            "positives": 3568,
+            "base_rate": 0.002575700869783759,
+            "roc_auc": 0.8648428781539852,
+            "pr_auc": 0.04202544759696403,
+            "precision_at_100": 0.20999999344348907,
+            "lift_at_100": 81.5312041499289,
+            "precision_at_500": 0.16200000047683716,
+            "lift_at_500": 62.89550249305066,
+            "precision_at_1000": 0.13300000131130219,
+            "lift_at_1000": 51.63643141622579
+          },
+          "2026-04-01": {
+            "n": 1397337,
+            "positives": 3976,
+            "base_rate": 0.002845412353053689,
+            "roc_auc": 0.8604433711301288,
+            "pr_auc": 0.04399103473443564,
+            "precision_at_100": 0.1899999976158142,
+            "lift_at_100": 66.7741522285537,
+            "precision_at_500": 0.16599999368190765,
+            "lift_at_500": 58.33952098498374,
+            "precision_at_1000": 0.13099999725818634,
+            "lift_at_1000": 46.03902036117805
+          }
+        },
+        "mlp": {
+          "2026-01-01": {
+            "n": 1385254,
+            "positives": 3568,
+            "base_rate": 0.002575700869783759,
+            "roc_auc": 0.8702435143796731,
+            "pr_auc": 0.04534003110638534,
+            "precision_at_100": 0.3199999928474426,
+            "lift_at_100": 124.23802647327908,
+            "precision_at_500": 0.16599999368190765,
+            "lift_at_500": 64.44847522058882,
+            "precision_at_1000": 0.12999999523162842,
+            "lift_at_1000": 50.47169753160912
+          },
+          "2026-04-01": {
+            "n": 1397337,
+            "positives": 3976,
+            "base_rate": 0.002845412353053689,
+            "roc_auc": 0.8662874871055853,
+            "pr_auc": 0.047969337290233255,
+            "precision_at_100": 0.30000001192092896,
+            "lift_at_100": 105.4328774523558,
+            "precision_at_500": 0.17000000178813934,
+            "lift_at_500": 59.7452954773658,
+            "precision_at_1000": 0.14399999380111694,
+            "lift_at_1000": 50.607776987604815
+          }
+        }
+      },
+      "metrics_ci": {
+        "lightgbm": {
+          "n_boot": 1000,
+          "alpha": 0.05,
+          "seed": 42,
+          "roc_auc": {
+            "lo": 0.8715326048833641,
+            "hi": 0.8806229475728931
+          },
+          "pr_auc": {
+            "lo": 0.05208859611632482,
+            "hi": 0.060281199823640885
+          },
+          "precision_at_100": {
+            "lo": 0.37,
+            "hi": 0.57
+          },
+          "precision_at_500": {
+            "lo": 0.266,
+            "hi": 0.3480499999999999
+          },
+          "precision_at_1000": {
+            "lo": 0.191975,
+            "hi": 0.245
+          }
+        },
+        "logistic": {
+          "n_boot": 1000,
+          "alpha": 0.05,
+          "seed": 42,
+          "roc_auc": {
+            "lo": 0.8577116859584494,
+            "hi": 0.8671490547807873
+          },
+          "pr_auc": {
+            "lo": 0.040293620975670214,
+            "hi": 0.04605110013757967
+          },
+          "precision_at_100": {
+            "lo": 0.1,
+            "hi": 0.25
+          },
+          "precision_at_500": {
+            "lo": 0.15,
+            "hi": 0.224
+          },
+          "precision_at_1000": {
+            "lo": 0.141,
+            "hi": 0.19
+          }
+        },
+        "mlp": {
+          "n_boot": 1000,
+          "alpha": 0.05,
+          "seed": 42,
+          "roc_auc": {
+            "lo": 0.8634301341614766,
+            "hi": 0.8726032071718852
+          },
+          "pr_auc": {
+            "lo": 0.043368436583237364,
+            "hi": 0.05013658670428126
+          },
+          "precision_at_100": {
+            "lo": 0.29,
+            "hi": 0.5
+          },
+          "precision_at_500": {
+            "lo": 0.188,
+            "hi": 0.272
+          },
+          "precision_at_1000": {
+            "lo": 0.144,
+            "hi": 0.195
+          }
+        }
+      },
+      "calibration": {
+        "train_neg_keep_rate": 0.02848743461072445,
+        "test_base_rate": 0.0027111421804875135,
+        "models": {
+          "lightgbm": {
+            "mean_pred_raw": 0.06160705017697735,
+            "mean_pred_recalibrated": 0.003004093672516976
+          },
+          "logistic": {
+            "mean_pred_raw": 0.06349398870393871,
+            "mean_pred_recalibrated": 0.003531673117490344
+          },
+          "mlp": {
+            "mean_pred_raw": 0.0585541007017773,
+            "mean_pred_recalibrated": 0.003013708054779859
+          }
+        }
+      }
+    },
+    "insolvency": {
+      "target": "insolvency",
+      "tag": "lender_asof21_det",
+      "horizon_m": 6,
+      "n_features": 54,
+      "models": [
+        "lightgbm",
+        "logistic",
+        "mlp"
+      ],
+      "split": {
+        "target": "insolvency",
+        "horizon_m": 6,
+        "train": [
+          "2024-10-01",
+          "2025-01-01",
+          "2025-04-01"
+        ],
+        "embargo": [
+          "2025-07-01"
+        ],
+        "test": [
+          "2025-10-01",
+          "2026-01-01"
+        ],
+        "dropped_early": [
+          "2023-10-01",
+          "2024-01-01",
+          "2024-04-01",
+          "2024-07-01"
+        ],
+        "first_full_origin_applied": true
+      },
+      "train_rows": 165674,
+      "train_positives": 15022,
+      "best_iteration": 124,
+      "metrics": {
+        "lightgbm": {
+          "n": 2779612,
+          "positives": 9156,
+          "base_rate": 0.003293984802439809,
+          "roc_auc": 0.7626132446533718,
+          "pr_auc": 0.017696255496093754,
+          "precision_at_100": 0.18000000715255737,
+          "lift_at_100": 54.64506303102366,
+          "precision_at_500": 0.12600000202655792,
+          "lift_at_500": 38.251543216966716,
+          "precision_at_1000": 0.10999999940395355,
+          "lift_at_1000": 33.394203677709164
+        },
+        "logistic": {
+          "n": 2779612,
+          "positives": 9156,
+          "base_rate": 0.003293984802439809,
+          "roc_auc": 0.7346089618563996,
+          "pr_auc": 0.012766684176115043,
+          "precision_at_100": 0.019999999552965164,
+          "lift_at_100": 6.071673293134638,
+          "precision_at_500": 0.06800000369548798,
+          "lift_at_500": 20.643690779969997,
+          "precision_at_1000": 0.07199999690055847,
+          "lift_at_1000": 21.858023402909776
+        },
+        "mlp": {
+          "n": 2779612,
+          "positives": 9156,
+          "base_rate": 0.003293984802439809,
+          "roc_auc": 0.739233906881718,
+          "pr_auc": 0.012803172916097583,
+          "precision_at_100": 0.07999999821186066,
+          "lift_at_100": 24.286693172538552,
+          "precision_at_500": 0.07800000160932541,
+          "lift_at_500": 23.679526861068663,
+          "precision_at_1000": 0.06800000369548798,
+          "lift_at_1000": 20.643690779969997
+        }
+      },
+      "metrics_by_origin": {
+        "lightgbm": {
+          "2025-10-01": {
+            "n": 1394358,
+            "positives": 4570,
+            "base_rate": 0.0032774941064417362,
+            "roc_auc": 0.7603904937937452,
+            "pr_auc": 0.017779674716394165,
+            "precision_at_100": 0.1899999976158142,
+            "lift_at_100": 57.971118008230604,
+            "precision_at_500": 0.09399999678134918,
+            "lift_at_500": 28.6804472345495,
+            "precision_at_1000": 0.08399999886751175,
+            "lift_at_1000": 25.62933635865716
+          },
+          "2026-01-01": {
+            "n": 1385254,
+            "positives": 4586,
+            "base_rate": 0.003310584230348468,
+            "roc_auc": 0.7648298363272534,
+            "pr_auc": 0.01776238086158897,
+            "precision_at_100": 0.12999999523162842,
+            "lift_at_100": 39.26799204802132,
+            "precision_at_500": 0.12200000137090683,
+            "lift_at_500": 36.851501995484725,
+            "precision_at_1000": 0.09099999815225601,
+            "lift_at_1000": 27.487594883721616
+          }
+        },
+        "logistic": {
+          "2025-10-01": {
+            "n": 1394358,
+            "positives": 4570,
+            "base_rate": 0.0032774941064417362,
+            "roc_auc": 0.7323330381185792,
+            "pr_auc": 0.01195751428180324,
+            "precision_at_100": 0.07000000029802322,
+            "lift_at_100": 21.357780677756836,
+            "precision_at_500": 0.06400000303983688,
+            "lift_at_500": 19.527114606872477,
+            "precision_at_1000": 0.05400000140070915,
+            "lift_at_1000": 16.476002594352522
+          },
+          "2026-01-01": {
+            "n": 1385254,
+            "positives": 4586,
+            "base_rate": 0.003310584230348468,
+            "roc_auc": 0.7368329166074576,
+            "pr_auc": 0.013678547053802535,
+            "precision_at_100": 0.05000000074505806,
+            "lift_at_100": 15.103074643654399,
+            "precision_at_500": 0.07800000160932541,
+            "lift_at_500": 23.56079657913287,
+            "precision_at_1000": 0.07999999821186066,
+            "lift_at_1000": 24.164918529633653
+          }
+        },
+        "mlp": {
+          "2025-10-01": {
+            "n": 1394358,
+            "positives": 4570,
+            "base_rate": 0.0032774941064417362,
+            "roc_auc": 0.7409552164652048,
+            "pr_auc": 0.012854920223359797,
+            "precision_at_100": 0.05000000074505806,
+            "lift_at_100": 15.255557789344543,
+            "precision_at_500": 0.06400000303983688,
+            "lift_at_500": 19.527114606872477,
+            "precision_at_1000": 0.05700000002980232,
+            "lift_at_1000": 17.391335629794703
+          },
+          "2026-01-01": {
+            "n": 1385254,
+            "positives": 4586,
+            "base_rate": 0.003310584230348468,
+            "roc_auc": 0.7378148021735829,
+            "pr_auc": 0.012877287556655766,
+            "precision_at_100": 0.09000000357627869,
+            "lift_at_100": 27.18553503373796,
+            "precision_at_500": 0.07400000095367432,
+            "lift_at_500": 22.35255042759784,
+            "precision_at_1000": 0.06199999898672104,
+            "lift_at_1000": 18.727811972992754
+          }
+        }
+      },
+      "metrics_ci": {
+        "lightgbm": {
+          "n_boot": 1000,
+          "alpha": 0.05,
+          "seed": 42,
+          "roc_auc": {
+            "lo": 0.7576595452039361,
+            "hi": 0.7667464715857691
+          },
+          "pr_auc": {
+            "lo": 0.01644551014511645,
+            "hi": 0.019178136885397993
+          },
+          "precision_at_100": {
+            "lo": 0.1,
+            "hi": 0.25
+          },
+          "precision_at_500": {
+            "lo": 0.09595000000000001,
+            "hi": 0.152
+          },
+          "precision_at_1000": {
+            "lo": 0.09,
+            "hi": 0.12902499999999997
+          }
+        },
+        "logistic": {
+          "n_boot": 1000,
+          "alpha": 0.05,
+          "seed": 42,
+          "roc_auc": {
+            "lo": 0.7296832824837894,
+            "hi": 0.739302254236098
+          },
+          "pr_auc": {
+            "lo": 0.011961753312589942,
+            "hi": 0.013664462199157743
+          },
+          "precision_at_100": {
+            "lo": 0.0,
+            "hi": 0.07
+          },
+          "precision_at_500": {
+            "lo": 0.046,
+            "hi": 0.092
+          },
+          "precision_at_1000": {
+            "lo": 0.056,
+            "hi": 0.088
+          }
+        },
+        "mlp": {
+          "n_boot": 1000,
+          "alpha": 0.05,
+          "seed": 42,
+          "roc_auc": {
+            "lo": 0.7346211855519454,
+            "hi": 0.7436694839210856
+          },
+          "pr_auc": {
+            "lo": 0.012055505136474376,
+            "hi": 0.013748044750304396
+          },
+          "precision_at_100": {
+            "lo": 0.03,
+            "hi": 0.14
+          },
+          "precision_at_500": {
+            "lo": 0.056,
+            "hi": 0.1
+          },
+          "precision_at_1000": {
+            "lo": 0.053,
+            "hi": 0.08302499999999999
+          }
+        }
+      },
+      "calibration": {
+        "train_neg_keep_rate": 0.036637697368860245,
+        "test_base_rate": 0.003293984802439809,
+        "models": {
+          "lightgbm": {
+            "mean_pred_raw": 0.07985077838067146,
+            "mean_pred_recalibrated": 0.003625864598665435
+          },
+          "logistic": {
+            "mean_pred_raw": 0.08009200808120577,
+            "mean_pred_recalibrated": 0.0035074051516347546
+          },
+          "mlp": {
+            "mean_pred_raw": 0.0787137514519743,
+            "mean_pred_recalibrated": 0.003760696224776413
+          }
+        }
+      }
+    },
+    "voluntary_exit": {
+      "target": "voluntary_exit",
+      "tag": "lender_asof21_det",
+      "horizon_m": 6,
+      "n_features": 54,
+      "models": [
+        "lightgbm",
+        "logistic",
+        "mlp"
+      ],
+      "split": {
+        "target": "voluntary_exit",
+        "horizon_m": 6,
+        "train": [
+          "2024-10-01",
+          "2025-01-01",
+          "2025-04-01"
+        ],
+        "embargo": [
+          "2025-07-01"
+        ],
+        "test": [
+          "2025-10-01",
+          "2026-01-01"
+        ],
+        "dropped_early": [
+          "2023-10-01",
+          "2024-01-01",
+          "2024-04-01",
+          "2024-07-01"
+        ],
+        "first_full_origin_applied": true
+      },
+      "train_rows": 3779912,
+      "train_positives": 343699,
+      "best_iteration": 1234,
+      "metrics": {
+        "lightgbm": {
+          "n": 2779612,
+          "positives": 214797,
+          "base_rate": 0.07727589458227158,
+          "roc_auc": 0.7928596159020477,
+          "pr_auc": 0.3506962585298469,
+          "precision_at_100": 0.8299999833106995,
+          "lift_at_100": 10.740736005676935,
+          "precision_at_500": 0.8360000252723694,
+          "lift_at_500": 10.818380424989117,
+          "precision_at_1000": 0.8519999980926514,
+          "lift_at_1000": 11.025430410068845
+        },
+        "logistic": {
+          "n": 2779612,
+          "positives": 214797,
+          "base_rate": 0.07727589458227158,
+          "roc_auc": 0.7705098627857975,
+          "pr_auc": 0.3101717160631288,
+          "precision_at_100": 0.05999999865889549,
+          "lift_at_100": 0.776438745655887,
+          "precision_at_500": 0.29600000381469727,
+          "lift_at_500": 3.830431280217166,
+          "precision_at_1000": 0.4180000126361847,
+          "lift_at_1000": 5.409190212494559
+        },
+        "mlp": {
+          "n": 2779612,
+          "positives": 214797,
+          "base_rate": 0.07727589458227158,
+          "roc_auc": 0.7784154047137031,
+          "pr_auc": 0.338474856255515,
+          "precision_at_100": 0.699999988079071,
+          "lift_at_100": 9.058452080859677,
+          "precision_at_500": 0.7559999823570251,
+          "lift_at_500": 9.783128185622642,
+          "precision_at_1000": 0.7720000147819519,
+          "lift_at_1000": 9.990178942024983
+        }
+      },
+      "metrics_by_origin": {
+        "lightgbm": {
+          "2025-10-01": {
+            "n": 1394358,
+            "positives": 114834,
+            "base_rate": 0.08235618472099304,
+            "roc_auc": 0.7886958373407874,
+            "pr_auc": 0.36393194875800466,
+            "precision_at_100": 0.8899999856948853,
+            "lift_at_100": 10.806717051184856,
+            "precision_at_500": 0.8880000114440918,
+            "lift_at_500": 10.782432606032753,
+            "precision_at_1000": 0.8830000162124634,
+            "lift_at_1000": 10.721720769410313
+          },
+          "2026-01-01": {
+            "n": 1385254,
+            "positives": 99963,
+            "base_rate": 0.0721622183918953,
+            "roc_auc": 0.7979420394269194,
+            "pr_auc": 0.33883706758849086,
+            "precision_at_100": 0.7799999713897705,
+            "lift_at_100": 10.808979945070178,
+            "precision_at_500": 0.8220000267028809,
+            "lift_at_500": 11.391002729971527,
+            "precision_at_1000": 0.8259999752044678,
+            "lift_at_1000": 11.446432684741822
+          }
+        },
+        "logistic": {
+          "2025-10-01": {
+            "n": 1394358,
+            "positives": 114834,
+            "base_rate": 0.08235618472099304,
+            "roc_auc": 0.7669478908201796,
+            "pr_auc": 0.32176153559390575,
+            "precision_at_100": 0.1899999976158142,
+            "lift_at_100": 2.3070519628792634,
+            "precision_at_500": 0.4480000138282776,
+            "lift_at_500": 5.439785917062765,
+            "precision_at_1000": 0.5389999747276306,
+            "lift_at_1000": 6.544741922584918
+          },
+          "2026-01-01": {
+            "n": 1385254,
+            "positives": 99963,
+            "base_rate": 0.0721622183918953,
+            "roc_auc": 0.7758692062668742,
+            "pr_auc": 0.3001055609910052,
+            "precision_at_100": 0.09000000357627869,
+            "lift_at_100": 1.247190088967481,
+            "precision_at_500": 0.39800000190734863,
+            "lift_at_500": 5.515351534038329,
+            "precision_at_1000": 0.47699999809265137,
+            "lift_at_1000": 6.610107182434185
+          }
+        },
+        "mlp": {
+          "2025-10-01": {
+            "n": 1394358,
+            "positives": 114834,
+            "base_rate": 0.08235618472099304,
+            "roc_auc": 0.7756878736674483,
+            "pr_auc": 0.35102064795055576,
+            "precision_at_100": 0.7099999785423279,
+            "lift_at_100": 8.621088761550473,
+            "precision_at_500": 0.8180000185966492,
+            "lift_at_500": 9.932466169576411,
+            "precision_at_1000": 0.8399999737739563,
+            "lift_at_1000": 10.199597961218275
+          },
+          "2026-01-01": {
+            "n": 1385254,
+            "positives": 99963,
+            "base_rate": 0.0721622183918953,
+            "roc_auc": 0.7836605768950526,
+            "pr_auc": 0.3283281595602507,
+            "precision_at_100": 0.6100000143051147,
+            "lift_at_100": 8.453177132004928,
+            "precision_at_500": 0.7279999852180481,
+            "lift_at_500": 10.088381447261764,
+            "precision_at_1000": 0.7670000195503235,
+            "lift_at_1000": 10.628830940104068
+          }
+        }
+      },
+      "metrics_ci": {
+        "lightgbm": {
+          "n_boot": 1000,
+          "alpha": 0.05,
+          "seed": 42,
+          "roc_auc": {
+            "lo": 0.7918349171755611,
+            "hi": 0.7939538148204579
+          },
+          "pr_auc": {
+            "lo": 0.34843903049507585,
+            "hi": 0.3530194707726182
+          },
+          "precision_at_100": {
+            "lo": 0.76,
+            "hi": 0.91
+          },
+          "precision_at_500": {
+            "lo": 0.79995,
+            "hi": 0.866
+          },
+          "precision_at_1000": {
+            "lo": 0.832,
+            "hi": 0.875
+          }
+        },
+        "logistic": {
+          "n_boot": 1000,
+          "alpha": 0.05,
+          "seed": 42,
+          "roc_auc": {
+            "lo": 0.7693546962359765,
+            "hi": 0.7716588309802473
+          },
+          "pr_auc": {
+            "lo": 0.3081325452423499,
+            "hi": 0.31213988759014244
+          },
+          "precision_at_100": {
+            "lo": 0.01,
+            "hi": 0.1
+          },
+          "precision_at_500": {
+            "lo": 0.242,
+            "hi": 0.33604999999999996
+          },
+          "precision_at_1000": {
+            "lo": 0.391,
+            "hi": 0.449
+          }
+        },
+        "mlp": {
+          "n_boot": 1000,
+          "alpha": 0.05,
+          "seed": 42,
+          "roc_auc": {
+            "lo": 0.7773351500674898,
+            "hi": 0.7795599108335837
+          },
+          "pr_auc": {
+            "lo": 0.33620876118630394,
+            "hi": 0.34073693491289736
+          },
+          "precision_at_100": {
+            "lo": 0.61,
+            "hi": 0.79
+          },
+          "precision_at_500": {
+            "lo": 0.722,
+            "hi": 0.794
+          },
+          "precision_at_1000": {
+            "lo": 0.746975,
+            "hi": 0.796
+          }
+        }
+      },
+      "calibration": {
+        "train_neg_keep_rate": 0.8999751806259155,
+        "test_base_rate": 0.07727589458227158,
+        "models": {
+          "lightgbm": {
+            "mean_pred_raw": 0.08793541206766961,
+            "mean_pred_recalibrated": 0.08135003028665096
+          },
+          "logistic": {
+            "mean_pred_raw": 0.09564513826415456,
+            "mean_pred_recalibrated": 0.08844621927582806
+          },
+          "mlp": {
+            "mean_pred_raw": 0.10202781750415423,
+            "mean_pred_recalibrated": 0.09423482482432335
+          }
+        }
+      }
+    },
+    "growth": {
+      "target": "growth",
+      "tag": "lender_asof21_det",
+      "horizon_m": 12,
+      "n_features": 54,
+      "models": [
+        "lightgbm",
+        "logistic",
+        "mlp"
+      ],
+      "split": {
+        "target": "growth",
+        "horizon_m": 12,
+        "train": [
+          "2023-10-01",
+          "2024-01-01",
+          "2024-04-01"
+        ],
+        "embargo": [
+          "2024-07-01",
+          "2024-10-01",
+          "2025-01-01"
+        ],
+        "test": [
+          "2025-04-01",
+          "2025-07-01"
+        ],
+        "dropped_early": [],
+        "first_full_origin_applied": false
+      },
+      "train_rows": 610789,
+      "train_positives": 55564,
+      "best_iteration": 189,
+      "metrics": {
+        "lightgbm": {
+          "n": 1817119,
+          "positives": 38833,
+          "base_rate": 0.021370641887187958,
+          "roc_auc": 0.7619946326620627,
+          "pr_auc": 0.05777241005017197,
+          "precision_at_100": 0.23000000417232513,
+          "lift_at_100": 10.762428446766206,
+          "precision_at_500": 0.20999999344348907,
+          "lift_at_500": 9.826564618510005,
+          "precision_at_1000": 0.1809999942779541,
+          "lift_at_1000": 8.469562834538278
+        },
+        "logistic": {
+          "n": 1817119,
+          "positives": 38833,
+          "base_rate": 0.021370641887187958,
+          "roc_auc": 0.7385847800619267,
+          "pr_auc": 0.04833379583709711,
+          "precision_at_100": 0.10000000149011612,
+          "lift_at_100": 4.67931670082721,
+          "precision_at_500": 0.17000000178813934,
+          "lift_at_500": 7.95483835654263,
+          "precision_at_1000": 0.15000000596046448,
+          "lift_at_1000": 7.018975225558942
+        },
+        "mlp": {
+          "n": 1817119,
+          "positives": 38833,
+          "base_rate": 0.021370641887187958,
+          "roc_auc": 0.7006689416463637,
+          "pr_auc": 0.04130147526646788,
+          "precision_at_100": 0.07999999821186066,
+          "lift_at_100": 3.7434532212072646,
+          "precision_at_500": 0.0820000022649765,
+          "lift_at_500": 3.8370397434873875,
+          "precision_at_1000": 0.07599999755620956,
+          "lift_at_1000": 3.5562805252832757
+        }
+      },
+      "metrics_by_origin": {
+        "lightgbm": {
+          "2025-04-01": {
+            "n": 907568,
+            "positives": 19247,
+            "base_rate": 0.021207226440310478,
+            "roc_auc": 0.763526815996045,
+            "pr_auc": 0.0578216803718226,
+            "precision_at_100": 0.23999999463558197,
+            "lift_at_100": 11.316896875274196,
+            "precision_at_500": 0.1720000058412552,
+            "lift_at_500": 8.110443217332717,
+            "precision_at_1000": 0.1589999943971634,
+            "lift_at_1000": 7.497444083255406
+          },
+          "2025-07-01": {
+            "n": 909551,
+            "positives": 19586,
+            "base_rate": 0.021533701568841934,
+            "roc_auc": 0.7602781667475214,
+            "pr_auc": 0.05774192150856554,
+            "precision_at_100": 0.2199999988079071,
+            "lift_at_100": 10.216543500641563,
+            "precision_at_500": 0.1940000057220459,
+            "lift_at_500": 9.009134128744178,
+            "precision_at_1000": 0.16699999570846558,
+            "lift_at_1000": 7.755285136397788
+          }
+        },
+        "logistic": {
+          "2025-04-01": {
+            "n": 907568,
+            "positives": 19247,
+            "base_rate": 0.021207226440310478,
+            "roc_auc": 0.7427126878996244,
+            "pr_auc": 0.048993258269512126,
+            "precision_at_100": 0.1599999964237213,
+            "lift_at_100": 7.544597916849464,
+            "precision_at_500": 0.1420000046491623,
+            "lift_at_500": 6.695831020092761,
+            "precision_at_1000": 0.1509999930858612,
+            "lift_at_1000": 7.120214117148387
+          },
+          "2025-07-01": {
+            "n": 909551,
+            "positives": 19586,
+            "base_rate": 0.021533701568841934,
+            "roc_auc": 0.7360512472214437,
+            "pr_auc": 0.04810767753152993,
+            "precision_at_100": 0.12999999523162842,
+            "lift_at_100": 6.037048243472045,
+            "precision_at_500": 0.16200000047683716,
+            "lift_at_500": 7.523091186108111,
+            "precision_at_1000": 0.14399999380111694,
+            "lift_at_1000": 6.687191857877185
+          }
+        },
+        "mlp": {
+          "2025-04-01": {
+            "n": 907568,
+            "positives": 19247,
+            "base_rate": 0.021207226440310478,
+            "roc_auc": 0.7118824067165408,
+            "pr_auc": 0.042028094960633755,
+            "precision_at_100": 0.07000000029802322,
+            "lift_at_100": 3.300761676452322,
+            "precision_at_500": 0.07999999821186066,
+            "lift_at_500": 3.772298958424732,
+            "precision_at_1000": 0.06599999964237213,
+            "lift_at_1000": 3.1121466933988127
+          },
+          "2025-07-01": {
+            "n": 909551,
+            "positives": 19586,
+            "base_rate": 0.021533701568841934,
+            "roc_auc": 0.6986538691483277,
+            "pr_auc": 0.04122353659922125,
+            "precision_at_100": 0.05999999865889549,
+            "lift_at_100": 2.7863299984482066,
+            "precision_at_500": 0.07400000095367432,
+            "lift_at_500": 3.4364737858514856,
+            "precision_at_1000": 0.061000000685453415,
+            "lift_at_1000": 2.832768926904653
+          }
+        }
+      },
+      "metrics_ci": {
+        "lightgbm": {
+          "n_boot": 1000,
+          "alpha": 0.05,
+          "seed": 42,
+          "roc_auc": {
+            "lo": 0.7600713266462936,
+            "hi": 0.7637320867184964
+          },
+          "pr_auc": {
+            "lo": 0.056525582499649105,
+            "hi": 0.05900044521260225
+          },
+          "precision_at_100": {
+            "lo": 0.14,
+            "hi": 0.3
+          },
+          "precision_at_500": {
+            "lo": 0.174,
+            "hi": 0.244
+          },
+          "precision_at_1000": {
+            "lo": 0.158,
+            "hi": 0.206
+          }
+        },
+        "logistic": {
+          "n_boot": 1000,
+          "alpha": 0.05,
+          "seed": 42,
+          "roc_auc": {
+            "lo": 0.736594510299573,
+            "hi": 0.7406029185036161
+          },
+          "pr_auc": {
+            "lo": 0.047530872745510065,
+            "hi": 0.04922823269753833
+          },
+          "precision_at_100": {
+            "lo": 0.05,
+            "hi": 0.18
+          },
+          "precision_at_500": {
+            "lo": 0.138,
+            "hi": 0.202
+          },
+          "precision_at_1000": {
+            "lo": 0.127975,
+            "hi": 0.172
+          }
+        },
+        "mlp": {
+          "n_boot": 1000,
+          "alpha": 0.05,
+          "seed": 42,
+          "roc_auc": {
+            "lo": 0.698264508040875,
+            "hi": 0.7029568103862024
+          },
+          "pr_auc": {
+            "lo": 0.040655063287586155,
+            "hi": 0.04202388442940938
+          },
+          "precision_at_100": {
+            "lo": 0.03,
+            "hi": 0.14
+          },
+          "precision_at_500": {
+            "lo": 0.062,
+            "hi": 0.108
+          },
+          "precision_at_1000": {
+            "lo": 0.06,
+            "hi": 0.094
+          }
+        }
+      },
+      "calibration": {
+        "train_neg_keep_rate": 0.21120098233222961,
+        "test_base_rate": 0.021370641887187958,
+        "models": {
+          "lightgbm": {
+            "mean_pred_raw": 0.08592345400660213,
+            "mean_pred_recalibrated": 0.020836211481288086
+          },
+          "logistic": {
+            "mean_pred_raw": 0.03265406621932872,
+            "mean_pred_recalibrated": 0.007744883049790317
+          },
+          "mlp": {
+            "mean_pred_raw": 0.008403602133955116,
+            "mean_pred_recalibrated": 0.0018817492901212693
+          }
+        }
+      }
+    }
+  },
+  "grouped_cv": [
+    {
+      "target": "lending",
+      "model": "lightgbm",
+      "n_splits": 3,
+      "rows": 457941,
+      "fold_roc_auc": [
+        0.881223595660444,
+        0.8835465481690148,
+        0.8789765918763821
+      ],
+      "mean_roc_auc": 0.881248911901947
+    },
+    {
+      "target": "insolvency",
+      "model": "lightgbm",
+      "n_splits": 3,
+      "rows": 520142,
+      "fold_roc_auc": [
+        0.7709848166919337,
+        0.7691118554022036,
+        0.7714188938542431
+      ],
+      "mean_roc_auc": 0.7705051886494602
+    },
+    {
+      "target": "voluntary_exit",
+      "model": "lightgbm",
+      "n_splits": 3,
+      "rows": 2000000,
+      "fold_roc_auc": [
+        0.8138529271546697,
+        0.814590631920224,
+        0.8128397229243487
+      ],
+      "mean_roc_auc": 0.8137610939997475
+    },
+    {
+      "target": "growth",
+      "model": "lightgbm",
+      "n_splits": 3,
+      "rows": 1657611,
+      "fold_roc_auc": [
+        0.776059725268667,
+        0.7746940704709137,
+        0.7731061091379968
+      ],
+      "mean_roc_auc": 0.7746199682925258
+    }
+  ],
+  "direction_check": [
+    {
+      "feature": "Mortgages.NumMortCharges",
+      "shap_direction": 0.5914324756089323,
+      "logit_coef": 0.14704727431335707,
+      "agree": true,
+      "target": "lending"
+    },
+    {
+      "feature": "company_age_years",
+      "shap_direction": -0.629106277752989,
+      "logit_coef": -0.10337457098162192,
+      "agree": true,
+      "target": "lending"
+    },
+    {
+      "feature": "tier_rank",
+      "shap_direction": 0.8834717825827109,
+      "logit_coef": 0.29739784210912174,
+      "agree": true,
+      "target": "lending"
+    },
+    {
+      "feature": "sic_changed_12m",
+      "shap_direction": 0.315646684378096,
+      "logit_coef": 0.11230620065781262,
+      "agree": true,
+      "target": "lending"
+    },
+    {
+      "feature": "postcode_changed_12m",
+      "shap_direction": 0.5515041975993293,
+      "logit_coef": 0.1041025934594767,
+      "agree": true,
+      "target": "lending"
+    },
+    {
+      "feature": "months_since_last_confstmt",
+      "shap_direction": -0.6159051399771994,
+      "logit_coef": -0.049080634120325366,
+      "agree": true,
+      "target": "lending"
+    },
+    {
+      "feature": "days_to_next_accounts_due",
+      "shap_direction": 0.0523843762103306,
+      "logit_coef": -0.017575048783783135,
+      "agree": false,
+      "target": "lending"
+    },
+    {
+      "feature": "accounts_stale_streak_months",
+      "shap_direction": -0.3885566266037957,
+      "logit_coef": -0.13205644915818715,
+      "agree": true,
+      "target": "lending"
+    },
+    {
+      "feature": "months_since_segment_change",
+      "shap_direction": -0.6168509781204611,
+      "logit_coef": -0.11305093203606563,
+      "agree": true,
+      "target": "lending"
+    },
+    {
+      "feature": "Mortgages.NumMortOutstanding",
+      "shap_direction": 0.5247161384452957,
+      "logit_coef": 0.13665335349781618,
+      "agree": true,
+      "target": "lending"
+    },
+    {
+      "feature": "company_age_years",
+      "shap_direction": 0.7822134471673329,
+      "logit_coef": 0.06659800087581981,
+      "agree": true,
+      "target": "insolvency"
+    },
+    {
+      "feature": "months_since_last_accounts_filing",
+      "shap_direction": 0.3216967935855837,
+      "logit_coef": -0.010419188915497339,
+      "agree": false,
+      "target": "insolvency"
+    },
+    {
+      "feature": "months_since_last_confstmt",
+      "shap_direction": 0.7336906330671905,
+      "logit_coef": 0.013614471636086985,
+      "agree": true,
+      "target": "insolvency"
+    },
+    {
+      "feature": "segment_upgraded_12m",
+      "shap_direction": -0.14002740221137935,
+      "logit_coef": 0.010462531643159075,
+      "agree": false,
+      "target": "insolvency"
+    },
+    {
+      "feature": "Mortgages.NumMortCharges",
+      "shap_direction": 0.5435179299963808,
+      "logit_coef": 0.08043703607903455,
+      "agree": true,
+      "target": "insolvency"
+    },
+    {
+      "feature": "tier_rank",
+      "shap_direction": 0.6834784610775786,
+      "logit_coef": -0.15595128430508431,
+      "agree": false,
+      "target": "insolvency"
+    },
+    {
+      "feature": "days_to_next_accounts_due",
+      "shap_direction": -0.32704209370205534,
+      "logit_coef": 0.05212247374217764,
+      "agree": false,
+      "target": "insolvency"
+    },
+    {
+      "feature": "months_since_segment_change",
+      "shap_direction": -0.6167393513592915,
+      "logit_coef": 0.0548825595269818,
+      "agree": false,
+      "target": "insolvency"
+    },
+    {
+      "feature": "postcode_changed_12m",
+      "shap_direction": 0.5535258101784047,
+      "logit_coef": 0.06450891070422918,
+      "agree": true,
+      "target": "insolvency"
+    },
+    {
+      "feature": "months_in_current_status",
+      "shap_direction": 0.019321655666373307,
+      "logit_coef": -0.06888816169799442,
+      "agree": false,
+      "target": "insolvency"
+    },
+    {
+      "feature": "months_since_last_confstmt",
+      "shap_direction": 0.941367181570531,
+      "logit_coef": 0.31634381712552667,
+      "agree": true,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "accounts_stale_streak_months",
+      "shap_direction": 0.7514545290847374,
+      "logit_coef": 0.8454794045181306,
+      "agree": true,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "days_to_next_accounts_due",
+      "shap_direction": -0.5914548269215381,
+      "logit_coef": -0.10757513672980153,
+      "agree": true,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "company_age_years",
+      "shap_direction": -0.3752231872054012,
+      "logit_coef": -0.37428908647233733,
+      "agree": true,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "months_since_last_accounts_filing",
+      "shap_direction": 0.10504961384233766,
+      "logit_coef": 0.004984387351415383,
+      "agree": true,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "confstmt_late",
+      "shap_direction": 0.48876352652927335,
+      "logit_coef": 0.22989849232544302,
+      "agree": true,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "months_in_current_status",
+      "shap_direction": -0.14544513224745345,
+      "logit_coef": 0.042086212084828684,
+      "agree": false,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "Mortgages.NumMortCharges",
+      "shap_direction": -0.41863669125224134,
+      "logit_coef": -0.05595044626467479,
+      "agree": true,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "ever_distressed_before",
+      "shap_direction": 0.4216643135312056,
+      "logit_coef": 0.20373008499818246,
+      "agree": true,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "tier_rank",
+      "shap_direction": -0.8520596491184043,
+      "logit_coef": -0.29007047721096335,
+      "agree": true,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "tier_rank",
+      "shap_direction": -0.8088185285550891,
+      "logit_coef": -1.4172855226728556,
+      "agree": true,
+      "target": "growth"
+    },
+    {
+      "feature": "months_since_segment_change",
+      "shap_direction": -0.3924202030789626,
+      "logit_coef": -0.3346458991213865,
+      "agree": true,
+      "target": "growth"
+    },
+    {
+      "feature": "months_since_last_accounts_filing",
+      "shap_direction": 0.8574074497072797,
+      "logit_coef": 1.9795315929167137,
+      "agree": true,
+      "target": "growth"
+    },
+    {
+      "feature": "Mortgages.NumMortCharges",
+      "shap_direction": 0.559253326513245,
+      "logit_coef": 0.22752998659252416,
+      "agree": true,
+      "target": "growth"
+    },
+    {
+      "feature": "days_to_next_accounts_due",
+      "shap_direction": -0.47500054169534517,
+      "logit_coef": -0.20627735205170752,
+      "agree": true,
+      "target": "growth"
+    },
+    {
+      "feature": "company_age_years",
+      "shap_direction": -0.6640604717922011,
+      "logit_coef": -0.12147131318068397,
+      "agree": true,
+      "target": "growth"
+    },
+    {
+      "feature": "months_in_current_status",
+      "shap_direction": 0.04901677724999868,
+      "logit_coef": -0.002847530282513008,
+      "agree": false,
+      "target": "growth"
+    },
+    {
+      "feature": "months_since_last_confstmt",
+      "shap_direction": -0.10983013809142111,
+      "logit_coef": -0.02918819072700681,
+      "agree": true,
+      "target": "growth"
+    },
+    {
+      "feature": "debt_ratio",
+      "shap_direction": 0.5062894896495621,
+      "logit_coef": -0.18465627902164694,
+      "agree": false,
+      "target": "growth"
+    },
+    {
+      "feature": "Mortgages.NumMortSatisfied",
+      "shap_direction": 0.42554938765913214,
+      "logit_coef": -0.11441979323371207,
+      "agree": false,
+      "target": "growth"
+    }
+  ],
+  "scores": "data/processed/scores/scores_lender_asof21_det_2026-07.parquet",
+  "tuning_not_applied": [
+    {
+      "target": "lending",
+      "model": "logistic",
+      "n_folds": 3,
+      "applied": false,
+      "best_params": {
+        "clf__C": 10.0
+      },
+      "best_cv_roc_auc": 0.8673908446135098
+    },
+    {
+      "target": "lending",
+      "model": "lightgbm",
+      "n_folds": 3,
+      "applied": false,
+      "best_params": {
+        "num_leaves": 31,
+        "min_child_samples": 100,
+        "learning_rate": 0.05
+      },
+      "best_cv_roc_auc": 0.8795522008664677
+    },
+    {
+      "target": "insolvency",
+      "model": "logistic",
+      "n_folds": 1,
+      "applied": false,
+      "best_params": {
+        "clf__C": 10.0
+      },
+      "best_cv_roc_auc": 0.7352674851926159
+    },
+    {
+      "target": "insolvency",
+      "model": "lightgbm",
+      "n_folds": 1,
+      "applied": false,
+      "best_params": {
+        "num_leaves": 127,
+        "min_child_samples": 500,
+        "learning_rate": 0.03
+      },
+      "best_cv_roc_auc": 0.7500680444655196
+    }
+  ]
+}

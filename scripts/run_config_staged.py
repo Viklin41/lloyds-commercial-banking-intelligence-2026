@@ -15,6 +15,7 @@ the reboot either.
 import json
 import pickle
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -29,6 +30,43 @@ from src.models import targets, train
 CONFIGS = {"refactor": train.REFACTOR, "lender": train.LENDER,
            "lender_fixed": train.LENDER_FIXED,
            "lender_asof21": train.LENDER_ASOF21}
+
+# The 7 Aug remediation queue. These are defined here rather than in `train.py`
+# because they are queue entries rather than reference configs, and `train.py` is
+# being edited in parallel. Each is one deliberate deviation from a config above.
+#
+# `refactor_det` and `lender_asof21_det` are not new experiments: they are the same
+# two runs re-recorded now that `LGB_PARAMS` carries `deterministic=True`, which
+# changes every LightGBM digit on disk. Everything in the report's results section
+# is read off these rather than off `refactor`/`lender_asof21`.
+CONFIGS["refactor_det"] = replace(train.REFACTOR, tag="refactor_det")
+CONFIGS["lender_asof21_det"] = replace(train.LENDER_ASOF21, tag="lender_asof21_det")
+
+# The growth fix: `growth` trains on the 27 features that exist at its training
+# origins, instead of 41 of which 13 are 100% NULL in train and populated in test.
+# The other three targets are untouched, which is what makes this a clean A/B
+# against `refactor_det`.
+# The recalibrated gate, plus the two sensitivity variants. The variants move the
+# *criterion* rather than a standard error, because the bootstrap interval on the lag
+# came out degenerate ([4, 4] over 500 cluster resamples): the real uncertainty is in
+# how you decide the lag, not in the sampling noise around it. `_lo` is the
+# mean-matching end (2d/1d), `_hi` is the leak-averse end (7d/3d, under 1% early).
+for _tag, _suffix in (("lender_calib", "_calib"),
+                      ("lender_calib_lo", "_calib_lo"),
+                      ("lender_calib_hi", "_calib_hi")):
+    CONFIGS[_tag] = replace(
+        train.LENDER_ASOF21,
+        tag=_tag,
+        matrix_dir=Path(f"data/processed/model_matrix_lender{_suffix}"),
+        eval_dir=Path(f"data/processed/eval_matrix_lender{_suffix}"),
+        lender_dir=Path(f"data/processed/lender_panel{_suffix}"),
+    )
+
+CONFIGS["refactor_growthfix"] = replace(
+    train.REFACTOR,
+    tag="refactor_growthfix",
+    feature_overrides=(("growth", tuple(targets.FEATURE_COLS_SHORT_HISTORY)),),
+)
 CFG = CONFIGS[sys.argv[1]]
 STAGE = Path("data/processed/run_stage") / CFG.tag
 STAGE.mkdir(parents=True, exist_ok=True)
@@ -109,7 +147,7 @@ for t in CFG.target_names:
         pickle.dump({
             "lightgbm": r["_models"]["lightgbm"],
             "neg_keep_rate": r["calibration"]["train_neg_keep_rate"],
-            "levels": {c: list(r["_X_test"][c].cat.categories) for c in CFG.cats()},
+            "levels": {c: list(r["_X_test"][c].cat.categories) for c in CFG.cats(t)},
         }, fh)
 
     save_json(f"result_{t}.json", public)
@@ -145,7 +183,11 @@ if not SCORE_PATH.exists():
     for t in CFG.target_names:
         with open(STAGE / f"model_{t}.pkl", "rb") as fh:
             m = pickle.load(fh)
-        live[f"score_{t}"] = train.score_frame(m["lightgbm"], live, m["neg_keep_rate"], CFG)
+        # `target=t` matters under `feature_overrides`: the live frame carries every
+        # column, and a model trained on a target's shorter list has to be handed
+        # that same list back or it scores on columns it never saw.
+        live[f"score_{t}"] = train.score_frame(m["lightgbm"], live, m["neg_keep_rate"], CFG,
+                                               target=t)
     train.SCORE_DIR.mkdir(parents=True, exist_ok=True)
     live[["CompanyNumber", "CompanyName", "origin_month",
           *[f"score_{t}" for t in CFG.target_names]]].to_parquet(SCORE_PATH, index=False)
