@@ -1,0 +1,14 @@
+\begin{table}
+\caption{Growth ROC-AUC across four seeds, against the row-resampled bootstrap interval for the same fit.}
+\label{tab:17_growth_seed_spread}
+\begin{tabular}{llrrrrrrrrr}
+\toprule
+features & model & mean & sd & lo & hi & range & bootstrap_lo & bootstrap_hi & bootstrap_width & seed_range_over_bootstrap_width \\
+\midrule
+27 features & mlp & 0.705976 & 0.013107 & 0.692593 & 0.723777 & 0.031184 & 0.699410 & 0.703736 & 0.004326 & 7.208371 \\
+41 features & lightgbm & 0.761716 & 0.000594 & 0.761146 & 0.762400 & 0.001254 & 0.760039 & 0.763892 & 0.003853 & 0.325562 \\
+41 features & logistic & 0.728892 & 0.000891 & 0.727634 & 0.729703 & 0.002069 & 0.726854 & 0.731196 & 0.004341 & 0.476612 \\
+41 features & mlp & 0.701152 & 0.008307 & 0.694114 & 0.712250 & 0.018136 & 0.691810 & 0.696230 & 0.004420 & 4.102938 \\
+\bottomrule
+\end{tabular}
+\end{table}

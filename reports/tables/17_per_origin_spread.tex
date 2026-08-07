@@ -1,0 +1,34 @@
+\begin{table}
+\caption{precision@500 pooled across test origins against the same metric computed per origin.}
+\label{tab:17_per_origin_spread}
+\begin{tabular}{lllrrrrrrrr}
+\toprule
+tag & target & model & pooled_p500 & p500_2026-01 & p500_2026-04 & spread & mean_of_origins & p500_2025-10 & p500_2025-04 & p500_2025-07 \\
+\midrule
+refactor_det & lending & lightgbm & 0.282000 & 0.218000 & 0.226000 & 0.008000 & 0.222000 & NaN & NaN & NaN \\
+refactor_det & lending & logistic & 0.150000 & 0.132000 & 0.148000 & 0.016000 & 0.140000 & NaN & NaN & NaN \\
+refactor_det & lending & mlp & 0.266000 & 0.198000 & 0.190000 & 0.008000 & 0.194000 & NaN & NaN & NaN \\
+refactor_det & insolvency & lightgbm & 0.122000 & 0.116000 & NaN & 0.008000 & 0.112000 & 0.108000 & NaN & NaN \\
+refactor_det & insolvency & logistic & 0.058000 & 0.056000 & NaN & 0.006000 & 0.059000 & 0.062000 & NaN & NaN \\
+refactor_det & insolvency & mlp & 0.092000 & 0.098000 & NaN & 0.016000 & 0.090000 & 0.082000 & NaN & NaN \\
+refactor_det & voluntary_exit & lightgbm & 0.846000 & 0.816000 & NaN & 0.066000 & 0.849000 & 0.882000 & NaN & NaN \\
+refactor_det & voluntary_exit & logistic & 0.296000 & 0.404000 & NaN & 0.046000 & 0.427000 & 0.450000 & NaN & NaN \\
+refactor_det & voluntary_exit & mlp & 0.680000 & 0.712000 & NaN & 0.110000 & 0.767000 & 0.822000 & NaN & NaN \\
+refactor_det & growth & lightgbm & 0.202000 & NaN & NaN & 0.010000 & 0.171000 & NaN & 0.166000 & 0.176000 \\
+refactor_det & growth & logistic & 0.098000 & NaN & NaN & 0.004000 & 0.122000 & NaN & 0.124000 & 0.120000 \\
+refactor_det & growth & mlp & 0.128000 & NaN & NaN & 0.014000 & 0.117000 & NaN & 0.124000 & 0.110000 \\
+lender_calib & lending & lightgbm & 0.332000 & 0.248000 & 0.232000 & 0.016000 & 0.240000 & NaN & NaN & NaN \\
+lender_calib & lending & logistic & 0.180000 & 0.176000 & 0.170000 & 0.006000 & 0.173000 & NaN & NaN & NaN \\
+lender_calib & lending & mlp & 0.238000 & 0.212000 & 0.186000 & 0.026000 & 0.199000 & NaN & NaN & NaN \\
+lender_calib & insolvency & lightgbm & 0.142000 & 0.106000 & NaN & 0.004000 & 0.108000 & 0.110000 & NaN & NaN \\
+lender_calib & insolvency & logistic & 0.072000 & 0.082000 & NaN & 0.020000 & 0.072000 & 0.062000 & NaN & NaN \\
+lender_calib & insolvency & mlp & 0.078000 & 0.074000 & NaN & 0.010000 & 0.069000 & 0.064000 & NaN & NaN \\
+lender_calib & voluntary_exit & lightgbm & 0.864000 & 0.830000 & NaN & 0.066000 & 0.863000 & 0.896000 & NaN & NaN \\
+lender_calib & voluntary_exit & logistic & 0.294000 & 0.394000 & NaN & 0.044000 & 0.416000 & 0.438000 & NaN & NaN \\
+lender_calib & voluntary_exit & mlp & 0.538000 & 0.540000 & NaN & 0.112000 & 0.596000 & 0.652000 & NaN & NaN \\
+lender_calib & growth & lightgbm & 0.188000 & NaN & NaN & 0.014000 & 0.175000 & NaN & 0.182000 & 0.168000 \\
+lender_calib & growth & logistic & 0.142000 & NaN & NaN & 0.010000 & 0.141000 & NaN & 0.136000 & 0.146000 \\
+lender_calib & growth & mlp & 0.108000 & NaN & NaN & 0.008000 & 0.102000 & NaN & 0.106000 & 0.098000 \\
+\bottomrule
+\end{tabular}
+\end{table}

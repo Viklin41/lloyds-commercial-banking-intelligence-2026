@@ -144,6 +144,15 @@ LGB_PARAMS = dict(
     reg_lambda=1.0,
     n_jobs=6,
     verbose=-1,
+    # Two fits of the same model on the same rows were giving precision@100 of 0.830
+    # and 0.820. `random_state` was always threaded, so the seed was never the
+    # problem: multi-threaded histogram construction sums float gradients in whatever
+    # order the threads finish, and that reorders the ties in the split search.
+    # `deterministic` forces the reproducible summation and `force_col_wise` pins the
+    # tree-building mode so it cannot be re-chosen per run. Both cost speed; a number
+    # in the report that moves when nothing changed costs more.
+    deterministic=True,
+    force_col_wise=True,
 )
 
 # Not a tuning knob, a workaround, and worth writing down because it cost an hour.
@@ -221,13 +230,30 @@ class RunConfig:
     # matrix it is compared against.
     contracts_dir: Path = contracts.ASOF_DIR
     lender_dir: Path | None = None
+    # The as-of gate the lender panel was built under. It used to be read straight off
+    # `charges.REGISTRATION_LAG_DAYS` at build time and never recorded, which meant
+    # `lender` and `lender_fixed` were reproducible only because their parquet still
+    # existed: change the module constant and nothing on disk says the old runs used a
+    # different gate. Carried here so `manifest()` can write it down.
+    registration_lag_days: int = charges.REGISTRATION_LAG_DAYS
+    # Per-target feature lists, as ((target, (col, ...)), ...) so the config stays
+    # frozen and hashable. One target needing a different feature set is not a
+    # hypothetical: `growth` cannot reach `targets.FIRST_FULL_ORIGIN`, so it trains
+    # where the 12-month deltas are 100% NULL and tests where they are populated, and
+    # the fix is to take those columns away from that target only. A whole second
+    # RunConfig would work but then every other axis has to be kept in step by hand.
+    feature_overrides: tuple[tuple[str, tuple[str, ...]], ...] = ()
 
-    def cols(self) -> list[str]:
+    def cols(self, target: str | None = None) -> list[str]:
+        for name, override in self.feature_overrides:
+            if name == target:
+                return list(override)
         return list(self.feature_cols)
 
-    def cats(self) -> list[str]:
+    def cats(self, target: str | None = None) -> list[str]:
         """Categoricals actually present in this run's feature list."""
-        return [c for c in self.categorical_cols if c in self.feature_cols]
+        cols = self.cols(target)
+        return [c for c in self.categorical_cols if c in cols]
 
     def model_names(self) -> tuple[str, ...]:
         return self.models if self.models is not None else DEFAULT_MODELS
@@ -262,6 +288,7 @@ LENDER = RunConfig(
     feature_cols=tuple(targets.FEATURE_COLS_LENDER),
     categorical_cols=tuple(targets.CATEGORICAL_COLS_LENDER),
     lender_dir=charges.LENDER_PANEL_DIR,
+    registration_lag_days=0,
 )
 
 # The same A/B again after the as-of gate in `charges.py` was moved from `created_on`
@@ -276,6 +303,7 @@ LENDER_FIXED = RunConfig(
     feature_cols=tuple(targets.FEATURE_COLS_LENDER),
     categorical_cols=tuple(targets.CATEGORICAL_COLS_LENDER),
     lender_dir=Path("data/processed/lender_panel_fixed"),
+    registration_lag_days=0,
 )
 
 # `delivered_on` alone was not enough: it halved the distortion and left `lending`
@@ -289,6 +317,10 @@ LENDER_ASOF21 = RunConfig(
     feature_cols=tuple(targets.FEATURE_COLS_LENDER),
     categorical_cols=tuple(targets.CATEGORICAL_COLS_LENDER),
     lender_dir=Path("data/processed/lender_panel_asof21"),
+    # The field defaults to `charges.REGISTRATION_LAG_DAYS`, which Stream D recalibrated
+    # from 21 to 4 on 7 Aug. Pinned here so this config keeps describing the gate it was
+    # actually built under rather than tracking the module constant.
+    registration_lag_days=charges.LEGACY_REGISTRATION_LAG_DAYS,
 )
 
 
@@ -853,7 +885,7 @@ def tune_model(
     if not spec.search_space:
         raise ValueError(f"{name} has no search_space; nothing to validate")
 
-    cols, cats = config.cols(), config.cats()
+    cols, cats = config.cols(target), config.cats(target)
     split = split_origins(target, config)
     df = load_origins(target, split.train, config.matrix_dir, cols, cats)
     if len(df) > max_rows:
@@ -869,6 +901,19 @@ def tune_model(
             f"{target}: no legal validation fold survives a {split.horizon_m}m embargo "
             f"across training origins {[m.strftime('%Y-%m') for m in split.train]}. "
             "Tuning this target needs more origins, not a looser splitter."
+        )
+    if n_folds == 1:
+        # One fold is a single hold-out origin, not cross-validation, and its
+        # `best_cv_roc_auc` is one number off one month. `insolvency` ran this way and
+        # the recorded 0.8796 next to the real out-of-time 0.8763 reads as a better
+        # model rather than as a smaller sample. Say so at the point it happens.
+        import warnings
+
+        warnings.warn(
+            f"{target}/{name}: only one legal validation fold survives the "
+            f"{split.horizon_m}m embargo, so this is a single hold-out origin rather "
+            "than cross-validation. Read best_cv_roc_auc accordingly.",
+            stacklevel=2,
         )
 
     # Early stopping needs an eval_set the search cannot supply, so tuning runs the
@@ -894,6 +939,10 @@ def tune_model(
         "target": target,
         "model": name,
         "n_folds": n_folds,
+        # Nothing feeds these parameters back into a fit: the recorded runs are all at
+        # the fixed LGB_PARAMS. Stated in the result itself so `metrics.json` cannot be
+        # read as "this is the tuned model".
+        "applied": False,
         "best_params": search.best_params_,
         "best_cv_roc_auc": float(search.best_score_),
         "cv_results": pd.DataFrame(search.cv_results_)[
@@ -955,6 +1004,170 @@ def evaluate(y: np.ndarray, p: np.ndarray, top_n=TOP_N) -> dict:
     return out
 
 
+def evaluate_by_origin(y: np.ndarray, p: np.ndarray, origins, top_n=TOP_N) -> dict:
+    """``evaluate`` once per test origin instead of pooled over all of them.
+
+    Two reasons this is not decoration. First, precision@N pooled across both test
+    origins is not the number section 11.5 claims it is: a top-500 built over two
+    months can be dominated by one of them, and can hold the same CompanyNumber twice,
+    which is not a call list a relationship manager could work. Per origin it is.
+    Second, with two test origins the spread between them is the cheapest honest
+    statement about how much a single point estimate is worth.
+    """
+    origins = pd.Series(pd.to_datetime(np.asarray(origins))).to_numpy()
+    y, p = np.asarray(y), np.asarray(p)
+    out = {}
+    for m in sorted(pd.unique(origins)):
+        mask = origins == m
+        out[pd.Timestamp(m).strftime("%Y-%m-%d")] = evaluate(y[mask], p[mask], top_n)
+    return out
+
+
+def _rank_layout(y: np.ndarray, p: np.ndarray) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Labels sorted by descending score, the start of each tied score run, and the order.
+
+    Everything ``bootstrap_metrics`` needs is a function of this layout and a vector
+    of per-row resample counts, which is what makes 1000 resamples of a 2.8M-row
+    evaluation population affordable at all. The order comes back too so a *paired*
+    bootstrap can draw one set of row counts and push it through two different
+    rankings of the same rows.
+    """
+    order = np.argsort(-np.asarray(p, dtype=float), kind="stable")
+    ys = np.asarray(y).astype(np.int64)[order]
+    ps = np.asarray(p, dtype=float)[order]
+    starts = np.flatnonzero(np.r_[True, ps[1:] != ps[:-1]])
+    return ys, starts, order
+
+
+def _metrics_from_counts(ys, starts, counts, top_n) -> dict:
+    """ROC-AUC, PR-AUC and precision@N for one weighted resample of the sorted rows.
+
+    ``counts[i]`` is how many times sorted row ``i`` was drawn. Ties in the score are
+    handled the way the point estimates handle them: half credit on tied pairs for
+    ROC-AUC, one step per distinct score for PR-AUC, which is what
+    ``roc_auc_score`` and ``average_precision_score`` do.
+    """
+    cys = counts * ys
+    gp = np.add.reduceat(cys, starts)           # positives per tied-score group
+    gn = np.add.reduceat(counts, starts) - gp   # negatives per tied-score group
+    n_pos, n_neg = gp.sum(), gn.sum()
+    if n_pos == 0 or n_neg == 0:
+        return {}
+
+    cum_neg = np.cumsum(gn)
+    u = np.sum(gp * ((n_neg - cum_neg) + 0.5 * gn))
+    cum_pos, cum_all = np.cumsum(gp), np.cumsum(gp + gn)
+    out = {
+        "roc_auc": float(u / (n_pos * n_neg)),
+        # A leading group can be drawn zero times, and its precision is then 0/0. Its
+        # recall increment is zero too, so the term contributes nothing either way.
+        "pr_auc": float(np.sum(gp / n_pos * (cum_pos / np.maximum(cum_all, 1)))),
+    }
+
+    total = np.cumsum(counts)
+    pos_total = np.cumsum(cys)
+    for n in top_n:
+        if n > total[-1]:
+            out[f"precision_at_{n}"] = float("nan")
+            continue
+        # The row the top-N boundary lands in contributes only the copies that fit.
+        j = int(np.searchsorted(total, n))
+        hits = pos_total[j] - (total[j] - n) * ys[j]
+        out[f"precision_at_{n}"] = float(hits / n)
+    return out
+
+
+def bootstrap_metrics(
+    y: np.ndarray,
+    p: np.ndarray,
+    n_boot: int = 1000,
+    seed: int = RANDOM_STATE,
+    top_n=TOP_N,
+    alpha: float = 0.05,
+) -> dict:
+    """Percentile confidence intervals on ROC-AUC, PR-AUC and each precision@N.
+
+    Every metric this module reports is one point estimate from one seed on one split
+    with two test origins, and the comparisons drawn off them (+0.0096 here, -0.028
+    there) have so far been judged against a noise band measured once, on one target,
+    on a different metric. A resampling interval is the cheap fix: no refit, no second
+    split, just the sampling variation of the evaluation rows themselves.
+
+    It is an interval on **evaluation** noise only. It does not include the variation
+    from refitting on a different training sample, so it is a lower bound on the total
+    uncertainty and should be read as one.
+
+    Implemented against ``_rank_layout`` rather than by re-scoring resampled arrays,
+    because the naive version is ~1.4s per resample on the 2.8M-row unsampled
+    evaluation population (nearly five hours for the four targets) against ~0.06s
+    here. The metrics are still the same functions of the same rows.
+    """
+    y, p = np.asarray(y), np.asarray(p)
+    ys, starts, _ = _rank_layout(y, p)
+    n = len(ys)
+    rng = np.random.default_rng(seed)
+
+    draws: dict[str, list[float]] = {}
+    for _ in range(n_boot):
+        counts = np.bincount(rng.integers(0, n, n, dtype=np.int32), minlength=n)
+        for k, v in _metrics_from_counts(ys, starts, counts, top_n).items():
+            draws.setdefault(k, []).append(v)
+
+    out = {"n_boot": n_boot, "alpha": alpha, "seed": seed}
+    for k, vals in draws.items():
+        lo, hi = np.nanpercentile(vals, [100 * alpha / 2, 100 * (1 - alpha / 2)])
+        out[k] = {"lo": float(lo), "hi": float(hi)}
+    return out
+
+
+def paired_bootstrap_delta(
+    y: np.ndarray,
+    p_a: np.ndarray,
+    p_b: np.ndarray,
+    n_boot: int = 1000,
+    seed: int = RANDOM_STATE,
+    top_n=TOP_N,
+    alpha: float = 0.05,
+) -> dict:
+    """Interval on ``b`` minus ``a`` when both scored **the same evaluation rows**.
+
+    Comparing two runs by asking whether their single-run intervals overlap is the
+    wrong test and it is the conservative one. Every run here is evaluated on the same
+    companies at the same origins, so the sampling noise in the population is common to
+    both and cancels: resample the rows once, rank them under both scorings on that one
+    resample, and take the difference. What survives is the disagreement between the two
+    rankings, which is the thing being claimed.
+
+    The gap is not academic. `lending` LightGBM under `lender_calib` beats
+    `refactor_det` by +0.0043 of ROC-AUC while each run's own interval is about
+    +/-0.0045 wide, so the overlap reading says "cannot tell" about a difference that
+    is visible on every single resample.
+
+    Returns ``{metric: {"delta", "lo", "hi"}}`` with the point delta measured on the
+    full rows, not on the resamples.
+    """
+    y = np.asarray(y)
+    ys_a, starts_a, order_a = _rank_layout(y, p_a)
+    ys_b, starts_b, order_b = _rank_layout(y, p_b)
+    n = len(y)
+    rng = np.random.default_rng(seed)
+
+    draws: dict[str, list[float]] = {}
+    for _ in range(n_boot):
+        counts = np.bincount(rng.integers(0, n, n, dtype=np.int32), minlength=n)
+        ma = _metrics_from_counts(ys_a, starts_a, counts[order_a], top_n)
+        mb = _metrics_from_counts(ys_b, starts_b, counts[order_b], top_n)
+        for k in ma.keys() & mb.keys():
+            draws.setdefault(k, []).append(mb[k] - ma[k])
+
+    point_a, point_b = evaluate(y, p_a, top_n), evaluate(y, p_b, top_n)
+    out = {"n_boot": n_boot, "alpha": alpha, "seed": seed}
+    for k, vals in draws.items():
+        lo, hi = np.nanpercentile(vals, [100 * alpha / 2, 100 * (1 - alpha / 2)])
+        out[k] = {"delta": float(point_b[k] - point_a[k]), "lo": float(lo), "hi": float(hi)}
+    return out
+
+
 # --------------------------------------------------------------------------- #
 # The run
 # --------------------------------------------------------------------------- #
@@ -964,6 +1177,7 @@ def run_target(
     config: RunConfig = BASELINE,
     n_test: int = N_TEST_ORIGINS,
     model_params: dict[str, dict] | None = None,
+    n_boot: int = 1000,
 ) -> dict:
     """Train every requested model on one target, evaluate out-of-time, record it all.
 
@@ -986,8 +1200,8 @@ def run_target(
     That is what makes the new numbers directly comparable to the `baseline` run in
     `reports/runs/`.
     """
-    cols = config.cols()
-    cats = config.cats()
+    cols = config.cols(target)
+    cats = config.cats(target)
     params = model_params or {}
     split = split_origins(target, config, n_test=n_test)
 
@@ -1007,13 +1221,21 @@ def run_target(
     # way; this per-model check is what catches it.
     keep = float(train["neg_keep_rate"].mean())
 
+    test_origins = test["origin_month"].to_numpy()
+
     fitted, metrics, preds, calibration = {}, {}, {}, {}
+    by_origin, ci = {}, {}
     for name in config.model_names():
         model = fit_model(name, X_tr, y_tr, groups, cats, params.get(name))
         p_raw = model.predict_proba(X_te)[:, 1]
         fitted[name] = model
         preds[name] = p_raw
         metrics[name] = evaluate(y_te, p_raw)
+        by_origin[name] = evaluate_by_origin(y_te, p_raw, test_origins)
+        # ~60s per model on the 2.8M-row unsampled evaluation population, so roughly
+        # three minutes a target. Lower `n_boot` if the queue is tight; the interval
+        # gets grainier, not wrong.
+        ci[name] = bootstrap_metrics(y_te, p_raw, n_boot=n_boot)
         calibration[name] = {
             "mean_pred_raw": float(p_raw.mean()),
             "mean_pred_recalibrated": float(recalibrate(p_raw, keep).mean()),
@@ -1031,6 +1253,10 @@ def run_target(
         "train_positives": int(y_tr.sum()),
         "best_iteration": int(getattr(gbm, "best_iteration_", 0) or 0) if gbm else 0,
         "metrics": metrics,
+        # Both keyed by model, like `metrics`, and neither is prefixed `_`, so
+        # `record_run` carries them into metrics.json without changing.
+        "metrics_by_origin": by_origin,
+        "metrics_ci": ci,
         "calibration": {
             "train_neg_keep_rate": keep,
             "test_base_rate": float(y_te.mean()),
@@ -1065,7 +1291,7 @@ def grouped_cv_auc(
     ``model`` takes any registry name; it defaults to LightGBM because the check is
     about the *data*, not the estimator, and repeating it per model buys nothing.
     """
-    cols, cats = config.cols(), config.cats()
+    cols, cats = config.cols(target), config.cats(target)
     origins = matrix_origins(target, config.matrix_dir)
     df = load_origins(target, origins, config.matrix_dir, cols, cats)
     if len(df) > max_rows:
@@ -1240,10 +1466,16 @@ def score_frame(
     df: pd.DataFrame,
     neg_keep_rate: float,
     config: RunConfig = BASELINE,
+    target: str | None = None,
 ) -> pd.Series:
-    """Recalibrated probability per row, ready to rank."""
+    """Recalibrated probability per row, ready to rank.
+
+    ``target`` matters only under ``feature_overrides``: the live frame holds every
+    column, and a model trained on a target's shorter list has to be handed that same
+    list back or it is scoring on columns it never saw.
+    """
     return pd.Series(
-        recalibrate(model.predict_proba(df[config.cols()])[:, 1], neg_keep_rate),
+        recalibrate(model.predict_proba(df[config.cols(target)])[:, 1], neg_keep_rate),
         index=df.index,
     )
 
@@ -1287,9 +1519,16 @@ def manifest(config: RunConfig, **extra) -> dict:
         "eval_dir": str(config.eval_dir),
         "contracts_dir": str(config.contracts_dir),
         "lender_dir": str(config.lender_dir) if config.lender_dir else None,
+        # The as-of gate the lender panel was built under. `lender` and `lender_fixed`
+        # were reproducible only because their parquet happened to survive; this is
+        # what makes the gate part of the run's identity instead of module state.
+        "registration_lag_days": config.registration_lag_days,
         "n_features": len(cols),
         "feature_cols": cols,
         "feature_hash": hashlib.sha256("|".join(cols).encode()).hexdigest()[:12],
+        # Per-target deviations from that list, so `n_features` above is the run's
+        # default rather than a claim about every target in it.
+        "feature_overrides": {t: list(c) for t, c in config.feature_overrides},
         "categorical_cols": config.cats(),
         "targets": list(config.target_names),
         "models": list(config.model_names()),
@@ -1331,6 +1570,13 @@ def record_run(
         raise FileExistsError(
             f"{out} already exists. Use a new tag, or overwrite=True to replace it."
         )
+    # Nothing feeds the search results back into a fit, so a `tuning` block sitting
+    # next to the real metrics invites reading `best_cv_roc_auc: 0.8796` as this run's
+    # score when the run scored 0.8763. Renamed on the way to disk so the key itself
+    # says what it is.
+    if "tuning" in extra:
+        extra["tuning_not_applied"] = extra.pop("tuning")
+
     out.mkdir(parents=True, exist_ok=True)
     (out / "manifest.json").write_text(
         json.dumps(manifest(config), indent=2, default=str)
@@ -1369,6 +1615,13 @@ def load_runs(root: Path = RUNS_DIR) -> pd.DataFrame:
         met = json.loads((d / "metrics.json").read_text())
         for target, r in met.get("targets", {}).items():
             for model, m in r.get("metrics", {}).items():
+                # Runs recorded before the bootstrap landed have no intervals, so the
+                # columns come out NaN for them rather than the index losing the run.
+                ci = r.get("metrics_ci", {}).get(model, {})
+                bounds = {}
+                for metric in ("roc_auc", "precision_at_500"):
+                    for side in ("lo", "hi"):
+                        bounds[f"{metric}_{side}"] = ci.get(metric, {}).get(side)
                 rows.append({
                     "tag": met.get("tag", d.name),
                     "created_at": man.get("created_at"),
@@ -1385,6 +1638,7 @@ def load_runs(root: Path = RUNS_DIR) -> pd.DataFrame:
                     "roc_auc": m.get("roc_auc"),
                     "pr_auc": m.get("pr_auc"),
                     **{f"precision_at_{n}": m.get(f"precision_at_{n}") for n in TOP_N},
+                    **bounds,
                 })
     return pd.DataFrame(rows)
 
