@@ -25,7 +25,12 @@ nothing but growth changed between the two runs & PASS &  \\
 MLP bootstrap intervals do not overlap (and this is MISLEADING, see 9b) & PASS &  \\
 MLP seed range exceeds its bootstrap width by more than 4x, both lists & PASS & 4.1x at 41f, 7.2x at 27f \\
 the MLP delta is smaller than the 41-feature seed range, so it is not a finding & PASS & delta 0.0075 < seed range 0.0181 \\
-the recorded 41-feature MLP fit is the minimum of its five seeds & PASS & 0.694114 \\
+the recorded 41-feature MLP fit is the minimum of its four seeds & PASS & 0.694114 \\
+the paired MLP delta changes sign across seeds, so it is not established & PASS & +0.0075, +0.0283, -0.0063, -0.0101 \\
+exactly the nine have zero observed values in the pooled training set & PASS & 9 features \\
+the five other dropped features DO have observed training values & PASS & d_charges_3m, d_charges_6m, d_outstanding_3m, d_outstanding_6m, status_changed \\
+effective feature count was 32 for the dense models too, not 41 & PASS &  \\
+so before-versus-after differs by the five survivors for every family & PASS &  \\
 logistic delta is at least 3x its seed sd, so it survives & PASS & delta 0.0035 vs seed sd 0.0009 \\
 LightGBM is unchanged at the scale of its own seed spread & PASS & delta -0.0010 vs seed sd 0.0006 \\
 bootstrap is the larger uncertainty for lightgbm and logistic (so it is fine there) & PASS &  \\
