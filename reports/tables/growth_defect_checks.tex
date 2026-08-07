@@ -22,7 +22,13 @@ the run used exactly FEATURE_COLS_SHORT_HISTORY & PASS & 27 features \\
 G3 restated: worst differential < 0.02 & PASS & 0.0153 \\
 G3 as originally written would have been unpassable & PASS & worst absolute null rate 1.0000 on a correctly fixed list \\
 nothing but growth changed between the two runs & PASS &  \\
-MLP intervals do not overlap & PASS &  \\
+MLP bootstrap intervals do not overlap (and this is MISLEADING, see 9b) & PASS &  \\
+MLP seed range exceeds its bootstrap width by more than 4x, both lists & PASS & 4.1x at 41f, 7.2x at 27f \\
+the MLP delta is smaller than the 41-feature seed range, so it is not a finding & PASS & delta 0.0075 < seed range 0.0181 \\
+the recorded 41-feature MLP fit is the minimum of its five seeds & PASS & 0.694114 \\
+logistic delta is at least 3x its seed sd, so it survives & PASS & delta 0.0035 vs seed sd 0.0009 \\
+LightGBM is unchanged at the scale of its own seed spread & PASS & delta -0.0010 vs seed sd 0.0006 \\
+bootstrap is the larger uncertainty for lightgbm and logistic (so it is fine there) & PASS &  \\
 LightGBM intervals do overlap & PASS &  \\
 H=6 honours FIRST_FULL_ORIGIN & PASS &  \\
 H=6 split is the designed one & PASS &  \\
