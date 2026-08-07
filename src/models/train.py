@@ -847,7 +847,11 @@ def tune_model(
     # Early stopping needs an eval_set the search cannot supply, so tuning runs the
     # estimator at its fixed n_estimators. Boosting rounds are themselves one of the
     # things a search over learning_rate is trading against, so this is not a loss.
-    est = build_model(name, cols, random_state=random_state)
+    # `cats` has to go in explicitly: without it `build_model` falls back to
+    # `targets.CATEGORICAL_COLS`, which under the lender config misses
+    # `primary_lender_group`, and the dense preprocessor then sends a string column
+    # to a median imputer and every fit in the search fails.
+    est = build_model(name, cols, cats, random_state=random_state)
     search = RandomizedSearchCV(
         est,
         spec.search_space,
