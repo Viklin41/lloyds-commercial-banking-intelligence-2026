@@ -1,0 +1,23 @@
+check,result,detail
+split fell back before the fix,PASS,"train=['2023-10', '2024-01', '2024-04']"
+"split still falls back after the fix (the fix is features, not origins)",PASS,
+H=12 is arithmetically infeasible,PASS,earliest legal first_test 2025-10 > max_origin(12) 2025-07
+no origin step produces a legal test origin,PASS,
+exactly nine features are 1.000 null in every train origin,PASS,"d_charges_12m, d_outstanding_12m, d_satisfied_12m, debt_ratio_trend_12m, name_changed_12m, postcode_changed_12m, segment_downgraded_12m, segment_upgraded_12m, sic_changed_12m"
+those nine are populated in both test origins,PASS,
+nine features at exactly 0.0 mean|SHAP| before,PASS,
+the zero-SHAP nine are exactly the null nine,PASS,
+no feature at 0.0 mean|SHAP| after,PASS,smallest 0.000226
+the same nine are informative for lending,PASS,"ranks [7, 8, 16, 18, 21, 22, 25, 27, 28]"
+the imputer warning is present before and absent after,PASS,
+status_changed is 1.000 null at 2023-10 (train) and 2025-07 (test),PASS,
+status_changed ranks 19 of 41 for growth,PASS,
+the run used exactly FEATURE_COLS_SHORT_HISTORY,PASS,27 features
+G3 restated: worst differential < 0.02,PASS,0.0153
+G3 as originally written would have been unpassable,PASS,worst absolute null rate 1.0000 on a correctly fixed list
+nothing but growth changed between the two runs,PASS,
+MLP intervals do not overlap,PASS,
+LightGBM intervals do overlap,PASS,
+H=6 honours FIRST_FULL_ORIGIN,PASS,
+H=6 split is the designed one,PASS,
+H=6 has zero margin on MIN_TRAIN_ORIGINS,PASS,

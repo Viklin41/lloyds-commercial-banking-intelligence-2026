@@ -110,6 +110,58 @@ ORIGIN_STEP_MONTHS = 3
 # only 4, so there it is a genuine trade against sample size).
 FIRST_FULL_ORIGIN = pd.Timestamp("2024-10-01")
 
+# Features that only form once enough panel history exists behind them.
+#
+# `growth` cannot reach FIRST_FULL_ORIGIN, and no origin granularity fixes that.
+# The arithmetic: a legal training origin needs `t <= first_test - 12m` (the embargo)
+# and `t >= 2024-10` (this constant), which forces `first_test >= 2025-10`. But
+# `max_origin(12) = 2026-07 - 12m = 2025-07`, so the latest origin whose label window
+# still fits inside the panel is three months *earlier* than the earliest legal test
+# origin. There is no assignment of origins that satisfies both. Monthly origins do
+# not help: the constraint is on calendar months, not on grid spacing. It is a
+# panel-length constraint on a 33-month panel carrying a 12-month label.
+#
+# So `split_origins` falls back (`first_full_origin_applied: false`) and `growth`
+# trains at 2023-10 / 2024-01 / 2024-04, where these are 100% NULL, and tests at
+# 2025-04 / 2025-07, where they are populated. Measured null rates in
+# `data/processed/model_matrix/growth/`:
+#
+#   feature                        2023-10  2024-01  2024-04 | 2025-04  2025-07
+#                                  (train)  (train)  (train) | (test)   (test)
+#   d_charges_12m                    1.000    1.000    1.000 |  0.001    0.001
+#   d_outstanding_12m                1.000    1.000    1.000 |  0.001    0.001
+#   d_satisfied_12m                  1.000    1.000    1.000 |  0.001    0.001
+#   debt_ratio_trend_12m             1.000    1.000    1.000 |  0.001    0.001
+#   segment_upgraded_12m             1.000    1.000    1.000 |  0.109    0.112
+#   segment_downgraded_12m           1.000    1.000    1.000 |  0.109    0.112
+#   sic_changed_12m                  1.000    1.000    1.000 |  0.001    0.001
+#   name_changed_12m                 1.000    1.000    1.000 |  0.001    0.001
+#   postcode_changed_12m             1.000    1.000    1.000 |  0.001    0.001
+#   d_charges_6m / d_outstanding_6m  1.000    1.000    0.000 |  0.000    0.000
+#   d_charges_3m / d_outstanding_3m  1.000    0.000    0.000 |  0.000    0.000
+#
+# Receipt: the nine 12-month features score exactly 0.000000 mean|SHAP| and occupy
+# ranks 33-41 in `reports/runs/refactor/shap_importance_growth.csv`. LightGBM took
+# zero splits on them. The same nine rank 7, 8, 16, 18, 21, 22, 25, 27 and 28 for
+# `lending`, which does reach FIRST_FULL_ORIGIN. They are informative; growth never
+# got to see them. The four 3m/6m partials are NULL in one or two training origins
+# only, which is the same artefact in a milder form.
+LONG_HISTORY_FEATURE_COLS = [
+    "d_charges_3m",
+    "d_charges_6m",
+    "d_charges_12m",
+    "d_outstanding_3m",
+    "d_outstanding_6m",
+    "d_outstanding_12m",
+    "d_satisfied_12m",
+    "debt_ratio_trend_12m",
+    "segment_upgraded_12m",
+    "segment_downgraded_12m",
+    "sic_changed_12m",
+    "name_changed_12m",
+    "postcode_changed_12m",
+]
+
 # Genuine insolvency, as opposed to strike-off or dormancy. Lifted from Sneha's
 # `is_insolvent` in notebooks/12_baseline_model.ipynb (itself adapted from Sam's
 # attrition work) - the enumeration is the valuable part and it is the reason the
@@ -156,6 +208,7 @@ EXPECTED_BASE_RATES = {
     "insolvency":     (0.0020, 0.0060),
     "voluntary_exit": (0.0500, 0.1100),
     "growth":         (0.0150, 0.0300),
+    "growth_6m":      (0.0060, 0.0180),
     "switching":      (0.0000, 0.0200),
 }
 
@@ -172,7 +225,25 @@ LENDER_TARGETS = {
     "switching": ("y_switching", 6),
 }
 
-ALL_TARGETS = {**TARGETS, **LENDER_TARGETS}
+# The shorter-horizon growth label, kept out of `TARGETS` for the same reason
+# `switching` is: notebooks 15 and 16 iterate the four names and their matrices are
+# on disk with four partitions.
+#
+# The point of it is the split, not the label. At H=6 the whole FIRST_FULL_ORIGIN
+# problem disappears: origins run to `max_origin(6) = 2026-01`, so honouring the
+# constant still leaves train `[2024-10, 2025-01, 2025-04]`, embargo `[2025-07]`,
+# test `[2025-10, 2026-01]` (verified against `split_origins`' own arithmetic), and
+# no feature has a train-only missingness pattern. The June gap at 2025-07 lands in
+# the embargo, so `status_changed` is usable here as well.
+#
+# It is not free: the base rate roughly halves (0.90 - 1.21% per origin against
+# 2.1 - 2.2% at twelve months) and "moved up a size band within six months" is a
+# harder and rarer thing to predict. That trade is exactly what the run is for.
+GROWTH_TARGETS = {
+    "growth_6m": ("y_growth_6m", 6),
+}
+
+ALL_TARGETS = {**TARGETS, **LENDER_TARGETS, **GROWTH_TARGETS}
 
 # Features carried straight off the panel at month t. `size_tier` is deliberately
 # absent: `tier_rank` is the same information as a number LightGBM can split on.
@@ -194,6 +265,21 @@ FEATURE_COLS = (
     + contracts.ASOF_FEATURE_COLS
     + CATEGORICAL_COLS
 )
+
+# What `growth` should actually be trained on, given it cannot reach
+# FIRST_FULL_ORIGIN (see LONG_HISTORY_FEATURE_COLS above for the arithmetic).
+# Pass it per-target through `RunConfig.feature_overrides` rather than changing
+# FEATURE_COLS, so every other target and every recorded run keeps its exact list.
+#
+# `status_changed` comes out too, for a different reason: the June 2025 gap leaves it
+# 100% NULL at the 2025-07 origin, which is a *test* origin for growth, so half the
+# test set gets NULL on a feature ranking 19 of 41 by SHAP. `panel.py` is right to
+# write NULL there (`LAG(status,1)` reads the missing month honestly); the feature is
+# simply not usable for a target whose test window straddles the hole.
+FEATURE_COLS_SHORT_HISTORY = [
+    c for c in FEATURE_COLS
+    if c not in LONG_HISTORY_FEATURE_COLS and c != "status_changed"
+]
 
 # The same list plus the lender columns, used only by matrices built with a
 # `lender_dir`. FEATURE_COLS itself is left alone so that step 6's existing results,
@@ -278,6 +364,7 @@ fwd AS (
         max(CASE WHEN status IN ({insolvent}) THEN 1 ELSE 0 END) OVER w6 AS insolvent_f6,
         max(CASE WHEN status = '{strike_off}'  THEN 1 ELSE 0 END) OVER w6 AS strikeoff_f6,
         count(*)      OVER w6  AS n_obs_f6,
+        max(tier_rank) OVER w6  AS max_tier_f6,
         max(tier_rank) OVER w12 AS max_tier_f12,
         count(*)      OVER w12 AS n_obs_f12
     FROM obs
@@ -306,7 +393,13 @@ SELECT
     -- excluded rather than squeezed into the ladder.
     CASE WHEN m <= DATE '{max_growth}'     AND n_obs_f12 > 0
           AND tier_rank IS NOT NULL AND max_tier_f12 IS NOT NULL
-         THEN (max_tier_f12 > tier_rank)::INT END AS y_growth
+         THEN (max_tier_f12 > tier_rank)::INT END AS y_growth,
+    -- Same definition at six months. Written beside y_growth rather than instead of
+    -- it: the pair is the horizon sensitivity, and the 12-month label is still the
+    -- one the four headline targets use.
+    CASE WHEN m <= DATE '{max_growth_6m}'  AND n_obs_f6  > 0
+          AND tier_rank IS NOT NULL AND max_tier_f6 IS NOT NULL
+         THEN (max_tier_f6 > tier_rank)::INT END AS y_growth_6m
 FROM fwd
 WHERE is_active
   AND m IN ({origins})
@@ -318,12 +411,21 @@ def build_labels(
     out_dir: Path = LABEL_DIR,
     threads: int | None = None,
     memory_limit: str = "10GB",
+    step: int = ORIGIN_STEP_MONTHS,
 ) -> int:
-    """Write the label table: one row per (company, quarterly origin), four 0/1 columns.
+    """Write the label table: one row per (company, origin), five 0/1 columns.
 
     Rows are restricted to companies **Active at the origin**, which is what all four
     labels are conditioned on. Forward windows need the whole history in scope, so
     like the delta build this is one query rather than a per-month loop.
+
+    ``step`` is the origin spacing in months, quarterly by default. Pass ``step=1``
+    (with a matching ``out_dir``) to build the monthly grid: three times the origins,
+    hence three times the training and test months, at the cost of label windows that
+    overlap heavily and are strongly autocorrelated, so effective sample size grows a
+    good deal less than threefold. It is a config axis rather than a change to
+    ``ORIGIN_STEP_MONTHS`` so that both grids can exist side by side and every run
+    already recorded stays reproducible.
     """
     out_dir.mkdir(parents=True, exist_ok=True)
     tmp_dir = out_dir.parent / "duckdb_tmp"
@@ -340,11 +442,12 @@ def build_labels(
         delta_glob=(delta_dir / "**" / "*.parquet").as_posix(),
         insolvent=_quote(sorted(INSOLVENT_STATUSES)),
         strike_off=STRIKE_OFF_STATUS,
-        origins=_quote(m.date() for m in origin_months()),
+        origins=_quote(m.date() for m in origin_months(step=step)),
         max_lending=max_origin(TARGETS["lending"][1]).date(),
         max_insolvency=max_origin(TARGETS["insolvency"][1]).date(),
         max_voluntary_exit=max_origin(TARGETS["voluntary_exit"][1]).date(),
         max_growth=max_origin(TARGETS["growth"][1]).date(),
+        max_growth_6m=max_origin(GROWTH_TARGETS["growth_6m"][1]).date(),
     )
     con.execute(
         f"""

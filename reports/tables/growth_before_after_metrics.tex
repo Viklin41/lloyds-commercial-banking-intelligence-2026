@@ -1,0 +1,16 @@
+\begin{table}
+\caption{growth out-of-time metrics with 95 per cent bootstrap intervals, 41-feature control against the corrected 27-feature list.}
+\label{tab:growth_before_after_metrics}
+\begin{tabular}{lrrrrrrrrrl}
+\toprule
+model & n_features & roc_auc & roc_auc_lo & roc_auc_hi & pr_auc & precision_at_100 & precision_at_500 & precision_at_500_lo & precision_at_500_hi & run \\
+\midrule
+lightgbm & 41 & 0.762020 & 0.760040 & 0.763890 & 0.057760 & 0.220000 & 0.202000 & 0.164000 & 0.234000 & before (41) \\
+logistic & 41 & 0.728980 & 0.726850 & 0.731200 & 0.046770 & 0.070000 & 0.098000 & 0.070000 & 0.126050 & before (41) \\
+mlp & 41 & 0.694110 & 0.691810 & 0.696230 & 0.042140 & 0.120000 & 0.128000 & 0.096000 & 0.156000 & before (41) \\
+lightgbm & 27 & 0.761060 & 0.759320 & 0.763000 & 0.057240 & 0.220000 & 0.194000 & 0.156000 & 0.228000 & after (27) \\
+logistic & 27 & 0.732430 & 0.730220 & 0.734510 & 0.046940 & 0.090000 & 0.102000 & 0.078000 & 0.130000 & after (27) \\
+mlp & 27 & 0.701580 & 0.699410 & 0.703740 & 0.043850 & 0.120000 & 0.106000 & 0.082000 & 0.136000 & after (27) \\
+\bottomrule
+\end{tabular}
+\end{table}

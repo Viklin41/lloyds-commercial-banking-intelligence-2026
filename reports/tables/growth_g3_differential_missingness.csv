@@ -1,0 +1,9 @@
+feature,mean_null_train,mean_null_test,abs_differential
+months_since_last_new_charge,0.996554,0.981254,0.015299
+months_since_last_award,0.987503,0.985814,0.001689
+sector,0.020985,0.019857,0.001128
+months_since_last_confstmt,0.00049,0.000534,4.4e-05
+months_since_last_accounts_filing,1.8e-05,0.0,1.8e-05
+days_to_next_accounts_due,0.000409,0.000415,5e-06
+confstmt_late,5e-06,5e-06,0.0
+Mortgages.NumMortSatisfied,0.0,0.0,0.0

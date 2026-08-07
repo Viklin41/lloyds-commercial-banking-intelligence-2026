@@ -1,0 +1,10 @@
+feature,rank_growth,mean_abs_shap_growth,rank_lending,mean_abs_shap_lending
+postcode_changed_12m,39,0.0,7,0.089999620031815
+sic_changed_12m,40,0.0,8,0.08165220608025
+name_changed_12m,41,0.0,16,0.0283740938811099
+segment_upgraded_12m,35,0.0,18,0.0236838069635548
+d_charges_12m,33,0.0,21,0.0167414972265983
+segment_downgraded_12m,34,0.0,22,0.0152708376527491
+d_satisfied_12m,37,0.0,25,0.0105238559885944
+d_outstanding_12m,38,0.0,27,0.008398807978356
+debt_ratio_trend_12m,36,0.0,28,0.0059857029501018
