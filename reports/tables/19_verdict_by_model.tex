@@ -1,0 +1,22 @@
+\begin{table}
+\caption{The V3 verdict at the tightest gate tested (7d/3d), per target and model family, against the 41-feature control.}
+\label{tab:19_verdict_by_model}
+\begin{tabular}{llrrrrrrrl}
+\toprule
+target & model & control_roc_auc & lender_roc_auc & d_roc_auc & unpaired_intervals_overlap & d_precision_at_500 & paired_lo & paired_hi & paired_excludes_zero \\
+\midrule
+lending & lightgbm & 0.876666 & 0.876639 & -0.000027 & True & 0.012000 & -0.000510 & 0.000471 & False \\
+lending & logistic & 0.861508 & 0.865086 & 0.003578 & True & 0.038000 & NaN & NaN & NaN \\
+lending & mlp & 0.867215 & 0.871731 & 0.004516 & True & -0.070000 & NaN & NaN & NaN \\
+insolvency & lightgbm & 0.761520 & 0.762240 & 0.000720 & True & 0.002000 & -0.000151 & 0.001698 & False \\
+insolvency & logistic & 0.732376 & 0.734666 & 0.002290 & True & 0.010000 & NaN & NaN & NaN \\
+insolvency & mlp & 0.743704 & 0.739812 & -0.003892 & True & -0.022000 & NaN & NaN & NaN \\
+voluntary_exit & lightgbm & 0.792892 & 0.792666 & -0.000226 & True & 0.010000 & -0.000366 & -0.000096 & True \\
+voluntary_exit & logistic & 0.770367 & 0.769327 & -0.001040 & True & 0.040000 & NaN & NaN & NaN \\
+voluntary_exit & mlp & 0.781143 & 0.776917 & -0.004226 & False & 0.006000 & NaN & NaN & NaN \\
+growth & lightgbm & 0.762019 & 0.761563 & -0.000456 & True & 0.010000 & -0.000998 & -0.000014 & True \\
+growth & logistic & 0.728975 & 0.738222 & 0.009247 & False & 0.054000 & NaN & NaN & NaN \\
+growth & mlp & 0.694114 & 0.695941 & 0.001827 & True & -0.038000 & NaN & NaN & NaN \\
+\bottomrule
+\end{tabular}
+\end{table}

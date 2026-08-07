@@ -1,0 +1,15 @@
+\begin{table}
+\caption{The lending target under five successive definitions of the as-of gate, LightGBM, against an unchanged 41-feature control.}
+\label{tab:19_gate_progression}
+\begin{tabular}{lllrrrrr}
+\toprule
+act & tag & verdict & n_features & roc_auc & precision_at_100 & precision_at_500 & lift_at_500 \\
+\midrule
+control 41 features & refactor_det & no lender features & 41 & 0.876666 & 0.550000 & 0.282000 & 104.015203 \\
+act 1 created_on & lender & leaking & 54 & 0.895096 & 1.000000 & 0.992000 & 365.897440 \\
+act 2 delivered_on & lender_fixed & leaking & 54 & 0.886088 & 0.980000 & 0.742000 & 273.685382 \\
+act 3 +21d, nominal 1st & lender_asof21 & over-tight & 54 & 0.876266 & 0.480000 & 0.310000 & 114.342953 \\
+act 4 extract date +4d/1d & lender_calib & calibrated & 54 & 0.881003 & 0.490000 & 0.332000 & 122.457608 \\
+\bottomrule
+\end{tabular}
+\end{table}
