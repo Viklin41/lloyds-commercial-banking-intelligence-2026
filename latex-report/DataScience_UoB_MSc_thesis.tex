@@ -1,0 +1,542 @@
+% The document class supplies options to control rendering of some standard
+% features in the result.  The goal is for uniform style, so some attention 
+% to detail is *vital* with all fields.  Each field (i.e., text inside the
+% curly braces below, so the MEng text inside {MEng} for instance) should 
+% take into account the following:
+%
+% - author name       should be formatted as "FirstName LastName"
+%   (not "Initial LastName" for example),
+% - supervisor name   should be formatted as "Title FirstName LastName"
+%   (where Title is "Dr." or "Prof." for example),
+% - degree programme  should be "BSc", "MEng", "MSci", "MSc" or "PhD",
+% - dissertation title should be correctly capitalised (plus you can have
+%   an optional sub-title if appropriate, or leave this field blank),
+% - dissertation type should be formatted as one of the following:
+%   * for the MEng degree programme either "enterprise" or "research" to
+%     reflect the stream,
+%   * for the MSc  degree programme "$X/Y/Z$" for a project deemed to be
+%     X%, Y% and Z% of type I, II and III.
+% - year              should be formatted as a 4-digit year of submission
+%   (so 2014 rather than the academic year, say 2013/14 say).
+
+\documentclass[ % the name of the author
+                    author={Daniel Page},
+                % the name of the supervisor
+                supervisor={Dr. Andrew Calway},
+                % the degree programme
+                    degree={MSc},
+                % the dissertation    title (which cannot be blank)
+                     title={Some Structural Guidelines for Data Science MSc Theses, Including Those With Long Titles that Run Across Multiple Lines on the Front Page},
+                % the dissertation subtitle (which can    be blank)
+                  subtitle={And those including an optional subtitle too, for good measure},
+                % the dissertation     type
+                      type={},
+                % the year of submission
+                      year={2021}]{dissertation}
+
+\begin{document}
+
+% =============================================================================
+
+% This section simply introduces the structural guidelines.  It can clearly
+% be deleted (or commented out) if you use the file as a template for your
+% own dissertation: everything following it is in the correct order to use 
+% as is.
+
+\section*{Prelude}
+\thispagestyle{empty}
+
+
+A typical MSc thesis will be structured according to a fairly standard sequence of 
+sections, and one example is shown here.  However, it is hard and perhaps even 
+counter-productive to generalise: the goal of this document is {\em not}\/ to be prescriptive, to show you how you {\em must} structure your thesis; rather it is to simply to act as a guideline, to show you how you {\em could} structure your thesis.  In particular, each chapter's indicated page-count is
+important but {\em not}\/ absolute: the aim is simply to highlight that a 
+clear and concise description is better than a rambling alternative that makes
+it hard to separate important content and facts from irrelevant trivia.
+
+You can use this document as a \LaTeX-based 
+template for your own thesis by simply deleting extraneous sections
+and content, and adding your own text. If you do that, we recommend using BibTeX
+to deal with the associated bibliography. 
+You may want to use Overleaf (an online cloud-based collaborative \LaTeX platform).
+
+
+The words ``thesis'' and ``dissertation'' are used interchangeably here. All active hyperlinks in the PDF file are rendered in the same shade of dark blue. 
+
+
+
+% =============================================================================
+
+% This macro creates the standard UoB title page by using information drawn
+% from the document class (meaning it is vital you select the correct degree 
+% title and so on).
+
+
+\maketitle
+
+% After the title page (which is a special case in that it is not numbered)
+% comes the front matter or preliminaries; this macro signals the start of
+% such content, meaning the pages are numbered with Roman numerals.
+
+\frontmatter
+
+% This macro creates the standard UoB declaration; on the printed hard-copy,
+% this must be physically signed by the author in the space indicated.
+
+\makedecl
+
+% LaTeX automatically generates a table of contents, plus associated lists 
+% of figures, tables and algorithms.  The former is a compulsory part of the
+% dissertation, but if you do not require the latter they can be suppressed
+% by simply commenting out the associated macro.
+
+\tableofcontents
+\listoffigures
+\listoftables
+\listofalgorithms
+\lstlistoflistings
+
+% The following sections are part of the front matter, but are not generated
+% automatically by LaTeX; the use of \chapter* means they are not numbered.
+
+% -----------------------------------------------------------------------------
+
+\chapter*{Abstract}
+LLoyds Banking Group's Commercial Banking division provides lending, transactional banking, working capital management, debt financing and risk management services to businesses.This project, undertaken by a student team in collaboration with Lloyds Banking Group, investigated whether publicly available Companies House records and external information could help identify potential commercial opportunities and risks among existing and prospecting customers. The analysis focused on three priorities identified by Lloyds team namely growth opportunities, deepen existing customer relationships and early indicators relevant to attrition and financial risk. The project therefore investigates whether publicly available data can supply such signals for roughly 1.4 million companies in our target sectors including manufacturing, technology, legal and professional, fast growth and emerging companies without access to any of the bank's internal client data. 
+
+The proposed pipeline begins with structured public records, mainly the UK Companies House register. Information such as company age, legal status, filling behaviour, director changes, size, sector and mortgage changes is converted into company level signals. These are supported by additional information from Companies House application programming interfaces and public contract records from Contracts Finder. Machine learning models then use the signals to give each company a score and create a ranked shortlist. The purpose of the score is not to make an automatic banking decision but to identify companies that may deserve further review.
+
+Each signal can be linked to a possible business need and an appropriate area of Lloyds Commercial Banking. For example, growth or contract activity may suggest a need for lending or working capital support, increasing mortgage charges may indicate financial activity, and insolvency or filling problems may support risk related engagement. News articles and other unstructured information are retrieved only for companies flagged by system. This targeted search provides additional context  and avoids searching across the entire company population, where news coverage is often limited and company name matches can be unreliable.
+
+The research hypothesis is that publicly available company information contains useful and understandable signals that can rank companies for commercial review better than chance and that interpretable models can show which factors are driving each score.
+
+The team developed a reproducible data pipeline, a company level feature matrix and additional signals based on director activity, secured lenders and public contract awards.Logistic regression and gradient-boosted tree model are used as initial modelling comparison with SHAP explanations showing how individual features contributed to company scores.
+
+The project demonstrates how structured public records can be used to generate company signals, rank companies for further review and connect those signals to potentially relevant Lloyds services. Companies that exceed chosen probability threshold or appear among the highest ranked cases are the selected for targeted news and event searches, providing additional context for relationship managers.The framework is intended to support rather than replace human judgement and should not be used as an automated lending, product recommendation or customer treatment system. Further validation should test performance on later unseen periods, compare the identified signals with Lloyds' internal customer outcomes to determine whether they correspond to genuine product needs, relationship deepening opportunities or attrition.
+
+% -----------------------------------------------------------------------------
+
+\chapter*{Supporting Technologies}
+
+{\bf A compulsory section, of at most $1$ page}
+\vspace{1cm} 
+
+\noindent
+This section should present a detailed summary, in bullet point form, 
+of any third-party resources (e.g., hardware and software components) 
+used during the project.  Use of such resources is always perfectly 
+acceptable: the goal of this section is simply to be clear about how
+and where they are used, so that a clear assessment of your work can
+result.  The content can focus on the project topic itself (rather,
+for example, than including ``I used \mbox{\LaTeX} to prepare my 
+dissertation''); an example is as follows:
+
+\begin{quote}
+\noindent
+\begin{itemize}
+
+\item I used the {\em Pandas} and {\em Seaborn} public-domian Python Libraries. 
+
+\item I used a parts of the OpenCV computer vision library to capture 
+      images from a camera, and for various standard operations (e.g., 
+      threshold, edge detection).
+
+\item I used Amazon Web Services for remote storage and processing of data. Specifically, I used:
+ \begin{itemize}
+ \item Simple Storage Service (S3) for data storage
+ \item Elastic Compute Cloud (EC2) for provision of virtual machines
+ \item Elastic Beanstalk for scaling and load management
+ \item Sagemaker for all the machine learning components of my project. 
+ \end{itemize}
+ 
+\item I used \LaTeX\ to format my thesis, via the online service {\em Overleaf}. 
+\end{itemize}
+\end{quote}
+
+% -----------------------------------------------------------------------------
+
+\chapter*{Notation and Acronyms}
+
+{\bf An optional section, of roughly $1$ or $2$ pages}
+\vspace{1cm} 
+
+\noindent
+Any well written document will introduce notation and acronyms before
+their use, {\em even if} they are standard in some way: this ensures 
+any reader can understand the resulting self-contained content.  
+
+Said introduction can exist within the dissertation itself, wherever 
+that is appropriate.  For an acronym, this is typically achieved at 
+the first point of use via ``Advanced Encryption Standard (AES)'' or 
+similar, noting the capitalisation of relevant letters.  However, it 
+can be useful to include an additional, dedicated list at the start 
+of the dissertation; the advantage of doing so is that you cannot 
+mistakenly use an acronym before defining it.  A limited example is 
+as follows:
+
+\begin{quote}
+\noindent
+\begin{tabular}{lcl}
+AES                 &:     & Advanced Encryption Standard                                         \\
+DES                 &:     & Data Encryption Standard                                             \\
+                    &\vdots&                                                                      \\
+${\mathcal H}( x )$ &:     & the Hamming weight of $x$                                            \\
+${\mathbb  F}_q$    &:     & a finite field with $q$ elements                                     \\
+$x_i$               &:     & the $i$-th bit of some binary sequence $x$, st. $x_i \in \{ 0, 1 \}$ \\
+\end{tabular}
+\end{quote}
+
+% -----------------------------------------------------------------------------
+
+\chapter*{Acknowledgements}
+
+{\bf An optional section, of at most $1$ page}
+\vspace{1cm} 
+
+\noindent
+It is common practice (although totally optional) to acknowledge any
+third-party advice, contribution or influence you have found useful
+during your work.  Examples include support from friends or family, 
+the input of your Supervisor and/or Advisor, external organisations 
+or persons who  have supplied resources of some kind (e.g., funding, 
+advice or time), and so on.
+
+\vspace{1cm}
+Dave Cliff writes here to say huge thanks to his colleague Dr Dan Page for sharing this \LaTeX\ thesis template, which was originally written by Dan, for Computer Science dissertations. Dave edited Dan's original to better suit the needs of the Data Science MSc: please don't hassle Dan about any of this, but do feel free to contact Dave if you have any questions or comments on it.  
+
+% =============================================================================
+
+% After the front matter comes a number of chapters; under each chapter,
+% sections, subsections and even subsubsections are permissible.  The
+% pages in this part are numbered with Arabic numerals.  Note that:
+%
+% - A reference point can be marked using \label{XXX}, and then later
+%   referred to via \ref{XXX}; for example Chapter\ref{chap:context}.
+% - The chapters are presented here in one file; this can become hard
+%   to manage.  An alternative is to save the content in seprate files
+%   the use \input{XXX} to import it, which acts like the #include
+%   directive in C.
+
+\mainmatter
+\chapter{Introduction}
+\label{chap:introduction}
+
+Lloyds Banking Group's Commercial Banking division provides lending, transactional banking, working capital management, debt financing and risk management services to businesses \cite{lloyds_products}, operating through Lloyds Banking Group and its family of brands \cite{lbg_brands}. This project, undertaken by a student team in collaboration with Lloyds Banking Group, investigates whether publicly available Companies House records and other external unstructured information can help identify potential commercial opportunities and risks among both existing customers and prospects.The work is organised around three priorities identified by the Lloyds team which includes growth opportunities,deepening existing customer relationships and early indicators relevant to attrition and financial risk.
+
+\section{Problem statement}
+The central question is whether publicly available data can supply useful, company-level signals of future banking need and risk without any access to the bank's internal client data. To make this tractable, we chose to scope the analysis to roughly 1.4 million companies targeting Small and medium-sized enterprises (SMEs) and sectors including manufacturing, legal and professional services and fast-growth and emerging companies. Concretely, we ask whether structured public records can be turned into features, whether a model can use those features to rank companies for further commercial review of the news and articles regarding the flagged companies or companies that shows relative signals and whether the resulting scores can be explained and linked to specific Lloyds services.
+
+\section{Why the topic matters}
+Small and medium-sized enterprises (SMEs) account for the overwhelming majority of UK businesses and employment \cite{beis_bpe}. Yet, they face persistent gaps in access to finance, which makes their banking relationships both commercially valuable and contested \cite{bbb_2024,oecd_2024_sme}. A bank that can predict need earns two advantages: it can approach a prospect before a competitor does, and it can flag a risk to an existing client early enough to act. Both matter because the bank has little visibility of companies it does not serve and because early signs of change frequently appear in public filings before they appear anywhere internal. The project builds on an established idea that public and alternative data carry genuine value for financial outcomes. Corporate failure prediction from public financial signals is long studied \cite{altman_1968} and recent work shows non-traditional, digital signals can predict credit outcomes competitively \cite{berg_etal_2020}. Our contribution is to apply this idea to specific commercial banking framing of growth, deepening existing relationship and attrition, using only free public data and to keep the scores interpretable because a shortlist a bank acts on must be defensible; we explain every model with SHAP \cite{lundberg_lee_2017}. The target users are the division's relationship managers, who gain an evidence-led shortlist with a reason for each entry.
+
+\section{Scope of the wider effort and of this thesis}
+As a team we explored a broad range of free public sources beyond the brief's suggestions, the Companies House register and its APIs \cite{companieshouse_api}, public sector contract awards from Contracts Finder \cite{contractsfinder, ocds}, secured lender identity from Company House Charges API, hiring, property and intellectual property signals, unstructured news and sentiment and a 33 month historical company panel. This pipeline is structured-data-first; structured signals rank and shortlist companies and unstructured media is retrieved only for the companies a signal has already flagged, which keeps an expensive and sparse lookup targeted rather than run across the whole population.
+
+\section{Central Challenges}
+Four challenges which are significant to address.
+\begin{itemize}
+    \item Coverage versus depth : the bulk file covers every company but is shallow, while the APIs are rich but rate-limited, so features must be cheap at population scale and deeper lookups reserved for shortlist and take time for the entire population.
+    \item Choosing what to predict: Companies House only tells us a company's status currently not the date it ran into trouble. This makes it hard to define a clean prediction target and it creates a risk of data leakage because the label and the features come from the same moment; a model accidentally learn from the after effects of failure instead of early warning signs.
+    \item Relationship gap:  Every public signal describes the company, not its banking relationship, so we can rank need but cannot from public data alone , know whose client a company is.
+    \item Reliable linkage: Matching a news item to the correct company is error-prone, a further reason to attempt unstructured enrichment only on a small, already justified shortlist.
+\end{itemize}
+
+\section{Aims, objectives and achievements}
+\begin{itemize}
+\item \textbf{Aim:} Determine whether structured, publicly available company information contains useful and understandable signals that can rank companies for commercial review better than chance and whether interpretable models can show which factors drive each score across the growth, relationship deepening and attrition/risk priorities.
+\item \textbf{Objective 1 - pipeline:} Build a reproducible data pipeline from Companies House register to a documented, company-level feature matrix. \emph{Achieved (Chapter~\ref{chap:execution}).}
+\item \textbf{Objective 2 - signals.} Engineer additional signals from director activity, secured lenders and public contract awards, and map each to a candidate business need and Lloyds service. \emph{Achieved.}
+\item \textbf{Objective 3 - modelling.} Use logistic regression and a gradient-boosted tree model as an initial comparison, with SHAP explanations showing how features contribute to each score.
+\emph{Achieved (Chapter~\ref{chap:evaluation}).}
+\item \textbf{Objective 4 - targeted enrichment and validity.} Design the pipeline so that news and event searches run only for the highest-ranked companies and critically assess validity, including identifying and fixing a data-leakage defect. \emph{Achieved (design and analysis), full unstructured integration and out-of-period validation are future work.}
+\end{itemize}
+
+\noindent
+The framework is intended to support rather than replace human judgement, and should
+not be used as an automated lending, product-recommendation or customer-treatment
+system.
+
+ 
+% -----------------------------------------------------------------------------
+
+\chapter{Background}
+\label{chap:background}
+
+\noindent
+This  chapter provides the technical basis needed to follow the rest of the project.I explains the public data we build on, what corporate insolvency mean and how it has historically been predicted, the models used, how we make the prediction. It is written for a numeric reader who is not a specialist in this particular topic
+
+\section{The problem setting}
+Commercial banking for small and medium sized enterprises (SMEs), turns on anticipating need including a company about to grow, to borrow or to run into difficulty is a commercial opportunity or a risk before it becomes a completed event. A bank sees little about a company it does not already serve and SMEs are finding finance harder and more expensive to get \cite{bbb_2024,oecd_2024_sme}. The idea is simple, public data can act as a stand-in for information the bank does not have and can be used to build a shortlist of companies worth a closer look for the three goals of growth, deepening existing relationships and reducing attrition.
+
+\section{Public data sources}
+\subsection{Companies House}
+Company House is the UK's official register of companies \cite{companieshouse_api}. For every company it holds basic details, an industry code (SIC code), a company status, a filling history(accounts and confirmation statements), the directors and any registered chargers. We use it in two ways, a monthly bulk file that covers every company but holds only limited detail and web API whose officers, filling history and charges give much more detail for a company. A charge or a mortgage is a loan that is secured against the company. The data tells us how many charges a company has, how many are still active and through the API, who the lender us. These fields are the starting point for our signals.
+
+\subsection{Contracts Finder and other sources
+}
+Contracts Finder \cite{contractsfinder} lists public-sector contracts that have been awarded, in a standard format \cite{ocds}. Each award includes the supplier's Company House number, so we can match it to the right company exactly instead of name which is prone to errors. As a team we also looked at other recommended free sources such as job adverts from Adzuna \cite{adzuna_api}, commercial property owners from HM Land Registry \cite{landregistry_ccod}, trade marks from the UK Intellectual Property Office \cite{ukipo_tm}, news from the Guardian \cite{guardian_api}, NewsAPI \cite{newsapi} and GNews \cite{gnews_api} and share price data from Yahoo Finance \cite{yfinance}. 
+
+\section{Company insolvency and how its }
+% -----------------------------------------------------------------------------
+
+\chapter{Execution}
+\label{chap:execution}
+
+{\bf A topic-specific chapter, roughly 30\% of the total page-count}
+\vspace{1cm} 
+
+\noindent
+This chapter is intended to describe what you did: the goal is to explain
+the main activity or activities, of any type, which constituted your work 
+during the project.  The content is highly topic-specific. For some 
+projects it will make sense to split the content into two main sections, or maybe even into two separate chapters: one 
+will discuss the design of something, including any rationale or decisions made, 
+and the other will discuss how this design was realised via some form of 
+implementation.  You could instead give this chapter the title ``Design and Implementation"; or you might split this content into two chapters, one titled ``Design" and the other ``Implementation" .
+
+Note that it is common to include evidence of ``best practice'' project 
+management (e.g., use of version control, choice of programming language 
+and so on).  Rather than simply a rote list, make sure any such content 
+is useful and/or informative in some way: for example, if there was a 
+decision to be made then explain the trade-offs and implications 
+involved.
+
+\section{Background}
+In this section, we will go into great detail, uncovering:
+\begin{itemize}
+    \item How we went from one Companies House snapshot to a 33-month time series
+    \item How every feature family was computed
+    \item How those features turned into targets we could actually predict
+    \item How the modeling pipeline was put together so that swapping the feature matrix or the model would be a one-line fix
+\end{itemize}
+
+To execute this, we relied on open-source libraries and languages: SQL, NumPy, pandas, DuckDB, and scikit-learn.
+
+\section{Creating the single-month pipeline}
+We first attempted to access the Companies House website via its API interface, but soon realised that we had availability of a bulk dataset, which (as mentioned in the introduction) would allow us to overcome API rate limitations. 
+
+Hence, we first extracted the Companies House bulk file June 2026 snapshot and filtered it according to the following logic:
+\begin{itemize}
+    \item We scraped the Standard Industrial Classification (SIC) codes from the official CH website \cite{companieshouse_sic}. From this list we filtered out a sample of sectors we believed would make a good analytical population for the LBG scenario. These are: Technology, Legal \& Professional; Fast growth \& emerging; Manufacturing. The complete SIC filtering procedure is described in Appendix~\ref{app:sic-filtering}.
+    \item We initially decided to include active firms only for ease of analysis
+    \item We consulted the CH official categories of accounts \cite{companieshouse_accounts_2026} and created a size-tier mapping into: Micro, Small, Medium, Large, Dormant, No filings, Subsidiary and Unknown account.
+\end{itemize}
+
+This generated a preliminary result for the month of June of 1,372,318 companies.
+
+We used this initial dataset as a testing ground to experiment on extracting unstructured data with a realistic set of companies. But as of the new system, this dataset was superseded in its newer versions.
+
+\section{Creating the 33-month time series}
+Everything we had before the time series represented one row per company and described a company today. This presented two limitations which justify the evolution of the dataset:
+
+\begin{enumerate}
+    \item The individual month snapshot provided the change metrics, so there was no way to verify evolution from past to present.
+    \item There was nothing to predict. Any model needs a target, and our single-month snapshot had no target in it. This is mainly because we omitted the insolvent firms (which could serve as a signal) but also because we couldn't observe historical data of the company.
+\end{enumerate}
+
+Using the same link from which we extracted the initial bulk dataset, we could access older monthly ZIPs stored on the server and reachable by direct URL. Probing found 33 months from October 2023 to July 2026\footnote{June 2025 does not exist. That is not a failed download, it is a hole on the server, and it dictated a surprising amount of the design further down. Every window in the pipeline had to be made calendar-aware rather than positional, because a positional "go back three rows" would silently step over the hole and return a four-month delta with no error and nothing to notice.}, which we downloaded and stored in ~15 GB of ZIPs.
+
+Other than the time novelty, we collapsed the filtering logic that kept only active firms, and we reintroduced all company status categries:
+
+At this point, we shifted the shape of our table from wide to long.
+
+
+\section{Engineering base deltas and additional signals}
+\section{Building the features and targets for the model}
+
+
+% -----------------------------------------------------------------------------
+
+\chapter{Critical Evaluation}
+\label{chap:evaluation}
+
+{\bf A topic-specific chapter, roughly 30\% of the total page-count} 
+\vspace{1cm} 
+
+\noindent
+This chapter is intended to evaluate what you did.  The content is highly 
+topic-specific, but for many projects will have flavours of the following:
+
+\begin{enumerate}
+\item functional  testing, including analysis and explanation of failure 
+      cases,
+\item behavioural testing, often including analysis of any results that 
+      draw some form of conclusion wrt. the aims and objectives,
+      and
+\item evaluation of options and decisions within the project, and/or a
+      comparison with alternatives.
+\end{enumerate}
+
+\noindent
+This chapter often acts to differentiate project quality: even if the work
+completed is of a high technical quality, critical yet objective evaluation 
+and comparison of the outcomes is crucial.  In essence, the reader wants to
+learn something, so the worst examples amount to simple statements of fact 
+(e.g., ``graph X shows the result is Y''); the best examples are analytical 
+and exploratory (e.g., ``graph X shows the result is Y, which means Z; this 
+contradicts [1], which may be because I use a different assumption'').  As 
+such, both positive {\em and}\/ negative outcomes are valid {\em if} presented 
+in a suitable manner.
+
+\section{The baseline}
+\section{The feature x target x model matrix & The stickit pipeline}
+\section{The 3 model picks}
+\section{Comparison of modelling results}
+
+
+% -----------------------------------------------------------------------------
+
+\chapter{Conclusion}
+\label{chap:conclusion}
+
+{\bf A compulsory chapter,  roughly 10\% of the total page-count}
+\vspace{1cm} 
+
+\noindent
+The concluding chapter(s) of a dissertation are often underutilized because they're 
+too often left too close to the deadline: it is important to allocate enough time and 
+attention to closing off the story, the narrative, of your thesis.
+
+Again, there is no single correct way of closing a thesis. 
+
+One good way of doing this is to have a single chapter consisting of three parts:
+
+\begin{enumerate}
+\item (Re)summarise the main contributions and achievements, in essence
+      summing up the content.
+\item Clearly state the current project status (e.g., ``X is working, Y 
+      is not'') and evaluate what has been achieved with respect to the 
+      initial aims and objectives (e.g., ``I completed aim X outlined 
+      previously, the evidence for this is within Chapter Y'').  There 
+      is no problem including aims which were not completed, but it is 
+      important to evaluate and/or justify why this is the case.
+\item Outline any open problems or future plans.  Rather than treat this
+      only as an exercise in what you {\em could} have done given more 
+      time, try to focus on any unexplored options or interesting outcomes
+      (e.g., ``my experiment for X gave counter-intuitive results, this 
+      could be because Y and would form an interesting area for further 
+      study'' or ``users found feature Z of my software difficult to use,
+      which is obvious in hindsight but not during at design stage; to 
+      resolve this, I could clearly apply the technique of Bloggs {\em et al.}.
+\end{enumerate}
+
+Alternatively, you might want to divide this content into two chapters: a penultimate chapter with a title such as ``Further Work" and then a final chapter ``Conclusions". Again, there is no hard and fast rule, we trust you to make the right decision. 
+
+And this, the final paragraph of this thesis template, is just a bunch of citations, added to show how to generate a BibTeX bibliography. Sources that have been randomly chosen to be cited here include:
+\cite{miller_etal_2018_clojure,webber_marwan_2015,touretzky_2013_lisp,eckmann_etal_1987,marwan_2011,vach_2015,shiller_2017,vytelingum_2006,tesfatsion_2002,rust_etal_1992}.
+
+
+
+
+% =============================================================================
+
+% Finally, after the main matter, the back matter is specified.  This is
+% typically populated with just the bibliography.  LaTeX deals with these
+% in one of two ways, namely
+%
+% - inline, which roughly means the author specifies entries using the 
+%   \bibitem macro and typesets them manually, or
+% - using BiBTeX, which means entries are contained in a separate file
+%   (which is essentially a database) then imported; this is the 
+%   approach used below, with the databased being dissertation.bib.
+%
+% Either way, the each entry has a key (or identifier) which can be used
+% in the main matter to cite it, e.g., \cite{X}, \cite[Chapter 2}{Y}.
+
+\backmatter
+
+\bibliography{bibtex.bib}
+
+% -----------------------------------------------------------------------------
+
+% The dissertation concludes with a set of (optional) appendices; these are 
+% the same as chapters in a sense, but once signalled as being appendices via
+% the associated macro, LaTeX manages them appropriately.
+
+\appendix
+
+\chapter{An Example Appendix}
+\label{appx:example}
+
+Content which is not central to, but may enhance the dissertation can be 
+included in one or more appendices; examples include, but are not limited
+to
+
+\begin{itemize}
+\item lengthy mathematical proofs, numerical or graphical results which 
+      are summarised in the main body,
+\item sample or example calculations, 
+      and
+\item results of user studies or questionnaires.
+\end{itemize}
+
+\noindent
+Note that in line with most research conferences, the examiners are not
+obliged to read such appendices.
+
+\appendix
+
+\chapter{SIC Sector Filtering}
+\label{app:sic-filtering}
+
+This appendix documents the Standard Industrial Classification (SIC)
+filtering procedure used to define the analytical population. The purpose is
+to make the sector selection and classification rules fully reproducible.
+
+\section{Sector definitions}
+
+The final sector classification consisted of three groups:
+
+\begin{enumerate}
+    \item \textbf{Technology, Legal \& Professional}: companies whose SIC
+    classification belongs to either Section J (Information and communication)
+    or Section M (Professional, scientific and technical activities).
+
+    \item \textbf{Manufacturing}: companies whose SIC classification belongs
+    to Section C (Manufacturing).
+
+    \item \textbf{Fast growth \& emerging}: companies with at least one SIC
+    code matching one of the specifically selected SIC codes listed in
+    Section~\ref{app:sic-specific-codes}.
+\end{enumerate}
+
+The classification was applied across all four SIC-code fields available for
+each company. A company was assigned to Fast growth \& emerging if at least
+one of its four SIC codes matched the specified codes. This category takes
+precedence over the broader sector classifications.
+
+\section{Specific SIC codes for Fast growth \& emerging}
+\label{app:sic-specific-codes}
+
+The Fast growth \& emerging category was defined using the following SIC
+codes:
+\begin{table}[!htbp]
+\centering
+\caption{SIC codes used to identify Fast growth \& emerging companies}
+\label{tab:sic-fast-growth}
+
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{1.8cm}
+                                >{\raggedright\arraybackslash}X
+                                >{\raggedright\arraybackslash}p{3cm}}
+\toprule
+\textbf{SIC code} & \textbf{Activity} & \textbf{Grouping} \\
+\midrule
+62011 & Business and domestic software development & Software / IT services \\
+62012 & Business and domestic software development & Software / IT services \\
+62020 & Information technology consultancy activities & Software / IT services \\
+62030 & Computer facilities management activities & Software / IT services \\
+62090 & Other information technology service activities & Software / IT services \\
+63110 & Data processing, hosting and related activities & Data / web \\
+63120 & Web portals & Data / web \\
+72110 & Research and experimental development on biotechnology & Biotech / R\&D \\
+72190 & Other research and experimental development on natural sciences and engineering & Biotech / R\&D \\
+72200 & Research and experimental development on social sciences and humanities & Biotech / R\&D \\
+66190 & Activities auxiliary to financial services, except insurance and pension funding & Fintech-adjacent \\
+\bottomrule
+\end{tabularx}
+
+\end{table}
+
+% =============================================================================
+
+\end{document}
