@@ -1,0 +1,694 @@
+% =============================================================================
+% Lloyds Commercial Banking Intelligence, group report skeleton
+% Built 8 August 2026 from a full read-only crawl of all eight branches.
+% Companion document: drafts/project-chronology-2026-08-08.md
+%
+% HOW TO USE THIS FILE
+%   Every heading below is final enough to write into. Under each one there is a
+%   \note{...} line saying what goes there, and a % comment giving the owner,
+%   the page budget and the artefacts to pull from. Delete each \note as you
+%   replace it with prose. Nothing else needs restructuring.
+%
+% PAGE BUDGET, main matter only (30 pages)
+%   1 Introduction ............  3   (10%)
+%   2 Background .............   6   (20%)
+%   3 Execution ..............   9   (30%)
+%   4 Critical Evaluation ....   9   (30%)
+%   5 Conclusion .............   3   (10%)
+%   Front matter and appendices do not count.
+%
+% OWNERSHIP
+%   Viktor  ch2.3, 2.4, 3.2, 3.4, 3.5, 4.1, 4.3
+%   Sneha   1, 2.1, 2.2, 3.1, 3.3, 3.8, 4.6 
+%   Vishal  3.7, 4.5
+%   Samuel  2.5, 3.6, 4.2, 4.4
+% =============================================================================
+
+\documentclass[    author={Team 5},
+               supervisor={Prof. Fernando Moreno-Pino},
+                   degree={MSc},
+                    title={Mining the Public Record for Commercial Banking Intelligence},
+                 subtitle={Subtitle},
+                     type={},
+                     year={2026}]{dissertation}
+
+% One helper, so the skeleton notes are visibly not prose and can be stripped in
+% one pass at the end (\renewcommand{\note}[1]{} kills them all).
+\newcommand{\note}[1]{\par\noindent\textit{\small [#1]}\par\vspace{2mm}}
+
+\begin{document}
+
+\maketitle
+\frontmatter
+\makedecl
+
+\tableofcontents
+\listoffigures
+\listoftables
+% \listofalgorithms       % we have no numbered algorithms; leave commented
+% \lstlistoflistings      % re-enable only if we float real code listings
+
+% -----------------------------------------------------------------------------
+\chapter*{Abstract}
+% Compulsory, at most 1 page. Owner: TBC, written LAST.
+\note{One page. The problem (Lloyds needs to find BB/SME prospects and risks
+among companies that are not already clients), what we built (a 33-month
+company-month panel over the Companies House register, four self-labelled
+targets, eleven recorded model runs, an explainable ranked shortlist), and what
+we found (the structured record predicts; narrative media does not reach
+companies of this size at all, and the statutory record reaches them only after
+the event). Close with the factual achievement list, in the template's bullet
+form: rows of panel built, features engineered, hours of API harvest, runs
+recorded, lift achieved. State the outcome view explicitly, including that two
+of our headline results are negative and measured.}
+
+% -----------------------------------------------------------------------------
+% \chapter*{Summary of Changes}
+% Conditional, resubmissions only. Not applicable. Leave commented out.
+
+% -----------------------------------------------------------------------------
+\chapter*{Supporting Technologies}
+% Compulsory, at most 1 page. Owner: Viktor, with one bullet each from the others.
+\note{Bullet list only, grouped as below. Keep it about the project, not about
+writing it up. Be explicit about which parts are third-party and where they are
+used, and name the things we deliberately did NOT use.}
+
+\begin{itemize}
+\item \textbf{Data sources (all public, all free).} Companies House bulk company
+      data product and its REST API (companies, officers, filing history,
+      charges); Contracts Finder and Find a Tender OCDS feeds; The Gazette;
+      HM Land Registry Commercial and Corporate Ownership Data; the Intellectual
+      Property Office trade mark register; GLEIF and Wikidata for legal entity
+      identifiers; the Guardian Open Platform, NewsAPI, GNews and GDELT for news;
+      Adzuna for job adverts; \texttt{yfinance} for listed-company financials.
+\item \textbf{Data engineering.} Python, \emph{pandas}, \emph{NumPy},
+      \emph{PyArrow} and Parquet for the panel, \emph{DuckDB} for the SQL over
+      it and for the entity spine.
+\item \textbf{Modelling.} \emph{scikit-learn} (logistic regression, the MLP,
+      calibration and metrics), \emph{LightGBM} (gradient-boosted trees),
+      \emph{SHAP} for per-company attribution, \emph{rapidfuzz} for name
+      resolution.
+\item \textbf{Reporting and delivery.} \emph{Matplotlib} for every figure, a
+      \texttt{src/models/report.py} module that writes figures and tables
+      directly as PDF and \texttt{.tex} for \verb|\includegraphics| and
+      \verb|\input|, and a dependency-free static HTML and vanilla-JavaScript
+      dashboard.
+\item \textbf{Engineering practice.} Git and GitHub with one branch per
+      workstream; a run registry that refuses to overwrite a recorded tag; a
+      feature hash that makes two runs provably comparable.
+\item \textbf{Deliberately not used}, each for a stated reason given in the
+      chapter indicated: Streamlit or any served dashboard (\S\ref{sec:delivery});
+      fuzzy name matching without a location check (\S\ref{sec:namematch});
+      any commercial or paid data source at all.
+\end{itemize}
+
+% -----------------------------------------------------------------------------
+\chapter*{Notation and Acronyms}
+% Optional, 1-2 pages. Owner: TBC. The report uses
+% a lot of domain vocabulary and several terms we defined ourselves.
+\note{Two tables. The first is ordinary acronyms. The second is the vocabulary
+we defined ourselves, which matters more, because a reader who does not know
+what we mean by an ``origin'' or a ``gate'' cannot follow Chapter 4 at all.}
+
+\noindent\textbf{Acronyms.}
+\begin{quote}
+\noindent
+\begin{tabular}{lcl}
+BB      &:& Business Banking, our smallest client tier (under GBP 3m turnover) \\
+SME     &:& Small and Medium Enterprise (GBP 3--25m turnover) \\
+LBG     &:& Lloyds Banking Group \\
+RM      &:& Relationship Manager, the end user of a shortlist \\
+CH      &:& Companies House \\
+SIC     &:& Standard Industrial Classification \\
+OCDS    &:& Open Contracting Data Standard \\
+LEI     &:& Legal Entity Identifier \\
+GLEIF   &:& Global Legal Entity Identifier Foundation \\
+CCOD    &:& Commercial and Corporate Ownership Data (HM Land Registry) \\
+IPO     &:& Intellectual Property Office \\
+SHAP    &:& SHapley Additive exPlanations \\
+MLP     &:& Multi-Layer Perceptron \\
+ROC-AUC &:& area under the receiver operating characteristic curve \\
+PR-AUC  &:& area under the precision--recall curve \\
+P@$N$   &:& precision at $N$, the hit rate in the top $N$ ranked companies \\
+CI      &:& confidence interval \\
+\end{tabular}
+\end{quote}
+
+\noindent\textbf{Terms we use in a specific sense.}
+\begin{quote}
+\noindent
+\begin{tabular}{lcp{0.62\textwidth}}
+snapshot &:& one monthly extract of the Companies House bulk register \\
+panel    &:& the company-month table built from 33 snapshots \\
+origin   &:& the month $t$ a prediction is made from; features come from $t$, labels from $t{+}1$ onwards \\
+horizon $H$ &:& how far forward a label looks, 3, 6 or 12 months depending on target \\
+embargo  &:& the gap between the last training origin and the first test origin, so no label window overlaps training \\
+as-of join &:& a join that admits a record only if it was \emph{visible} at the origin month, not merely dated before it \\
+gate     &:& the visibility rule in an as-of join, written created-lag / satisfied-lag in days \\
+base rate &:& the unconditional proportion of positives for a target in a month \\
+lift     &:& P@$N$ divided by the base rate, i.e.\ how much better than choosing at random \\
+run, tag &:& one recorded execution of the pipeline under a named configuration \\
+\end{tabular}
+\end{quote}
+
+% -----------------------------------------------------------------------------
+\chapter*{Acknowledgements}
+% Optional, at most 1 page.
+\note{Supervisor, the Lloyds contacts who gave us the brief, and the maintainers
+of the public data we relied on entirely. One paragraph is enough.}
+
+% =============================================================================
+\mainmatter
+
+% -----------------------------------------------------------------------------
+\chapter{Introduction}
+\label{chap:introduction}
+% 3 pages. Owner: Sneha.
+
+\section{The problem}
+\note{A commercial bank can only sell to companies it can see. Lloyds sees its
+own book in full and everyone else's hardly at all. The brief asks whether the
+public record can be mined to find, among roughly 5.7M registered UK companies,
+the ones about to need lending, the ones heading for trouble, and the ones about
+to grow, \emph{including companies that do not bank with Lloyds}. State plainly
+that this is a search problem over a very large, very sparse population, not a
+classification problem over a customer base.}
+
+\section{Why it matters, and to whom}
+\note{Three named audiences from the client brief: the Growth team (``not
+ours''), the Attrition team (``ours and leaving''), the Maintenance team
+(``ours and staying''). Say here that those three are defined by
+\emph{counterparty}, not by need, which is why counterparty identity became a
+workstream of its own and why the routing in \S\ref{sec:routing} is the piece
+that turns a ranked list into something a person can act on.}
+
+\section{Central challenges}
+\note{Four that we surmounted and one that we did not, and the fifth is the
+honest one. (i) Scale: 5.7M companies x 33 months is 49.6M rows on a laptop.
+(ii) Time: the register is a photograph of now, so history had to be
+reconstructed from 33 separate snapshots. (iii) Labels: nobody hands you a
+label, so every target is self-labelled from a future state of the same
+register, which makes leakage the central methodological risk. (iv) Identity:
+public sources name companies four different ways and only some of them use the
+company number. (v) \textbf{The signal we expected was not there.} Point
+forward to N1, N2 and N5. Sneha's draft currently reads as though all four
+challenges were surmounted; the fifth needs adding, because it is the finding
+the report is built on.}
+
+\section{Aims, objectives and achievements}
+\note{Bullet list, per the template, and this is the part examiners read first.
+Objective 4 in the current draft says ``full unstructured integration is future
+work''. Rewrite it as \emph{achieved with a negative result}, citing N1 and N5.
+Measuring that a data source does not work is a completed objective, not a
+deferred one, and framing it as deferred gives away the strongest thing we did.
+The achievements list should be factual and countable: 33 snapshots, a
+49.6M-row panel, 41 engineered features across four families, four
+self-labelled targets, 11 recorded model runs across 3 model families, a
+25.4-hour API harvest of 558,693 charges, a 284,230-notice Gazette crawl, a
+leakage defect found and corrected in four passes, and a shortlist running at
+about 150x lift on lending.}
+
+% -----------------------------------------------------------------------------
+\chapter{Background}
+\label{chap:background}
+% 6 pages. Owner: Sneha, Viktor, Sam
+
+\section{Papers: Predicting corporate distress and corporate demand}
+\note{The literature. Altman's Z-score and the ratio-based tradition, and why it
+does not transfer: it assumes audited financial statements, and the companies we
+care about file abbreviated accounts or none. Then the behavioural or
+filing-based alternative (late filings, dormancy, status changes) which is what
+actually works at this size. Also cover demand-side prediction, which is much
+thinner in the literature than distress prediction, and say so, because it is
+part of why lending readiness is the more novel of our four targets. Peer
+reviewed sources, plus one or two from the FT or the Economist on SME credit
+supply for context.}
+
+\section{The modelling background: Gradient boosting, ranking, and explanation}
+\note{Why gradient-boosted trees on tabular data with heavy missingness; why we
+rank rather than classify (a relationship manager works a list, not a decision
+boundary), which makes ROC-AUC and precision@$N$ the right pair of metrics and
+accuracy the wrong one; and SHAP, both what it computes and why we need it, since
+a shortlist without a reason attached to each row cannot be acted on. Keep the
+maths light but present: an examiner should be able to read the SHAP figures.}
+
+\section{TBC Leakage and evaluation under time}
+\label{sec:leakage-bg}
+\note{This section is what makes Chapter 4 legible, and it is worth the space.
+Define look-ahead leakage; define the difference between when a fact
+\emph{happened} and when it \emph{became visible}, which is the distinction our
+whole leakage story turns on; define out-of-time validation and the embargo. If
+the reader understands this section, \S\ref{sec:leak} lands as a contribution
+rather than as an apology.}
+
+% -----------------------------------------------------------------------------
+\chapter{Execution}
+\label{chap:execution}
+% 9 pages, the largest chapter. Owner: Sneha, Viktor, Sam, Vishal
+
+\section{How the project organised itself, and 3 times reorganised}
+\label{sec:orgs}
+\note{Short, one page at most, but do not skip it, because it is the evidence of
+project management the template asks for and it is genuinely informative.
+Split 1 mirrored the client's three teams (Growth, Attrition, Existing
+Relationships) and broke within two weeks, because the three needs are three
+questions asked of one dataset, not three datasets. Split 2 was by data type,
+structured against unstructured, and it held until the unstructured half
+measured its own coverage and found there was nothing there, at which point the
+team re-formed again around the structured core plus a delivery layer. Say
+plainly that both reorganisations were driven by measurement. Footnote the
+dating honestly: no commit records either decision, and the dates are inferred
+from when branches stopped and from what people started next. Table of branches
+and owners; the full record is Appendix~\ref{appx:chronology}.}
+
+\section{Data acquisition and the base dataset}
+
+\note{What Companies House actually is, what a company is obliged to file and
+when, and the single most important property for us: \textbf{the register gives
+you status, not the date trouble began}. A company is Active until it is not.
+That one fact is what forced every target to be defined as an event inside a
+forward window rather than as a state, and it should be stated here so}
+
+\note{The bulk product, 5,698,276 registered companies. The SIC scrape (731
+codes) and the mapping of 325 of them onto three target sectors. The Active
+filter and the size tiering off \texttt{Accounts.AccountCategory}, with the
+regulatory definition of each account category quoted. Result: 1,372,321
+companies. State the join key once and for all here: \texttt{CompanyNumber},
+zero-padded to eight digits. Mention, in one sentence, that this work was
+briefly done twice in parallel and consolidated (Appendix~\ref{appx:chronology}).}
+\note{The pivot from cross-section to panel. Acquiring 33 monthly bulk zips
+(October 2023 to July 2026) against a verified manifest. The two-pass design,
+universe union then per-month extract, and why a naive per-month build mistakes
+sector re-coding for dissolution. 49,556,152 rows over about 2.04M companies.
+The verification that matters: the panel reproduces the single-vintage build
+exactly at June 2026, same row count and same sector counts.
+\textbf{Keep the June 2025 footnote}: that month is genuinely absent from the
+Companies House server, and rather than interpolating we carry an honest NULL
+row through a dense calendar spine. It dictated calendar-aware windows
+everywhere downstream and it comes back as a real limitation in
+\S\ref{sec:limits}.}
+
+\section{Structured Feature engineering: CH + any additional source}
+\note{The four families and why each exists. Level features from the register
+as it stands. Delta features at 3, 6 and 12 months, computed on a dense calendar
+spine rather than a positional lag, so the June 2025 hole yields NULLs instead of
+silently wrong four-month deltas. Filing-behaviour features closing the ``stopped
+filing'' gap. Public contract features. Finish with the feature catalogue and
+the \texttt{feature\_hash}, which is what lets us prove two runs used identical
+inputs. Full catalogue in Appendix~\ref{appx:features}.}
+
+\S\ref{sec:targets} does not have to argue for it from scratch.
+\begin{itemize}
+    \item notebooks/13\_panel\_deltas.ipynb Static features (all companies). Computable directly from the bulk file for every company: company
+age, secured charge counts and a derived debt ratio, accounts-overdue and accounts-stale flags, size tier,
+and previous-name / name-change indicators.
+\item notebooks/14b\_lender\_charges.ipynb Relationship (lender) signals. For companies with outstanding charges, I query the Companies
+House Charges API and read the persons entitled lender names, classifying each as Lloyds-linked
+(Lloyds Bank, Bank of Scotland, Halifax, HBOS, and related brands) or competitor. This turns a public
+charge record into a coarse banking-relationship signal.
+\item notebooks/14\_contracts\_asof.ipynb Contract-activity signals. From the Contracts Finder OCDS feed I aggregate public-sector award
+wins to the company level (contracts won, total and average value), joined on the GB-COH Companies
+House number.
+\item notebooks/06\_director\_changes.ipynb Director and growth-filing signals. From the Officers and Filing History APIs I derive recent director appointments and resignations, and recent share-allotment (SH01) filings as a capital-raise proxy.
+\item attrition\_analysis.ipynb
+\end{itemize}
+
+\subsection{Public procurement, joined as of each month}
+\note{Both OCDS bulk feeds, Contracts Finder and Find a Tender, unioned across
+the Procurement Act 2023 publishing cutover of 24 February 2025. Explain why:
+using either feed alone produces a decay artefact that is purely regulatory and
+would have been read as a real collapse in contract activity. 2,633 cross-source
+duplicate awards found and removed. 173k awards over 44.6k companies, and note
+the scale gap against the earlier API-paged version (2,154 awards over 1,317
+companies), which is a concrete argument for bulk feeds over per-company API
+calls.}
+
+\subsection{Name resolution, and why it is dangerous}
+\label{sec:namematch}
+\note{The suppliers with no company number. Normalised name plus postcode,
+measured at 88\% precision on name alone and 92\% with postcode over about 100k
+labelled records. Two design decisions worth defending: match against the
+\emph{full} register rather than our narrow three-sector universe, because
+matching against the narrow set manufactures false positives; and keep the
+extended set as a separate A/B directory so the strict set stays the default for
+anything a relationship manager sees. Cross-reference Samuel's false-positive
+examples in \S\ref{sec:sources-eval}, since they are the cautionary evidence for
+this whole subsection.}
+
+\subsection{Counterparty identity: the Charges harvest}
+\note{Why lender identity is the axis the client brief is actually defined on.
+The harvest: 158,684 companies, 558,693 charges, 25.4 hours, zero 404s, staged
+and resumable. The ordered regex taxonomy collapsing free-text lender names onto
+institutions, classifying 77.5\% of charge-lender rows, and the honest handling
+of the remaining 22.5\% as a visible ``unclassified'' population rather than a
+silent one. The thirteen lender features. \textbf{The point-in-time gate belongs
+here as a design decision} (a charge is admitted only once it was visible, not
+once it was created); its failure and repair are the story of \S\ref{sec:leak}.
+Also record the \texttt{switching} label: built, 797 positives against a
+pre-registered 1,000-positive stop rule, therefore not trained, and shipped as
+three rule-based feeds instead. Pre-registering a threshold and then honouring
+it when it went against us is worth its own sentence.}
+
+\section{Targets and the leakage-safe split}
+\label{sec:targets}
+\note{The section that makes everything after it credible. Features from origin
+$t$, labels strictly from $t{+}1$ to $t{+}H$. The four targets with horizons and
+base rates: Lending Readiness (3m, 0.25--0.31\%), Credit Risk Exposure (6m,
+0.30--0.41\%), Voluntary Exit (6m, 6.7--8.5\%), Growth Signal (12m,
+2.1--2.2\%). The out-of-time split, the embargo, and \texttt{FIRST\_FULL\_ORIGIN}.
+Negative downsampling at 10:1 with the keep rate carried per row so
+recalibration still works. \textbf{Include both mid-build corrections}, they are
+the most instructive part: distress redefined from ``non-Active'' (90\% of which
+was benign strike-off) to genuine insolvency only, and voluntary exit redefined
+from a state at $t{+}H$ to an event anywhere in the window, roughly doubling the
+base rate, because about half of strike-off proposals are withdrawn but still
+mark a real distress moment.}
+
+\section{The modelling pipeline as software}
+\note{Frame this as reproducibility engineering, not as plumbing.
+\texttt{RunConfig}, the three-family model registry, the recalibration step, and
+a \texttt{record\_run} that refuses to overwrite an existing tag. Staged
+execution via a script rather than a notebook, and the honest reason: the
+machine kept rebooting under long jobs. The \texttt{src/} module map, one line
+each. Point at Appendix~\ref{appx:runs} for the run registry.}
+
+\subsection{Baseline}
+
+\section{Unstructured data}
+\note{Samuel's survey. One short paragraph per source: Contracts Finder and
+Find a Tender, The Gazette, Land Registry CCOD, the IPO trade mark register,
+GLEIF and the LEI system, Adzuna, and the news APIs. \textbf{For each one give a
+single extra sentence saying whether it keys on the company number or on the
+company name.} That one distinction predicts, almost perfectly, which sources
+worked for us and which did not, and setting it up here lets Chapter 4 pay it
+off in a line. Include \texttt{yfinance} and listed-company data here as a
+documented dead end (26 hand-picked listed firms; 0.00\% of our universe holds a
+ticker) rather than giving it a section of its own.}
+
+\subsection{The unstructured attempt I: narrative media}
+\note{viktor-vishal/unstructured-data-lab. Method only; the result is
+\S\ref{sec:unstructured}. The 96-company balanced stress-test grid, four size
+tiers by three sectors by eight, explicitly non-representative so the rare cells
+have a measurable $n$. The API bake-off and why GDELT was dropped early. The
+six levels of query construction from bare name to domain restriction. The
+disambiguation rule: exact phrase plus corroboration on town, sector or context,
+with town mandatory for single common-word names. The positive control design,
+and why a project reporting a zero needs one.}
+
+\subsection{The unstructured attempt II: the statutory record}
+\note{Method only. The Gazette has no company-name search, only category, date
+and postcode, so notices are pulled in bulk and matched back through the company
+number printed in each one. One request per ten seconds, cached per page and
+resumable, about 7.6 hours. 284,230 notices extracted, 274,904 after dropping
+ceremonial noise. The five-stage distress ladder and the 52 company-level
+features. \textbf{Set this section up as the deliberate contrast with the
+previous one}: same goal, same team, opposite coverage profile, and the reason
+is that one source keys on a name and the other keys on a number.}
+
+\subsection{Spine crosswalk}
+\note{This section would cover samuel/spine-crosswalk. we never used this but if we have space we can talk about it}
+
+\section{Dashboard}
+\label{sec:delivery}
+\note{The dashboard, Vishal and Samuel. Precompute-then-serve: one Python build
+pass flattens the widened universe and the Gazette features into a single store,
+and a static page with no framework reads it. Defend the two decisions that look
+like shortcuts and are not: no server, so it survives a demo on someone else's
+laptop; and the store is a \texttt{.js} assignment rather than \texttt{.json}
+because browsers block \texttt{fetch()} on \texttt{file://} URLs. Seven declared
+sources of which one is live, with the other six shown as ``not connected yet''
+rather than as zero, which is an honesty decision worth naming. Screenshots in
+Appendix~\ref{appx:dashboard}.}
+
+\subsection{Routing the shortlist by counterparty}
+\label{sec:routing}
+\note{The piece that connects the model to the brief. The five-way partition of
+the universe by lender relationship (current LBG client 11,003; lapsed 13,421;
+borrowing elsewhere and never ours 64,531; charge held but lender unclassified
+14,653; no charge ever 1,305,676), and the mapping of the first three onto the
+client's Maintenance, Attrition and Growth teams. Keep the unclassified
+population visibly separate rather than folding it in: it is the taxonomy gap
+made honest at company level, and hiding it is the one place the lender
+dictionary's limits could become a client-facing error. Each row carries its top
+three SHAP reasons.}
+
+\section{Engineering practice}
+\note{Feature definitions live in a shared package rather than being re-implemented per notebook, so the training
+matrix matches the exploratory notebooks exactly. Version control uses a branch per workstream, and
+the modelling run records its configuration and metrics so that a re-run is a diff rather than a mystery}
+
+% -----------------------------------------------------------------------------
+\chapter{Critical Evaluation}
+\label{chap:evaluation}
+% 9 pages, the largest chapter. Owner: Sneha, Viktor, Sam, Vishal
+
+\section{Modelling design eval + results}
+
+\subsection{Evaluation design}
+\note{State the rules before the numbers, so no result later looks chosen after
+the fact. Why ranking rather than classification. Why ROC-AUC and precision@$N$
+together, and what each one actually answers: ROC-AUC is a global ranking score
+that survives the negative downsampling, precision@$N$ is what a relationship
+manager experiences. Why per-origin rather than pooled, which \S\ref{sec:errors}
+then justifies with a measurement. What the bootstrap intervals resample.}
+
+\subsection{Model comparison across eleven runs}
+\note{The main results table: 11 runs, 4 targets, 3 model families, every cell
+with an interval. \texttt{\input} the generated table. Read out the headline
+comparisons and, importantly, the non-comparisons: where two runs are
+indistinguishable, say so, rather than reporting the larger number.}
+
+\subsection{Is the sample variable we are predicting balanced? Recall comparison}
+
+\subsection{A leakage defect, found and fixed}
+\label{sec:leak}
+\note{The strongest methodological section in the report, and per the 8 August
+decision it stays a section here rather than becoming its own chapter. Tell it
+in four acts. (i) The lender run returns precision@100 = 1.000 on lending
+against a 0.271\% base rate, while ROC-AUC barely moves; explain why that
+combination is a leakage signature rather than a win, because a genuinely better
+feature set lifts the global ranking and the top of the list together. (ii) The
+cause: the as-of gate admitted a charge on \texttt{created\_on}, but 94.7\% of
+charges are delivered to Companies House after they are created, so the model
+could see a charge the register had not yet recorded, and the register is what
+defines the label. (iii) The obvious fix was not enough: gating on
+\texttt{delivered\_on} removed about half of it. (iv) Calibrating properly showed
+that 18 of the 21 days of the interim margin were the \emph{satisfaction} clock,
+not a visibility lag, so one gate had been widened to pay for a different gate
+being wrong. Include the retraction: the extract-drift hypothesis was
+satisfying, and it was worth 0.11 days of 21, and it ran the opposite way to
+prediction. Also state that the original verification test inherited the bug
+rather than catching it, because it replayed the harvest against the same wrong
+clock, and that a single-month version of the rewritten test would still have
+passed. Figures: the gate progression on lending P@500, the calibration ladder,
+the lag-error plots.}
+
+\subsection{Does counterparty identity help? (N4)}
+\note{The verdict, read off the most conservative gate against the deterministic
+control, and the reasoning that makes it more than a null. The apparent gain
+scales monotonically with how much margin the gate allows, in every model family;
+one model getting greedier is a story about that model, three families moving in
+lockstep is a story about the data. The mechanism sentence the section turns on:
+the lending label is computed from the very register the gate governs, so
+loosening visibility leaks the label directly, whereas insolvency comes from a
+separate register and shows no gradient at all under the same loosening. Two
+targets, opposite behaviour, one mechanism, and we did not design that natural
+experiment. Then the answer with its caveats: at the tightest gate tested, the
+lender features give a boosted model nothing and give the linear model a small
+but real gain, which locates the finding in \emph{encoding} rather than in
+information, because the base feature set already carries mortgage-charge counts.
+Both caveats travel with it: the tightest gate tested is not a gate proved
+clean, and the most impressive precision number the project produced is one we
+are throwing away on purpose.}
+
+\subsection{Sneha doc sections}
+
+\subsection{What our error bars are worth}
+\label{sec:errors}
+\note{Present this as a result, not a footnote, because it is one. Two findings.
+(i) We validated our confidence intervals against a second, independent source of
+variation, refitting under different seeds, and they held for LightGBM and
+logistic and failed for the MLP, where a seed term dominates. In one case two
+non-overlapping intervals were reassuring us about a difference whose sign flips
+across seeds. State the resulting rule: no MLP difference in this project below
+about 0.02 ROC-AUC is interpretable. (ii) The paired bootstrap: comparing two
+runs by separate intervals is the wrong test when both are evaluated on the same
+companies, and resampling once and differencing tightens the lending interval
+about five-fold and moves it from inconclusive to clearly excluding zero.
+(iii) Pooled precision@$N$ is not an average of its months; it lands outside the
+range of the two months it pools in 9 of 12 rows, in both directions, and the
+worst row lands 0.108 below the worse of its own months. So per-origin figures
+are the honest ones, and it is also what a relationship manager receives, one
+month at a time.}
+
+\section{The unstructured result: narrative against statutory (N1, N5)}
+\label{sec:unstructured}
+\note{Vishal and Samuel's headline, and after \S\ref{sec:leak} the sharpest
+section in the report. It needs one voice, not two. The coverage table across
+NewsAPI, Guardian, GNews and GDELT; the raw hit rate of 2.8--6.9\%; the
+verification step; and then 0 of 96 companies and 0 of 83 articles surviving
+disambiguation, with the Tesco control returning 1,209 to prove the plumbing
+works. Name the actual collisions, they are memorable and they make the point
+better than the number does: ``Baroness'' returning Michelle Mone, ``Ncc''
+returning the acronym rather than the company, ``Peco'' returning a Pennsylvania
+utility. \textbf{Include the superseded measurement, attributed}: an earlier run
+(NB08, Vishal) reported 95.8\% coverage, which was a broadcast bug collapsing
+per-company results to a constant per segment-by-sector cell, and NB09 by the
+same author rebuilt the query and superseded it. Say who did which, since the
+individual reports have to be consistent with this one. Then the turn: the Gazette covers 106,664 companies, and only 1,033 of
+them are inside the Active universe, because a company in liquidation is on its
+way out of Active status. Also report, as a method decision rather than a gap,
+the 43\% of notices carrying no company number that were discarded rather than
+name-matched. Close on the synthesis, which is the thesis of the chapter:
+journalism does not reach small companies at all; the statutory record reaches
+them completely but only once something has already gone wrong, which is
+precisely when a bank no longer needs a prediction.}
+
+\section{What the model is worth commercially}
+\note{The shortlists, from the control model with the growth fix, deliberately
+not from a lender run. Per held-out month, with lift: lending 0.43 and 0.41 at
+about 150x, insolvency 0.16 and 0.14 at about 45x, growth 0.22 at about 10x,
+voluntary exit 0.85 and 0.78 at about 10x. \textbf{Instruct the reader to read
+the lift column, not the precision column}, and use voluntary exit as the worked
+example of why: it looks like the best list and is the weakest, because roughly
+one company in twelve exits anyway. State that the four lists are almost
+disjoint, 398 unique companies across 400 rows, and that scores are comparable
+within a target and month but not across targets. Show one company end to end
+with its score and its top three SHAP reasons, because that is the actual
+deliverable.}
+
+\section{What each public source was worth (N2, N3)}
+\label{sec:sources-eval}
+\note{Samuel's evaluation, and the payoff for the keying sentence planted in
+\S2.5. One table: source, what it keys on, coverage of the spine, verdict.
+Land Registry 5.25\% and the widest SME reach we found; trade marks 1.04\%;
+LEI 0.10\%; ticker 0.00\%; Adzuna one advert matched in a thousand.
+\textbf{Report the LEI correction openly and attributed}: Samuel first measured
+9.14\%, traced it to an orphan join counting companies that were never in the
+spine, and corrected it to 0.10\%. Finding an inflated number in your own work
+and correcting it is worth more than the number was, and attributing it is what
+makes the individual reports line up with this one. Same for the name-matching false positives, an Oxford ``Amazon
+Ltd'' credited with AWS contracts and an ``Ace Tax Ltd'' credited with taxi
+work, which are the concrete justification for the postcode requirement in
+\S\ref{sec:namematch}. Finish with N3: 7.2\% of firms lost a bank in the 24
+months before distress against a 5.5\% baseline, so losing a bank describes
+attrition and does not predict it.}
+
+\section{Competitor market intelligence}
+\note{\textbf{TBC, decide by 16 August.} The Charges harvest is a map of UK SME
+secured lending, and this section reads it without a model, a label or a
+precision caveat. Four analyses: the league table by sector and segment (NatWest
+16.4\%, LBG 12.1\%, Barclays 12.0\%, HSBC 11.9\%, so the big four hold about half
+the register and NatWest holds a third more of it than we do); stock against
+flow, to show which lenders are losing ground; the switching-flow matrix between
+banks; and wallet-share concentration on the LBG book. Carry the limits with it:
+secured lending only, 7.8\% of the universe, 22.5\% of lender names
+unclassified, and a charge is a proxy for a banking relationship rather than the
+relationship itself.}
+
+\section{Limitations}
+\label{sec:limits}
+\note{Collect them honestly and do not soften them; this section makes the
+chapter stronger. The June 2025 gap in the source and its real consequence for
+any one-month lag at the July 2025 origin. The growth defect: nine features that
+were 100\% NULL in every training origin and populated in test, so the
+41-feature count was a fiction for that target and it is now a 27-feature model
+that says what it is. Voluntary exit precision@$N$ is partly arbitrary because
+982 of the top 1000 scores are exact ties, so nobody should quote it to three
+digits. MLP seed instability, per \S\ref{sec:errors}. The two-company residual
+that the rewritten verification still fails on the historical lender panel, and
+why it nearly went unnoticed. Four run manifests that record the wrong gate
+value. One misleadingly named feature that stays misleadingly named because
+renaming it would invalidate the comparability of every recorded run. Secured
+lending is only a proxy for a banking relationship. And the population question:
+Active-only caps the Gazette at 1,033 companies, so a statutory-informed model
+would need a wider population than the one we modelled.}
+
+% -----------------------------------------------------------------------------
+\chapter{Conclusion}
+\label{chap:conclusion}
+% 3 pages. Owner: TBC.
+
+\section{Contributions}
+\note{Re-summarise, in the order they matter. A reproducible 33-month panel over
+the whole UK register with a run registry behind it. Four self-labelled targets
+and a ranked, explainable shortlist that routes to the three teams the client
+named. Five measured negatives that most projects would have left unmeasured.
+And a methodological contribution that is genuinely transferable beyond this
+domain: the distinction between when a fact happened and when it became visible,
+and what it costs to get that wrong.}
+
+\section{Status against the aims}
+\note{Objective by objective, with the chapter that evidences each. Say plainly
+what is working and what is not: the structured pipeline is complete and
+verified; the unstructured integration exists as a delivery layer with one of
+seven sources live and a measured reason for the other six; the model scores
+are joined into the dashboard; and the competitor market intelligence is either
+done or explicitly out, per the decision taken on 16 August.}
+
+\section{Further work}
+\note{Focus on the interesting openings rather than on a wish list. The gate
+gradient has not flattened at the tightest margin we tested, so the leak-free
+intercept may be lower still and a tighter rung would settle it. Persist
+held-out prediction vectors per model family, since the verdict rests partly on
+logistic gains we cannot paired-test. Widen the modelling population to include
+Fading and Insolvent companies so the statutory signal can inform the model
+rather than decorate it. And the enrichment loop that we parked: rank the top
+500 per target, enrich all of them, re-run, now that the ranking half costs one
+command and only the API cost per company is unknown.}
+
+% =============================================================================
+\backmatter
+
+\bibliography{report.bib}
+% Owner: Sneha, Viktor, Sam, Vishal
+
+% -----------------------------------------------------------------------------
+\appendix
+% Appendices do not count toward the 30 pages, so anything that is evidence
+% rather than argument belongs here. Examiners are not obliged to read them,
+% which means nothing load-bearing may live here and nothing here may be the
+% only statement of a result.
+
+\chapter{Project chronology by branch}
+\label{appx:chronology}
+\note{The full dated record, from \texttt{drafts/project-chronology-2026-08-08.md}:
+eight branches, every notebook, what it produced, and why it was kept,
+superseded or stopped. Include the abandoned work, the duplicated filtering, the
+attrition branch, the discredited 95.8\% news figure and the listed-company
+notebook that was never executed. This is also where the individual
+contributions are made auditable.}
+
+\chapter{Sector selection and SIC mapping}
+\label{appx:sic}
+\note{The 325 SIC codes mapped onto the three target sectors, the size tiering
+from account category with each regulatory definition, and the resulting
+segment-by-sector counts.}
+
+\chapter{The feature catalogue}
+\label{appx:features}
+\note{All 41 control features and the 13 lender extensions: name, family,
+definition, source, and whether it is level, delta, contract or lender.
+\texttt{\input} the generated catalogue rather than retyping it.}
+
+\chapter{Target definitions in full}
+\label{appx:targets}
+\note{The exact SQL-level definition of each of the four targets plus the
+untrained switching label, the horizons, the origin lists for train and test,
+and the base rate per origin.}
+
+\chapter{Run registry and reproducibility}
+\label{appx:runs}
+\note{Every recorded run with its tag, configuration, feature hash, git SHA and
+full metric table with intervals; and the commands to reproduce any of them.
+Include the four manifests that record the wrong gate value, with the true
+values, so an auditor reading manifests alone is not misled.}
+
+\chapter{The dashboard}
+\label{appx:dashboard}
+\note{Screenshots of the landing page, the watchlist, a company page with the
+model indices filled, and the shortlist explorer with the counterparty routing.
+One short paragraph on how to run it: open the file.}
+
+% =============================================================================
+\end{document}
