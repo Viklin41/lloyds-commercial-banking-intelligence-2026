@@ -214,15 +214,17 @@ about 150x lift on lending.}
 % 6 pages. Owner: Sneha, Viktor, Sam
 
 \section{Papers: Predicting corporate distress and corporate demand}
-\note{The literature. Altman's Z-score and the ratio-based tradition, and why it
-does not transfer: it assumes audited financial statements, and the companies we
-care about file abbreviated accounts or none. Then the behavioural or
-filing-based alternative (late filings, dormancy, status changes) which is what
-actually works at this size. Also cover demand-side prediction, which is much
-thinner in the literature than distress prediction, and say so, because it is
-part of why lending readiness is the more novel of our four targets. Peer
-reviewed sources, plus one or two from the FT or the Economist on SME credit
-supply for context.}
+The classical approach to predicting company failure is built on financial ratios. The best known example is Altman's Z-score \cite{altman_1968}. It is a statistical model that takes a small set of accounting ratios and combines them using weights estimated by discriminant analysis, into a single number the 'Z-score'. That number places a company in a 'safe', 'grey' or 'distress' zone, a low score flags a firm as likely to fail. Because it is simple, interpretable and only needs figures from published accounts, it remains the reference point for corporate distress models. The difficulty is that it assumes those accounts are available and comparable. Small and medium-sized enterprises (SMEs), which make up the bulk of the UK company register are entitled to file abbreviated or 'micro entity' accounts, which only require a balance sheet and a few short notes, not a full profit and loss statement or detailed financial breakdown \cite{companieshouse_accounts_2026}. For these firms the ratios that drive a Z-score are either missing or too coarse to be useful.
+
+a second line of work responds to this gap by turning to non-financial and behavioural information. Altman, Sabato and Wilson \cite{altman_sabato_wilson_2010} show that non-financial signals materially improve SME default prediction over accounts only models and later credit scoring research finds that behavioral and trnsactional data can perform as well as or even better than traditional financial variables \cite{berg_etal_2020}. This motivates our own emphasis on register derived behvaiour such as charges, director changes, filing activity rather than on reported financial data alone.
+
+Almost all of this literature predicts distress which firms will fail. The complementary question which firms are about to need finance and ready to take it on is less studied, even though it is the question a commercial lender most wants answered. This 'demand side' framing is what distinguishes our project from conventional default model.
+
+\section{The main data source : UK public company record
+}
+The backbone of project is the UK public company record maintained by Companies House, which we access in two ways \cite{companieshouse_api}. The first is the bulk product, a snapshot of every company on the register (5,698,276 records at the time of download) conatining static, ready to use fields. The second is the public REST API, which returns richer per company  detail such as officers, filing history, charges but is rate limited. Enriching the full population this way would take more time, so API is applied selectively
+
+The Standard Industrial Classification (SIC) code gives each company an industrial label, which we use for sectorfiltering and grouping \cite{companieshouse_sic}. The accounts category records the type of accounts a firm files and itself is informative, given how many SMEs file abbreviated accounts \cite{companieshouse_accounts_2026}. The mortgage charge counts proxy for secured borrowing and company status records whether a company is active, in liquidation, in adminstration and so on. A practical limitation is that company status is current state, not dated event,os it tells us a firm is insolvent but not when it became so. This becomes important later when we build the labels.
 
 \section{The modelling background: Gradient boosting, ranking, and explanation}
 \note{Why gradient-boosted trees on tabular data with heavy missingness; why we
