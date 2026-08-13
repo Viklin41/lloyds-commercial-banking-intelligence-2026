@@ -1,0 +1,21 @@
+[2:17 PM, 8/5/2026] Vishal: Yo bro, ive built a basic live dashboard, created a new branch and uploaded it to that... do have  a look in your free time and let me know
+[2:19 PM, 8/5/2026] Vishal: just a plain message of what ive done
+
+pushed a load of stuff to a new branch, vishal-samuel/harmonisation. 
+
+To see it:
+git fetch origin
+git switch vishal-samuel/harmonisation
+Then just double click dashboard/index.html.  it opens straight in the browser.
+
+What it is: a working company lookup. Search any company by name or number and you get one page with everything we know about it, including a timeline of every event in date order. It reads a prebuilt file, so no API calls, works offline, and gives the same answer every time.
+
+Only 1 of the 7 source tiles is live right now (the Gazette, 19,097 companies with insolvency notices). The other 6 say "not connected yet" rather than "nothing found", because I didn't want it claiming we'd checked something we hadn't.
+
+If you read one thing, read notebooks/nb11_blueprint.ipynb. It's the plan for how all our pipelines join up, written in plain English. Short version: nobody rewrites anything, we each add a small adapter that turns our existing output into rows in one shared table. Your NB05 schema is what we're building on.
+
+The thing I found that actually matters: none of your data is on my machine and none of mine is on yours. Your duckdb lives in your Colab Drive, Sneha writes to her C: drive, Viktor's parquet is local to him. That's the real integration problem, not the schema. So when you get a chance, could you send me lloyds.duckdb? That one file lights up 4 tiles (contracts, hiring, property, trade marks). -- (THIS IM NOT SURE ABOUT IF I SHOULD TAKE FROM REPO OR JUST ASK EVERYONE TO SEND OUTPUTS???) dont take this para seriously.
+
+Also widened the universe to include companies that aren't Active any more, so it's 1,493,972 now instead of 1,372,321. That's notebooks/build_widened_universe.py, which is your NB01 filter with the Active-only line taken out. I didn't touch your notebook.
+
+One heads up, the Lloyds logo files aren't in the repo because it's public, so your copy will look a bit plain. I'll send them over separately.
