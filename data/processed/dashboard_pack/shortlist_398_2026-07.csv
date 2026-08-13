@@ -1,0 +1,399 @@
+CompanyNumber,targets,best_target,best_rank,best_score,CompanyName,post_town,postcode,sector,segment,lifecycle,CompanyStatus
+07603206,voluntary_exit,voluntary_exit,1,0.924467473259121,ASH15 LTD,SWANLEY VILLAGE,BR8 7PA,Fast growth & emerging,Small,Trading,Active
+14772861,growth,growth,6,0.45433678786091886,ASITE 3D REPO LTD,LONDON,W1J 5JA,Fast growth & emerging,Subsidiary,Trading,Active
+14182255,insolvency,insolvency,44,0.2334527852745441,ATC183 LIMITED,CHELTENHAM,GL51 6EP,"Technology, legal & professional",Micro,Trading,Active
+07296415,insolvency,insolvency,4,0.4452615017524295,CAPITALINVEST HOLDING LTD,LONDON,W1W 5PF,"Technology, legal & professional",Micro,Trading,Active
+03188994,lending,lending,3,0.5318884425107343,CASTLE AIR LIMITED,LISKEARD,PL14 3PX,Manufacturing,Large,Trading,Active
+16389695,voluntary_exit,voluntary_exit,14,0.9161933840127097,CCW CONS LIMITED,MANCHESTER,M40 8WN,Fast growth & emerging,No Filings,Trading,Active
+16389053,voluntary_exit,voluntary_exit,41,0.9161933840127097,DAXIRUSH LTD,LONDON,E6 2JA,Fast growth & emerging,No Filings,Trading,Active
+12686607,growth,growth,85,0.2898295184394195,DE NOVO CONSULTING SERVICES LIMITED,LANGSTONE,NP18 2HJ,Fast growth & emerging,Small,Trading,Active
+16392418,voluntary_exit,voluntary_exit,48,0.9161933840127097,ELEVARE AFRICA LIMITED,LONDON,NW1 6TH,Fast growth & emerging,No Filings,Trading,Active
+10884713,lending,lending,53,0.4007268903783838,ELITE PROPERTIES LIVERPOOL LIMITED,LIVERPOOL,L3 9LQ,"Technology, legal & professional",Small,Trading,Active
+09681748,growth,growth,96,0.28198900097118357,ELIXIR DISTILLERS LTD,LONDON,NW10 7LQ,"Technology, legal & professional",Medium,Trading,Active
+10402530,insolvency,insolvency,12,0.4242173385878755,ELLIS & FARAH LIMITED,GERRARDS CROSS,SL9 7HW,"Technology, legal & professional",Small,Trading,Active
+10158846,insolvency,insolvency,58,0.2053426566257471,EN DASH LIMITED,LEIGHTON BUZZARD,LU7 2SY,Fast growth & emerging,Micro,Trading,Active
+16387942,voluntary_exit,voluntary_exit,88,0.9161933840127097,ENERGY NETWORK TECHNOLOGY LTD,MILTON KEYNES,MK10 7HZ,Fast growth & emerging,No Filings,Trading,Active
+16389126,voluntary_exit,voluntary_exit,33,0.9161933840127097,ENGAGE AND MONETISE LIMITED,SWANSEA,SA7 9LA,Fast growth & emerging,No Filings,Trading,Active
+06841737,growth,growth,4,0.4599158392379402,GOVTECH SOLUTIONS LIMITED,BEDFORD,MK41 7PH,Fast growth & emerging,Small,Trading,Active
+14128047,insolvency,insolvency,42,0.23995785018296178,GOWEB3 LTD,LONDON,EC1R 0NE,Fast growth & emerging,Micro,Trading,Active
+16388839,voluntary_exit,voluntary_exit,74,0.9161933840127097,GPB ANALYSIS LTD,MALMESBURY,SN16 0JT,Fast growth & emerging,No Filings,Trading,Active
+04781357,insolvency,insolvency,85,0.17671390462968312,GRACE PRODUCTIONS LIMITED,HARROW,HA1 1BQ,"Technology, legal & professional",Small,Trading,Active
+SC433541,lending,lending,51,0.4017973608364297,GREEN MARINE (UK) LIMITED,STROMNESS,KW16 3AG,"Technology, legal & professional",Small,Trading,Active
+07046809,insolvency,insolvency,16,0.40310184025097934,GROSVENOR POINT LIMITED,LONDON,N12 0DA,"Technology, legal & professional",Small,Trading,Active
+11602096,insolvency,insolvency,18,0.39725335669235035,JAKE GURR FINANCIAL SERVICES LIMITED,WHITCHURCH,SY13 2LB,"Technology, legal & professional",Micro,Trading,Active
+SC010528,lending,lending,77,0.37656655723051274,JAMES DONALDSON GROUP LTD,GLENROTHES,KY6 2AG,Manufacturing,Large,Trading,Active
+08526604,insolvency,insolvency,63,0.20096178518733188,JAMJAR CONSULTING LIMITED,MEPPERSHALL,SG17 5ST,"Technology, legal & professional",Micro,Trading,Active
+01295221,lending,lending,11,0.48051573289654564,JET2 PLC,"YEADON, LEEDS",LS19 7TU,"Technology, legal & professional",Large,Trading,Active
+16387533,voluntary_exit,voluntary_exit,95,0.9161933840127097,LOUDTECH LIMITED,LONDON,N7 0ND,Fast growth & emerging,No Filings,Trading,Active
+15123075,insolvency,insolvency,52,0.21408814927010072,MILNE PUBLISHING LIMITED,LONDON,E15 1PJ,"Technology, legal & professional",Micro,Trading,Active
+16385534,voluntary_exit,voluntary_exit,65,0.9161933840127097,MK LABS LTD,LONDON,EC1V 2NX,Fast growth & emerging,No Filings,Trading,Active
+14519863,growth,growth,36,0.3437549873669174,RENAISSANCE PHARMA LTD,SURREY,TW20 8RN,Fast growth & emerging,Micro,Trading,Active
+09577543,insolvency,insolvency,88,0.1763433311747713,RGL ASSOCIATES LIMITED,MANCHESTER,M12 6AE,"Technology, legal & professional",Micro,Trading,Active
+16391130,voluntary_exit,voluntary_exit,99,0.9161933840127097,RICHARDSON INTELLIGENT SYSTEMS LTD,REDCAR,TS10 3PT,Fast growth & emerging,No Filings,Trading,Active
+16384510,voluntary_exit,voluntary_exit,8,0.9161933840127097,STANKNETIC LTD,MILDENHALL,IP28 7DE,Fast growth & emerging,No Filings,Trading,Active
+08369329,insolvency,insolvency,28,0.3679226067004264,STARRY1HRCONSULTING LIMITED,SOUTHAMPTON,SO31 6LH,"Technology, legal & professional",Micro,Trading,Active
+10377735,growth,growth,12,0.4114612449914509,STATSBOMB SERVICES LIMITED,LONDON,N1 8LN,Fast growth & emerging,Medium,Trading,Active
+04797346,growth,growth,50,0.3212094351482678,STEELSTRIP SERVICES LIMITED,DUDLEY,DY1 2HA,Manufacturing,Medium,Trading,Active
+08637989,insolvency,insolvency,47,0.22864830030753674,STRATUS ACCOUNTING LIMITED,WINCHESTER,SO23 9SJ,"Technology, legal & professional",Micro,Trading,Active
+11099346,growth,growth,69,0.30420139153105014,TRL SOFTWARE LIMITED,WOKINGHAM,RG41 2QY,Fast growth & emerging,Subsidiary,Trading,Active
+12413758,lending,lending,29,0.4351747276786033,TUPRAS TRADING LTD,LONDON,W1J 5BQ,Manufacturing,Large,Trading,Active
+07753583,growth,growth,84,0.29038711768859843,TWO CIRCLES LIMITED,LONDON,E14 5HU,Fast growth & emerging,Subsidiary,Trading,Active
+14477477,growth,growth,26,0.3664309640418759,APG BRISTOL LIMITED,LONDON,W1H 1EZ,"Technology, legal & professional",Medium,Trading,Active
+13604484,lending,lending,94,0.3596970441213861,APG DIGITAL LIMITED,LONDON,W1U 6HP,Fast growth & emerging,Small,Trading,Active
+14477466,growth,growth,31,0.35631680487676426,APG EXETER LIMITED,LONDON,W1H 1EZ,"Technology, legal & professional",Medium,Trading,Active
+13604507,lending,lending,93,0.3596970441213861,APG TECHNOLOGIES LIMITED,LONDON,W1U 6HP,Fast growth & emerging,Small,Trading,Active
+05357998,growth,growth,8,0.42774901827913603,APLX LTD,LEEDS,LS25 2GH,Fast growth & emerging,Medium,Trading,Active
+09654369,insolvency,insolvency,1,0.47789624452193946,APOIDEA SOLUTIONS LIMITED,HEMEL HEMPSTEAD,HP2 5HL,"Technology, legal & professional",Micro,Trading,Active
+01006739,insolvency,insolvency,82,0.17857035461762294,APPLIED PHOTOPHYSICS LIMITED,LEATHERHEAD,KT22 7BA,Manufacturing,Small,Trading,Active
+16392947,voluntary_exit,voluntary_exit,98,0.9161933840127097,ARDOUSCORP LTD,CROYDON,CR0 4RG,Fast growth & emerging,No Filings,Trading,Active
+16388001,voluntary_exit,voluntary_exit,13,0.9161933840127097,BRIDGADS LTD,"WEST MIDLANDS, ENGLAND",CV2 4AQ,Fast growth & emerging,No Filings,Trading,Active
+13827341,lending,lending,55,0.39683457191754656,BRIDGEPARK CAPITAL LTD,LONDON,NW11 0DE,Fast growth & emerging,Small,Trading,Active
+11635643,insolvency,insolvency,27,0.369779953095269,BRIDGLAND AND BRIDGLAND C/O LIMITED,ASHFORD,TN23 5AA,Fast growth & emerging,Micro,Trading,Active
+15324653,insolvency,insolvency,87,0.17636898099917994,BUDDY MOON LTD,BRENTFORD,TW8 0RF,"Technology, legal & professional",Small,Trading,Active
+11457392,lending,lending,23,0.4422543597389985,CLOCKWISE GROUP LIMITED,LONDON,N22 7DE,"Technology, legal & professional",Large,Trading,Active
+NI648509,lending,lending,48,0.40228915207455285,DRINKSOLOGY LIMITED,BELFAST,BT1 1RB,"Technology, legal & professional",Medium,Trading,Active
+16386302,voluntary_exit,voluntary_exit,32,0.9161933840127097,DROPPSO LTD,LONDON,W1W 7LT,Fast growth & emerging,No Filings,Trading,Active
+03382084,lending,lending,75,0.37798739272337956,DUNBIA (UK),EXETER,EX2 5WS,Manufacturing,Large,Trading,Active
+09281484,insolvency,insolvency,53,0.2133717081094769,FOUNTAIN RIDGE LTD,DUNMOW,CM6 1WN,"Technology, legal & professional",Small,Trading,Active
+16386913,voluntary_exit,voluntary_exit,64,0.9161933840127097,FUNKY CART LTD,BROMSGROVE,B61 0DD,Fast growth & emerging,No Filings,Trading,Active
+16387479,voluntary_exit,voluntary_exit,12,0.9161933840127097,FUNZPAYMENT LTD,"WEST MIDLANDS, ENGLAND",CV2 4AQ,Fast growth & emerging,No Filings,Trading,Active
+16386444,voluntary_exit,voluntary_exit,43,0.9161933840127097,FURYON CONSULTING LTD,LONDON,SE1 9SG,Fast growth & emerging,No Filings,Trading,Active
+02690536,growth,growth,5,0.45974453421916245,FUTURE GARMENTS LIMITED,WARLEY,B66 3DL,Manufacturing,Medium,Trading,Active
+10902333,insolvency,insolvency,99,0.17070413884990918,INFINITE CHIMP LTD,LONDON,SW11 5TB,"Technology, legal & professional",Micro,Trading,Active
+10175585,insolvency,insolvency,59,0.20472499887296186,INFINITY OFFICE LIMITED,BOURNEMOUTH,BH2 6BX,"Technology, legal & professional",Micro,Trading,Active
+07132859,growth,growth,75,0.2992171223914857,INFORM BILLING SOLUTIONS LIMITED,LONDON,EC2R 7HF,Fast growth & emerging,Small,Trading,Active
+02248449,growth,growth,98,0.28147147799838945,INFORMATION AND DATA NETWORKS SUPPLIES LIMITED,BOLTON,BL3 2NT,Fast growth & emerging,Medium,Trading,Active
+07428128,insolvency,insolvency,67,0.19947752081496387,INPHTECH LIMITED,WOKING,GU21 2AX,Fast growth & emerging,Small,Trading,Active
+16440463,growth,growth,93,0.28452570819658923,INTELLISCAPE LIMITED,CHIPPENHAM,SN15 1JW,Fast growth & emerging,No Filings,Trading,Active
+11082181,lending,lending,12,0.47901832391598254,INTERGLOBE ENTERPRISES (UK) LIMITED,ADDLESTONE,KT15 2LE,"Technology, legal & professional",Large,Trading,Active
+03583482,insolvency,insolvency,19,0.3896984409771764,KW PROPERTIES (COBBYDALE) LTD,SHELF,HX3 7PB,"Technology, legal & professional",Micro,Trading,Active
+04227934,lending,lending,27,0.43605815241954327,L & C EUROPE LIMITED,KINGSWINFORD,DY6 7NA,"Technology, legal & professional",Large,Trading,Active
+02196600,lending,lending,50,0.4020117830773694,L.C.P. MANAGEMENT LIMITED,KINGSWINFORD,DY6 7NA,"Technology, legal & professional",Large,Trading,Active
+13257177,lending,lending,71,0.38069655349186593,LA FABRICATIONS (SOUTH EAST) LIMITED,MAIDSTONE,ME15 6JD,Manufacturing,Small,Trading,Active
+SC845423,voluntary_exit,voluntary_exit,2,0.9161933840127097,LADA.AI LTD,HUNTLY,AB54 4SL,Fast growth & emerging,No Filings,Trading,Active
+13813174,insolvency,insolvency,74,0.1880536548908111,LAKESHORE CONSULTING LTD,LONDON,W4 3HY,"Technology, legal & professional",Micro,Trading,Active
+12686388,insolvency,insolvency,81,0.17857268399730578,MORE THAN VENICE LTD,BIRMINGHAM,B27 6LG,Fast growth & emerging,Micro,Fading,Active - Proposal to Strike off
+11769911,growth,growth,48,0.3236900189431865,MORRIS LINE ENGINEERING LIMITED,BRIDGEND,CF31 3EB,Manufacturing,Medium,Trading,Active
+06587174,insolvency,insolvency,96,0.17221278256854525,MOS MANAGEMENT SERVICES LIMITED,CHRISTCHURCH,BH23 4PE,"Technology, legal & professional",Small,Trading,Active
+16389867,voluntary_exit,voluntary_exit,15,0.9161933840127097,MOTECH GROUP LTD,BILLINGHAM,TS22 5TL,Fast growth & emerging,No Filings,Trading,Active
+12723324,lending,lending,1,0.5771819740849737,MS LENDING GROUP LIMITED,MANCHESTER,M3 5FS,Fast growth & emerging,Large,Trading,Active
+11309482,growth,growth,3,0.46588341557731566,PRAESTANTIA TECHNOLOGY LIMITED,REDRUTH,TR15 3PT,Fast growth & emerging,Small,Trading,Active
+01421991,growth,growth,72,0.30242816412752727,PRAYBOURNE LIMITED,BROOMHALL,WR5 2QR,Manufacturing,Medium,Trading,Active
+12020842,insolvency,insolvency,98,0.17109698979767013,PRICE CREATIVE LTD,GUILDFORD,GU2 7PH,"Technology, legal & professional",Micro,Trading,Active
+16385835,voluntary_exit,voluntary_exit,60,0.9161933840127097,PRIVATE AI SYSTEMS LTD,LONDON,N1 7GU,Fast growth & emerging,No Filings,Trading,Active
+16386806,voluntary_exit,voluntary_exit,89,0.9161933840127097,PRIVATE SECURE AI LTD,LONDON,EC2A 4NE,Fast growth & emerging,No Filings,Trading,Active
+12576961,growth,growth,51,0.320973408558588,PRO HEALTH SOLUTIONS LTD,LONDON,N1 7GU,Manufacturing,Micro,Trading,Active
+11641444,lending,lending,86,0.36892013224309245,SHAFTESBURY UK DISTRIBUTION LTD,LONDON,W1U 7EU,"Technology, legal & professional",Small,Trading,Active
+12875094,lending,lending,73,0.3790403440195921,SHAW GIBBS (AUDIT) LIMITED,OXFORD,OX2 7DY,"Technology, legal & professional",Subsidiary,Trading,Active
+16387839,voluntary_exit,voluntary_exit,45,0.9161933840127097,SHENGXING CULTURE MEDIA LTD,MILTON KEYNES,MK10 7HZ,Fast growth & emerging,No Filings,Trading,Active
+16388582,voluntary_exit,voluntary_exit,39,0.9161933840127097,SHEPHERDSTACK LTD,KINGTON,HR5 3DJ,Fast growth & emerging,No Filings,Trading,Active
+14941588,growth,growth,67,0.30486325598681346,SHERBET REWARDS & MOTIVATION TECHNOLOGIES LIMITED,BRACKLEY,NN13 5RN,Fast growth & emerging,Subsidiary,Trading,Active
+10844218,insolvency,insolvency,84,0.17722558330212762,SIAN DAVEY PHOTOGRAPHY LTD,TORQUAY,TQ2 7AQ,"Technology, legal & professional",Small,Trading,Active
+02913195,growth,growth,45,0.327900982942224,SIGMA ASL LIMITED,LEIGH ON SEA,SS9 5PR,"Technology, legal & professional",Medium,Trading,Active
+12066662,insolvency,insolvency,5,0.44375505456188363,SIGPROC LTD,READING,RG30 4YD,Fast growth & emerging,Micro,Trading,Active
+12434583,growth,growth,97,0.28181736014332415,STRUTHERS ENERGY & POWER LIMITED,HULL,HU9 5NP,"Technology, legal & professional",Medium,Trading,Active
+10751467,insolvency,insolvency,66,0.19997756738348807,STUART POND DESIGN LIMITED,MACCLESFIELD,SK11 0HT,"Technology, legal & professional",Micro,Trading,Active
+16384583,voluntary_exit,voluntary_exit,38,0.9161933840127097,STYLESACK UK LIMITED,MANCHESTER,M8 0PT,Fast growth & emerging,No Filings,Trading,Active
+09025988,insolvency,insolvency,34,0.3374927130713032,SUMEK LTD,LONDON,E6 2JA,"Technology, legal & professional",Micro,Trading,Active
+05914384,lending,lending,33,0.4251425504804157,SUNSEEKER INTERNATIONAL (HOLDINGS) LIMITED,POOLE,BH15 1JD,"Technology, legal & professional",Large,Trading,Active
+01688505,lending,lending,74,0.37842156176136227,SUNSEEKER INTERNATIONAL DISTRIBUTION LTD,POOLE,BH15 1JD,Manufacturing,Subsidiary,Trading,Active
+00675320,lending,lending,24,0.438520684224556,SUNSEEKER INTERNATIONAL LIMITED,POOLE,BH15 1JD,Manufacturing,Large,Trading,Active
+05672642,growth,growth,63,0.3076947548013175,VIRTUE TECHNOLOGIES LIMITED,SKELMERSDALE,WN8 9TD,Fast growth & emerging,Medium,Trading,Active
+12800739,lending,lending,26,0.4360999104722269,VMED O2 UK FINANCING I PLC,READING,RG2 6UU,"Technology, legal & professional",Large,Trading,Active
+12923656,insolvency,insolvency,29,0.3662160530819937,ACROSS THE LINE CONSULTING LTD,LONDON,E5 9QP,"Technology, legal & professional",Micro,Trading,Active
+11739663,growth,growth,33,0.35415335465264175,ADHD360 LIMITED,HALESOWEN,B63 4AH,Fast growth & emerging,Medium,Trading,Active
+07284911,growth,growth,1,0.513886986764728,ADVANCED INSTRUMENTS LTD.,LONDON,EC4M 9AF,Manufacturing,Medium,Trading,Active
+16384741,voluntary_exit,voluntary_exit,16,0.9161933840127097,ATMOS SUPPLY LIMITED,LANCASTER,LA1 4PF,Fast growth & emerging,No Filings,Trading,Active
+10990842,insolvency,insolvency,6,0.44247792651704715,ATS WEB DEVELOPMENT LTD,LONDON,SE10 9PR,"Technology, legal & professional",Micro,Trading,Active
+16389178,voluntary_exit,voluntary_exit,35,0.9161933840127097,AURORA TELEPATHY LIMITED,ST HELENS,WA10 4NN,Fast growth & emerging,No Filings,Trading,Active
+09384597,lending,lending,47,0.4028815787838686,AUTOMATA TECHNOLOGIES LIMITED,LONDON,EC4M 7AN,"Technology, legal & professional",Large,Trading,Active
+08174072,growth,growth,57,0.31320497427132593,CHAMBURY CONSULTING LTD,BRIGHTON,BN1 1UF,Fast growth & emerging,Small,Trading,Active
+15774674,insolvency,insolvency,55,0.2086295037067191,CHARGING AHEAD LIMITED,PERRANPORTH,TR6 0FL,"Technology, legal & professional",Micro,Trading,Active
+11487443,insolvency,insolvency,14,0.41718793823512973,CHC COACHING LTD,RUISLIP,HA4 7AE,"Technology, legal & professional",Small,Trading,Active
+16392622,voluntary_exit,voluntary_exit,100,0.9161933840127097,CHICOSA LIMITED,MANCHESTER,M8 0PT,Fast growth & emerging,No Filings,Trading,Active
+07814100,growth,growth,46,0.3269565538836746,CHORUS INTELLIGENCE LIMITED,WOODBRIDGE,IP12 4AL,Fast growth & emerging,Small,Trading,Active
+10138909,lending,lending,49,0.4020173121343364,EDINBURGH ST JAMES (GP) LIMITED,LONDON,W12 7SL,"Technology, legal & professional",Large,Trading,Active
+15371580,growth,growth,76,0.29818800706999044,EKORN TECH LTD,MILTON PARK,OX14 4SB,Fast growth & emerging,Micro,Trading,Active
+09817636,lending,lending,62,0.39014430209341355,GALILEO GLOBAL TECHNOLOGIES LTD,WHITELEY,PO15 7AD,Manufacturing,Large,Trading,Active
+16386990,voluntary_exit,voluntary_exit,69,0.9161933840127097,GC & C GROUP LIMITED,BRISTOL,BS10 7ER,Fast growth & emerging,No Filings,Trading,Active
+09064144,insolvency,insolvency,92,0.1750084006171566,GC DYNAMICS LTD,BOURNEMOUTH,BH7 6HZ,Manufacturing,Micro,Trading,Active
+16391460,voluntary_exit,voluntary_exit,96,0.9161933840127097,GEWU LTD,LONDON,WC2H 9JQ,Fast growth & emerging,No Filings,Trading,Active
+08436329,growth,growth,90,0.28592747782241734,ICKLE BUBBA LIMITED,SWANSEA,SA7 9FJ,Manufacturing,Medium,Trading,Active
+11346801,growth,growth,13,0.4098790113641689,ICS.AI LTD,BASINGSTOKE,RG24 8AG,"Technology, legal & professional",Small,Trading,Active
+08092834,growth,growth,20,0.39005960176672494,ICT4 LIMITED,REDRUTH,TR15 3PT,Fast growth & emerging,Small,Trading,Active
+08563469,lending,lending,43,0.40681658128451764,IMAGINATIVE PROPERTY GROUP LIMITED,CARDIFF,CF10 4LN,"Technology, legal & professional",Small,Trading,Active
+07568924,growth,growth,82,0.29042672196122765,IN THE ZONE LEYLAND LTD,LEYLAND,PR25 2YJ,"Technology, legal & professional",Micro,Trading,Active
+10388935,growth,growth,79,0.2936766918886452,INCIPER LIMITED,LONDON,EC2M 2PF,Fast growth & emerging,Subsidiary,Trading,Active
+06264478,insolvency,insolvency,75,0.18742606925195335,M PHILLIPS CONSULTANTS LTD,BISHOP'S STORTFORD,CM22 7WE,Fast growth & emerging,Small,Trading,Active
+06901841,growth,growth,55,0.3164134097732371,MA COST CONSULTING LIMITED,MILTON KEYNES,MK5 8FR,"Technology, legal & professional",Medium,Trading,Active
+16389331,voluntary_exit,voluntary_exit,6,0.9161933840127097,MAAL ACADEMY LTD,KINGTON,HR5 3DJ,Fast growth & emerging,No Filings,Trading,Active
+16386374,voluntary_exit,voluntary_exit,82,0.9161933840127097,NAZBEE GROUP LIMITED,LONDON,E13 9PS,Fast growth & emerging,No Filings,Trading,Active
+16386983,voluntary_exit,voluntary_exit,49,0.9161933840127097,NEPTUNE PULSE LTD,SOUTHAMPTON,SO14 0BH,Fast growth & emerging,No Filings,Trading,Active
+16390029,voluntary_exit,voluntary_exit,30,0.9161933840127097,NESTABLE TECHNOLOGIES LIMITED,CAMBERLEY,GU15 1HD,Fast growth & emerging,No Filings,Trading,Active
+SC845100,voluntary_exit,voluntary_exit,70,0.9161933840127097,NEXDUNE LIMITED,EDINBURGH,EH2 3ES,Fast growth & emerging,No Filings,Trading,Active
+11468874,lending,lending,60,0.3914706292202903,PGMBM LTD,LONDON,WC2A 1QS,"Technology, legal & professional",Large,Trading,Active
+07272851,insolvency,insolvency,100,0.17042134983706167,PHAYS LTD,PENISTONE,S36 7EX,"Technology, legal & professional",Micro,Trading,Active
+08853263,growth|lending,lending,81,0.37354206418080077,SCHULTZ MEDICAL (UK) LTD,SOUTHPORT,PR9 7RL,Manufacturing,Small,Trading,Active
+16384548,voluntary_exit,voluntary_exit,93,0.9161933840127097,SDP DIGITAL LTD,LONDON,EC1V 2NX,Fast growth & emerging,No Filings,Trading,Active
+16390236,voluntary_exit,voluntary_exit,75,0.9161933840127097,SERVPULSE LTD,LONDON,E2 9HB,Fast growth & emerging,No Filings,Trading,Active
+02878530,growth,growth,94,0.2844069624971924,SWIFT DENTAL LABORATORY LIMITED,BOLTON,BL2 1HQ,Manufacturing,Medium,Trading,Active
+03094287,lending,lending,5,0.5248619544660396,T M TRUSTEES LIMITED,SALISBURY,SP1 2BP,Fast growth & emerging,Dormant,Trading,Active
+16385546,voluntary_exit,voluntary_exit,47,0.9161933840127097,TADWALA LIMITED,BIRMINGHAM,B33 0YL,Fast growth & emerging,No Filings,Trading,Active
+05840856,lending,lending,84,0.37181878989758915,TALKTALK BRANDS LIMITED,SALFORD,M5 3TT,"Technology, legal & professional",Subsidiary,Trading,Active
+16385638,voluntary_exit,voluntary_exit,62,0.9161933840127097,TAMAI TECHNOLOGIES LTD,MILTON KEYNES,MK4 4GG,Fast growth & emerging,No Filings,Trading,Active
+10198306,insolvency,insolvency,97,0.17145208609710164,VATAX ACCOUNTANCY SERVICES LTD,RUSHDEN,NN10 0QU,"Technology, legal & professional",Micro,Trading,Active
+02091108,growth,growth,37,0.3384440684145962,VELOCITI SOLUTIONS LIMITED,BROMSGROVE,B60 4BD,Fast growth & emerging,Medium,Trading,Active
+16392789,voluntary_exit,voluntary_exit,22,0.9161933840127097,VERICHAINX TECH LTD,BIRMINGHAM,B29 6AH,Fast growth & emerging,No Filings,Trading,Active
+15084559,growth,growth,68,0.3044841433520882,VICTORY CONVERSIONS LIMITED,HULL,HU1 2BN,Manufacturing,Small,Trading,Active
+03707664,lending,lending,88,0.3681867461376279,VIRGIN MOBILE TELECOMS LIMITED,READING,RG2 6UU,"Technology, legal & professional",Large,Trading,Active
+08587686,lending,lending,54,0.39796344673496054,AFINITI EUROPE TECHNOLOGIES LIMITED,SALFORD,M3 5GS,Fast growth & emerging,Large,Trading,Active
+03295323,growth,growth,64,0.3072999504919584,AGENDA RESOURCE MANAGEMENT LIMITED,HULL,HU2 8BA,"Technology, legal & professional",Medium,Trading,Active
+12068803,growth,growth,41,0.32951929058083246,AIRBASE UK INTERIORS LTD,CRAWLEY,RH10 9AG,Manufacturing,Subsidiary,Trading,Active
+08954533,insolvency,insolvency,79,0.17911953327699742,AJM FINANCIAL SERVICES LONDON LTD,LONDON,W8 5LH,"Technology, legal & professional",Small,Trading,Active
+16391017,voluntary_exit,voluntary_exit,80,0.9161933840127097,BUZZFINCHTECH LTD,BASILDON,SS15 5LS,Fast growth & emerging,No Filings,Trading,Active
+01413300,growth,growth,47,0.32676856396194215,CAMSTAR HERBS LIMITED,EYE,IP23 7HL,Manufacturing,Medium,Trading,Active
+06581977,lending,lending,68,0.3832249511595837,ENHANCED MUSIC LIMITED,LONDON,EC1R 4QX,Manufacturing,Small,Trading,Active
+NI654416,insolvency,insolvency,9,0.43139157172194076,ESTHER WOMEN LIMITED,NEWRY,BT34 3DE,Fast growth & emerging,Micro,Trading,Active
+16983519,insolvency,insolvency,83,0.17800294935151037,EUROVIEW AG LTD,WITHAM,CM8 3UN,Manufacturing,No Filings,Trading,Active
+16389363,voluntary_exit,voluntary_exit,57,0.9161933840127097,HOSTIMATIC LTD,LONDON,EC1V 2NX,Fast growth & emerging,No Filings,Trading,Active
+04181698,insolvency,insolvency,40,0.25902242230249767,HOWEFAB LTD,PRESTON,PR3 0RX,Manufacturing,Micro,Trading,Active
+08302799,insolvency,insolvency,60,0.20267051068304193,HUMBERSIDE BLOCKS (2012) LIMITED,DEWSBURY,WF12 9HY,Manufacturing,Small,Trading,Active
+11596665,insolvency,insolvency,7,0.44236970429914846,HUNT CONTRACTING SERVICES LTD,HEMEL HEMPSTEAD,HP2 5HL,Fast growth & emerging,Micro,Trading,Active
+15222781,lending,lending,83,0.37249304579023684,HXCUK SPV1 LTD,CHESTER,CH4 9QH,"Technology, legal & professional",Dormant,Trading,Active
+16386776,voluntary_exit,voluntary_exit,56,0.9161933840127097,HYPERRING ALLIANCE LTD,TWICKENHAM,TW1 2HE,Fast growth & emerging,No Filings,Trading,Active
+09765349,insolvency,insolvency,76,0.18685856096418024,MAKROSOFT LIMITED,WOKINGHAM,RG41 5HU,Fast growth & emerging,Micro,Trading,Active
+15368163,growth,growth,99,0.2809799744535375,MAN PRODUCTIONS LIMITED,LONDON,WC1V 7AA,"Technology, legal & professional",Micro,Trading,Active
+10630540,lending,lending,76,0.37691827885575485,MARTIN AND COMPANY AUDIT LIMITED,WINCHESTER,SO23 9HJ,"Technology, legal & professional",Small,Trading,Active
+10086511,lending,lending,72,0.3791883053582316,ORIGIN COMMUNICATIONS LIMITED,SALFORD,M5 3TT,"Technology, legal & professional",Subsidiary,Trading,Active
+08446340,lending,lending,99,0.3580593573982998,OSTEREO LIMITED,MANCHESTER,M2 3HZ,"Technology, legal & professional",Small,Trading,Active
+16390605,voluntary_exit,voluntary_exit,36,0.9161933840127097,PROTECH INSIGHTS LTD,LONDON,EC2N 1HN,Fast growth & emerging,No Filings,Trading,Active
+01581476,lending,lending,4,0.525672472227238,PROUDREED LIMITED,KINGSWINFORD,DY6 7NA,"Technology, legal & professional",Large,Trading,Active
+12617660,lending,lending,100,0.35563434443214603,PUBX AI LTD,CHIPPING CAMPDEN,GL55 6JT,Fast growth & emerging,Small,Trading,Active
+16389516,voluntary_exit,voluntary_exit,61,0.9161933840127097,PUREPLAYERS AGENCY LTD,LONDON,E14 9NN,Fast growth & emerging,No Filings,Trading,Active
+14064420,growth,growth,34,0.352887250740077,Q CHISHTI PROPERTIES LIMITED,LUTON,LU1 5FS,Fast growth & emerging,Small,Trading,Active
+15993216,growth,growth,61,0.30844817768311794,SAGE MEDIEQUIP LIMITED,SOUTHALL,UB1 1SQ,Manufacturing,Micro,Trading,Active
+10170660,insolvency,insolvency,93,0.17494660299174056,SAHASRA FUSION TECHNOLOGIES LIMITED,SWINDON,SN5 4FY,Fast growth & emerging,Micro,Trading,Active
+16389746,voluntary_exit,voluntary_exit,25,0.9161933840127097,SAHITHI LIMITED,LUTON,LU2 7AJ,Fast growth & emerging,No Filings,Trading,Active
+09037573,insolvency,insolvency,50,0.21606964502147707,SAI TECH PVT. LTD,SLOUGH,SL2 1HQ,Fast growth & emerging,Small,Trading,Active
+16391425,voluntary_exit,voluntary_exit,21,0.9161933840127097,SAIRUS LTD,LONDON,W6 9SJ,Fast growth & emerging,No Filings,Trading,Active
+12018992,insolvency,insolvency,61,0.20243008327456896,SAMUEL E LEWIS LTD,READING,RG10 9QY,"Technology, legal & professional",Micro,Trading,Active
+16388817,voluntary_exit,voluntary_exit,40,0.9161933840127097,SANIA DIGITAL SERVICES LTD,MANCHESTER,M30 7BY,Fast growth & emerging,No Filings,Trading,Active
+09642494,insolvency,insolvency,51,0.21566712722013703,SASHA BALLA PHOTOGRAPHY LTD.,UPMINSTER,RM14 1AT,"Technology, legal & professional",Small,Trading,Active
+06714614,growth,growth,95,0.2823182677553986,SAVVY IT LIMITED,MANCHESTER,M3 2HW,Fast growth & emerging,Micro,Trading,Active
+12045967,insolvency,insolvency,39,0.27284778634790124,SB CONSULTING SOLUTIONS LIMITED,DIDCOT,OX11 7RF,"Technology, legal & professional",Micro,Trading,Active
+16387660,voluntary_exit,voluntary_exit,79,0.9161933840127097,SBUSSHOP LTD,LONDON,E1 0SG,Fast growth & emerging,No Filings,Trading,Active
+16390439,voluntary_exit,voluntary_exit,83,0.9161933840127097,SCALING EDGE AI LTD,LONDON,E16 4QB,Fast growth & emerging,No Filings,Trading,Active
+08281645,lending,lending,91,0.3669474420404784,TETRA REAL ESTATE LIMITED,STOCKTON,CV47 8LB,"Technology, legal & professional",Small,Trading,Active
+04171318,growth,growth,53,0.3188583619100538,TGC INTERNATIONAL LIMITED,ROCHESTER,ME1 3QR,Manufacturing,Medium,Trading,Active
+02465785,growth,growth,71,0.30297258656097215,THE BRECKS COMPANY LIMITED,BUBWITH,YO8 6DJ,Manufacturing,Medium,Trading,Active
+10828250,insolvency,insolvency,45,0.23183290373372098,ZAMEG STUDIOS LTD,BIRMINGHAM,B17 8BU,Manufacturing,Micro,Trading,Active
+08294659,growth,growth,21,0.37977519046903574,ZESTY LIMITED,LONDON,WC2A 3TH,Fast growth & emerging,Subsidiary,Trading,Active
+16387843,voluntary_exit,voluntary_exit,44,0.9161933840127097,ZINATITECH LTD,LONDON,NW11 7NP,Fast growth & emerging,No Filings,Trading,Active
+16386849,voluntary_exit,voluntary_exit,66,0.9161933840127097,ALINAPARKERRVLT LTD,MANCHESTER,M30 7BY,Fast growth & emerging,No Filings,Trading,Active
+11636665,insolvency,insolvency,10,0.43139157172194076,ALPHA EDGE LTD,TRING,HP23 5EF,Fast growth & emerging,Micro,Trading,Active
+15147181,insolvency,insolvency,57,0.2062292299244617,BEDRE AND BEDRE LIMITED,UXBRIDGE,UB11 1FE,"Technology, legal & professional",Micro,Trading,Active
+16385441,voluntary_exit,voluntary_exit,37,0.9161933840127097,BEKZAT TECH LTD,EAST HAM,E6 2JA,Fast growth & emerging,No Filings,Trading,Active
+16384481,voluntary_exit,voluntary_exit,27,0.9161933840127097,BEYONDTHEORY TECHNOLOGIES LTD,LEEDS,LS6 2LN,Fast growth & emerging,No Filings,Trading,Active
+07652159,growth,growth,25,0.36670129115362293,CUMMING MANAGEMENT GROUP UK LTD,LONDON,SE1 3LY,"Technology, legal & professional",Medium,Trading,Active
+16385366,voluntary_exit,voluntary_exit,84,0.9161933840127097,CVMASTERMIND LIMITED,SHEFFIELD,S4 7WW,Fast growth & emerging,No Filings,Trading,Active
+16391165,voluntary_exit,voluntary_exit,68,0.9161933840127097,DADI ANALYTICS LTD,KINGTON,HR5 3DJ,Fast growth & emerging,No Filings,Trading,Active
+00941798,growth,growth,43,0.32921280141047615,DALE POWER SOLUTIONS LIMITED,SCARBOROUGH,YO11 3DU,Manufacturing,Medium,Trading,Active
+12153459,insolvency,insolvency,15,0.40513437235621746,DANDOESLIGHTS LTD,HEMEL HEMPSTEAD,HP2 5HL,"Technology, legal & professional",Micro,Trading,Active
+13361850,insolvency,insolvency,41,0.2486267095338011,FLEXSEA LTD,LONDON,EC2A 4NE,Manufacturing,Small,Trading,Active
+07749953,growth,growth,44,0.32875261447849896,FLOTECH PERFORMANCE SYSTEMS LTD,HARROGATE,HG1 1HQ,Manufacturing,Subsidiary,Trading,Active
+09735009,growth,growth,14,0.4055246086541109,FLYFORM LTD,CARDIFF,CF11 9LJ,Fast growth & emerging,Medium,Trading,Active
+16391550,voluntary_exit,voluntary_exit,76,0.9161933840127097,FORRUNNER LTD,CROYDON,CR0 4GB,Fast growth & emerging,No Filings,Trading,Active
+16385728,voluntary_exit,voluntary_exit,11,0.9161933840127097,HALIFAX RECRUITMENT LTD,HALIFAX,HX1 5PG,Fast growth & emerging,No Filings,Trading,Active
+07510381,growth,growth,70,0.3031237234604187,KERV DIGITAL LIMITED,LONDON,EC2M 2PF,Fast growth & emerging,Subsidiary,Trading,Active
+16384388,voluntary_exit,voluntary_exit,42,0.9161933840127097,KEYSSETECH LTD,LONDON,E11 1JD,Fast growth & emerging,No Filings,Trading,Active
+07263317,insolvency,insolvency,95,0.172810073087695,KHAN CONSULTING LTD,MANCHESTER,M8 8LG,"Technology, legal & professional",Small,Trading,Active
+08397116,insolvency,insolvency,90,0.1756556471358713,MASTER-CLOUD LTD.,MANCHESTER,M40 8WN,"Technology, legal & professional",Micro,Trading,Active
+03113620,growth,growth,83,0.2904257630729886,MAYCAST-NOKES PRECISION ENGINEERING LTD,ESSEX,CO9 1EX,Manufacturing,Medium,Trading,Active
+09609828,insolvency,insolvency,13,0.4183750593916329,MBA TRAINING AND CONSULTANCY LIMITED,CODDENHAM,IP6 9PS,"Technology, legal & professional",Small,Trading,Active
+09668542,growth,growth,30,0.3625551768417824,OLIVE JAR DIGITAL LTD,LONDON,W1B 5AW,Fast growth & emerging,Small,Trading,Active
+16390539,voluntary_exit,voluntary_exit,97,0.9161933840127097,ORBINEX VAULT LTD,LONDON,E5 0TA,Fast growth & emerging,No Filings,Trading,Active
+05590174,lending,lending,98,0.3581826067056903,RED PLANET PICTURES LIMITED,LONDON,WC1X 0BJ,"Technology, legal & professional",Large,Trading,Active
+16392057,voluntary_exit,voluntary_exit,94,0.9161933840127097,SK NEXUS LTD,LONDON,SE16 7TA,Fast growth & emerging,No Filings,Trading,Active
+11253470,growth,growth,17,0.39742630056183526,SKEWB LTD,WARWICK,CV34 5AH,Fast growth & emerging,Medium,Trading,Active
+02178783,lending,lending,13,0.4750456307395876,TOWER PENSION TRUSTEES LIMITED,SALISBURY,SP1 2BP,Fast growth & emerging,Dormant,Trading,Active
+05728557,growth,growth,2,0.4900871788163192,WATTS GROUP LIMITED,LONDON,EC3N 4TH,"Technology, legal & professional",Medium,Trading,Active
+12944003,growth,growth,60,0.30990497456681876,WBR GROUP LIMITED,LEICESTER,LE19 1RP,"Technology, legal & professional",Medium,Trading,Active
+12783424,lending,lending,69,0.38302081305600133,WBR TRUSTEES LIMITED,LEICESTER,LE19 1RP,"Technology, legal & professional",Dormant,Trading,Active
+09520069,insolvency,insolvency,43,0.23591175666332748,WEBSNIPS LTD,LONDON,NW10 5DZ,Fast growth & emerging,Micro,Trading,Active
+11844897,lending,lending,96,0.3594305668577707,WEDO BUSINESS FINANCE LTD,OLDHAM,OL9 7FQ,"Technology, legal & professional",Large,Trading,Active
+13963121,lending,lending,42,0.4072618491705129,WESTWOOD CAPITAL FINANCE LIMITED,BRIDLINGTON,YO16 4LZ,"Technology, legal & professional",Small,Trading,Active
+11691487,lending,lending,31,0.4277911374656856,A.S.K. PARTNERS AGENT LIMITED,LONDON,W1G 9QU,Fast growth & emerging,Small,Trading,Active
+10419810,lending,lending,10,0.4895216483755207,A.S.K. PARTNERS LIMITED,LONDON,W1G 9QU,Fast growth & emerging,Large,Trading,Active
+14505959,growth,growth,77,0.29812469520179274,ABERGAVENNY FOOD AND WINES LTD,ABERGAVENNY,NP7 7EY,Manufacturing,Micro,Trading,Active
+13500563,insolvency,insolvency,48,0.22506115757669354,BLACKCAT NETWORKS LTD,HEMEL HEMPSTEAD,HP2 5HL,Fast growth & emerging,Micro,Trading,Active
+16392147,voluntary_exit,voluntary_exit,86,0.9161933840127097,BLUE FABRIC LTD,STRATFORD-UPON-AVON,CV37 7LP,Fast growth & emerging,No Filings,Trading,Active
+16387765,voluntary_exit,voluntary_exit,5,0.9161933840127097,DHANU IT SOLUTIONS LTD,WOLVERHAMPTON,WV6 0SR,Fast growth & emerging,No Filings,Trading,Active
+08905651,lending,lending,70,0.38195757764243216,DICE FM HOLDINGS LTD,LONDON,N1 4EN,Fast growth & emerging,Large,Trading,Active
+14373641,growth,growth,65,0.3072428793896398,DICE FM UK LTD,LONDON,N1 4EN,Fast growth & emerging,Subsidiary,Trading,Active
+SC845366,voluntary_exit,voluntary_exit,10,0.9161933840127097,DIGIFINITY LTD,EDINBURGH,EH2 4AN,Fast growth & emerging,No Filings,Trading,Active
+11805908,growth,growth,49,0.32222901690622296,DIGITAL QUOTIENT SOLUTIONS LTD,LONDON,EC1V 2NX,Fast growth & emerging,Micro,Trading,Active
+16387759,voluntary_exit,voluntary_exit,4,0.9161933840127097,FAD SRL LTD,LONDON,N3 2JU,Fast growth & emerging,No Filings,Trading,Active
+13008682,insolvency,insolvency,36,0.32245149734875744,FANCY DRAGON LIMITED,SOUTHAMPTON,SO18 1EN,Manufacturing,Micro,Trading,Active
+16385419,voluntary_exit,voluntary_exit,9,0.9161933840127097,HEXNOVA LTD,MILDENHALL,IP28 7DE,Fast growth & emerging,No Filings,Trading,Active
+11348640,insolvency,insolvency,64,0.2003025601867217,HGGL CONSULTING LTD,DORMANSLAND,RH7 6QT,Fast growth & emerging,Micro,Trading,Active
+12364000,growth,growth,81,0.2909280927828479,HICOMPLY LTD,DURHAM,DH1 1TW,Fast growth & emerging,Small,Trading,Active
+06491117,insolvency,insolvency,30,0.3610691105453485,HIGHCURVE LIMITED,TRING,HP23 5EF,Fast growth & emerging,Micro,Trading,Active
+00159177,lending,lending,89,0.36733731958853655,HINDUJA AUTOMOTIVE LIMITED,LONDON,SW1Y 4QU,"Technology, legal & professional",Large,Trading,Active
+13614669,insolvency,insolvency,68,0.19878965103134416,HIQMA LIMITED,WATFORD,WD18 9DA,"Technology, legal & professional",Micro,Trading,Active
+16437226,lending,lending,95,0.35951831654839744,HOPE STUDIOS UK LTD,LONDON,EC4V 4BE,"Technology, legal & professional",No Filings,Trading,Active
+16386398,voluntary_exit,voluntary_exit,63,0.9161933840127097,LETSTALKFRIEND LIMITED,WOLVERHAMPTON,WV3 0EY,Fast growth & emerging,No Filings,Trading,Active
+06054920,insolvency,insolvency,37,0.30020187447480307,LIVING BRANDS LTD,HEMEL HEMPSTEAD,HP2 5HL,"Technology, legal & professional",Micro,Trading,Active
+SC627776,insolvency,insolvency,38,0.2746153567217289,LIZ WILSON COPYWRITING & COMMUNICATIONS LIMITED,HELENSBURGH,G84 8PG,"Technology, legal & professional",Micro,Trading,Active
+12705598,insolvency,insolvency,3,0.45794084051138817,"MUMANIELA PROJECT, ART AND DESING LTD",LONDON,E14 8PX,"Technology, legal & professional",Micro,Trading,Active
+16390567,voluntary_exit,voluntary_exit,19,0.9161933840127097,N KAUR CONSULTANCY LTD,LONDON,N1 7GU,Fast growth & emerging,No Filings,Trading,Active
+05394508,insolvency,insolvency,94,0.17427563008587946,NASMYTH DOUGHTY LIMITED,COVENTRY,CV7 9FT,Manufacturing,Small,Trading,Active
+07823588,growth,growth,22,0.37412304392235257,NATIONAL INSTITUTE OF AGRICULTURAL BOTANY TRUST,CAMBRIDGE,CB24 9AT,Fast growth & emerging,Small,Trading,Active
+16392997,voluntary_exit,voluntary_exit,20,0.9161933840127097,PINNACLE-CONSULTANCY BUSINESS LIMITED,BRADFORD,BD2 4BJ,Fast growth & emerging,No Filings,Trading,Active
+16390851,voluntary_exit,voluntary_exit,91,0.9161933840127097,PLAYALOPETECH LTD,LEEDS,LS8 5DQ,Fast growth & emerging,No Filings,Trading,Active
+11966921,lending,lending,38,0.4196334961357589,PLAYGROUND TELEVISION UK 2 LIMITED,LONDON,W1W 8DH,"Technology, legal & professional",Small,Trading,Active
+02006899,insolvency,insolvency,26,0.3725807637979245,PMR SYSTEMS LTD,HAMPSHIRE,RG21 7SN,Manufacturing,Micro,Trading,Active
+05556499,growth,growth,86,0.2897397606136545,PORTARAMP (UK) LIMITED,CRADLEY HEATH,B64 7DW,Manufacturing,Subsidiary,Trading,Active
+13637173,insolvency,insolvency,49,0.22031133194726116,RURAL MENTAL HEALTH MATTERS LIMITED,SHAFTESBURY,SP7 8GB,"Technology, legal & professional",Micro,Trading,Active
+16388591,voluntary_exit,voluntary_exit,23,0.9161933840127097,RVCK LTD,LONDON,EC2A 4NE,Fast growth & emerging,No Filings,Trading,Active
+06627205,insolvency,insolvency,25,0.372677043516294,S&W ACCOUNTANCY SERVICES LIMITED,FAREHAM,PO15 7EY,"Technology, legal & professional",Micro,Trading,Active
+15069455,insolvency,insolvency,46,0.22884947771605726,SAAM PRIVATE HIRE LTD,NEWCASTLE UPON TYNE,NE27 0HF,Fast growth & emerging,Micro,Trading,Active
+15366121,growth,growth,24,0.3715035825003587,TECHFLOW MARINE (PORTS & TERMINALS) LTD,NORTHUMBERLAND,NE23 7RY,Manufacturing,Micro,Trading,Active
+09085579,growth,growth,16,0.3995481803141968,TELCOM NETWORKS LIMITED,MANCHESTER,M4 1LN,"Technology, legal & professional",Subsidiary,Trading,Active
+09932771,insolvency,insolvency,17,0.40037225899931644,TEN 0 EIGHT LTD,OAKMERE,CW8 2DF,"Technology, legal & professional",Micro,Trading,Active
+09042505,insolvency,insolvency,73,0.1887967665426409,UKTTF LIMITED,LANCASHIRE,OL10 1NW,Manufacturing,Small,Trading,Active
+11494446,insolvency,insolvency,31,0.35299681417119894,UNIX ACCOUNTING LTD,BURNHAM-ON-CROUCH,CM0 8LT,"Technology, legal & professional",Micro,Trading,Active
+16384791,voluntary_exit,voluntary_exit,28,0.9161933840127097,UPTIMEASE LTD,MANCHESTER,M2 3HZ,Fast growth & emerging,No Filings,Trading,Active
+10771684,growth,growth,91,0.2856077720884933,URBANCHAIN LTD,LONDON,EC4M 7AU,Fast growth & emerging,Small,Trading,Active
+SC156515,lending,lending,52,0.4010961205269384,2 AGRICULTURE LIMITED,NEWBRIDGE,EH28 8NB,Manufacturing,Large,Trading,Active
+16389397,voluntary_exit,voluntary_exit,90,0.9161933840127097,2E CONSULTING LTD,LONDON,E6 2JA,Fast growth & emerging,No Filings,Trading,Active
+13947887,growth,growth,62,0.30792460433914615,3ML PROPERTIES LIMITED,LONDON,N13 4XS,"Technology, legal & professional",Micro,Trading,Active
+04125587,insolvency,insolvency,22,0.382405736911241,88 MARINE PARADE BRIGHTON LIMITED,EAST SUSSEX,BN2 1AJ,"Technology, legal & professional",Micro,Trading,Active
+07463998,growth,growth,28,0.36539424126024567,BALLYCLARE LIMITED,STOCKPORT,SK3 0UX,Manufacturing,Medium,Trading,Active
+SC592655,lending,lending,66,0.3841026743066001,BANGLEY QUARRY BIOGAS LTD,EDINBURGH,EH2 4LH,Fast growth & emerging,Small,Trading,Active
+01692513,lending,lending,59,0.3923846713997695,BANIJAY UK PRODUCTIONS LIMITED,LONDON,W14 0EE,"Technology, legal & professional",Subsidiary,Trading,Active
+08557939,insolvency,insolvency,70,0.19765530655074334,BANKS & SIMPSON CONSULTANCY LIMITED,COVENTRY,CV4 7AT,"Technology, legal & professional",Micro,Trading,Active
+06437348,growth,growth,18,0.3924222603499544,BARNFATHER WIRE (MIDLANDS) LIMITED,WEDNESBURY,WS10 8JG,Manufacturing,Medium,Trading,Active
+06893253,growth,growth,40,0.33415098631124796,BCN GROUP LTD.,MANCHESTER,M22 5LW,Fast growth & emerging,Medium,Trading,Active
+12227373,insolvency,insolvency,23,0.3817126917159904,BE-ROLL LTD,LONDON,SE17 1HY,"Technology, legal & professional",Micro,Trading,Active
+16389998,voluntary_exit,voluntary_exit,18,0.9161933840127097,CLOWNS ENTERTAINMENTS LTD,LONDON,E11 4QS,Fast growth & emerging,No Filings,Trading,Active
+09732010,growth,growth,15,0.40463423708484597,CMAP SOFTWARE LIMITED,MACCLESFIELD,SK10 4TG,Fast growth & emerging,Medium,Trading,Active
+11731838,lending,lending,2,0.5758907407781219,COHORT CAPITAL LTD,LONDON,W1K 7TG,Fast growth & emerging,Large,Trading,Active
+16387792,voluntary_exit,voluntary_exit,87,0.9161933840127097,COINAREA IO LTD,LONDON,E14 5AB,Fast growth & emerging,No Filings,Trading,Active
+08575062,growth,growth,11,0.4131070588527829,COMMONPLACE DIGITAL LTD,LONDON,EC4M 7AU,Fast growth & emerging,Small,Trading,Active
+16385080,voluntary_exit,voluntary_exit,71,0.9161933840127097,DIGITALS SOLUTIONS LTD,LONDON,WC2H 9JQ,Fast growth & emerging,No Filings,Trading,Active
+16385443,voluntary_exit,voluntary_exit,46,0.9161933840127097,DONBRI CONSULTING LTD,LONDON,EC1V 2NX,Fast growth & emerging,No Filings,Trading,Active
+14967796,insolvency,insolvency,69,0.19866701144915702,GHETTO LABEL U.S. LEGACY RECORDS LIMITED,BILSTON,WV14 9RT,"Technology, legal & professional",Micro,Trading,Active
+10061045,growth,growth,92,0.2848150515580346,GIACOM (CLOUD) HOLDINGS LIMITED,LONDON,EC2R 7HF,Fast growth & emerging,Subsidiary,Trading,Active
+07927175,lending,lending,17,0.46234219152474837,GLAS TRUST CORPORATION LIMITED,LONDON,EC4M 7NG,Fast growth & emerging,Small,Trading,Active
+16385301,voluntary_exit,voluntary_exit,17,0.9161933840127097,GLOBAL POSTGRADUATE EDUCATION ALLIANCE,LONDON,EC1V 2NX,Fast growth & emerging,No Filings,Trading,Active
+SC582522,lending,lending,18,0.46222341124726235,GOFIBRE HOLDINGS LIMITED,EDINBURGH,EH3 8EG,"Technology, legal & professional",Large,Trading,Active
+08531702,insolvency,insolvency,89,0.17619729255806912,ISLE OF WIGHT JOBS LIMITED,COWES,PO31 8BX,"Technology, legal & professional",Small,Trading,Active
+16389142,voluntary_exit,voluntary_exit,34,0.9161933840127097,ITERATIVE IMPACT LTD,WOODSTOCK,OX20 1QP,Fast growth & emerging,No Filings,Trading,Active
+16385759,voluntary_exit,voluntary_exit,54,0.9161933840127097,ITL ENSTITUTE LTD,LIVERPOOL,L3 1BP,Fast growth & emerging,No Filings,Trading,Active
+16389526,voluntary_exit,voluntary_exit,52,0.9161933840127097,ITL IINSTITUTI LTD,WOLVERHAMPTON,WV6 0SR,Fast growth & emerging,No Filings,Trading,Active
+SC845213,voluntary_exit,voluntary_exit,77,0.9161933840127097,IVELOP X LTD,EDINBURGH,EH6 5JW,Fast growth & emerging,No Filings,Trading,Active
+06014654,lending,lending,92,0.3627483571471784,LANGDOWNS DFK LIMITED,EASTLEIGH,SO50 9PD,"Technology, legal & professional",Small,Trading,Active
+06695717,growth,growth,27,0.365772779765214,LATCHAM DIRECT LIMITED,HENGROVE,BS14 0AF,Manufacturing,Medium,Trading,Active
+01459141,growth,growth,58,0.31014397690106477,LEEC LIMITED,NOTTINGHAM,NG4 2AJ,Manufacturing,Medium,Trading,Active
+12688816,insolvency,insolvency,11,0.428149202417529,LEGAL WILLS ONLINE LTD,LONDON,WC2H 9JQ,"Technology, legal & professional",Micro,Trading,Active
+14693500,insolvency,insolvency,62,0.20191583705450733,LEGALBNM LTD,LONDON,EC1R 0NE,"Technology, legal & professional",Micro,Trading,Active
+09908188,lending,lending,57,0.3950748648520641,NICOLAS JAMES LIMITED,SOUTHAMPTON,SO14 2AQ,"Technology, legal & professional",Large,Trading,Active
+16392346,voluntary_exit,voluntary_exit,81,0.9161933840127097,NODEFLOW AI LIMITED,LONDON,E15 3DS,Fast growth & emerging,No Filings,Trading,Active
+05879466,lending,lending,7,0.5083735495399625,NOMAD FOODS EUROPE LIMITED,WOKING,GU21 6HT,Manufacturing,Large,Trading,Active
+04992068,lending,lending,61,0.3901544701630842,NORTH EAST PROPERTY PARTNERSHIP LIMITED,GATESHEAD,NE11 0QD,"Technology, legal & professional",Subsidiary,Trading,Active
+16391919,voluntary_exit,voluntary_exit,92,0.9161933840127097,PARTNERS AND COMPANY GROUP LTD,LONDON,EC2A 4NE,Fast growth & emerging,No Filings,Trading,Active
+16388374,voluntary_exit,voluntary_exit,72,0.9161933840127097,PCKEY GLOBAL SOLUTIONS LTD,"RUISLIP,",HA4 7AE,Fast growth & emerging,No Filings,Trading,Active
+04368718,insolvency,insolvency,32,0.339132651143032,PEAK BIOMEDICAL LTD,CHESHIRE,CW11 1YT,"Technology, legal & professional",Micro,Trading,Active
+09833975,growth,growth,7,0.4430564770569164,PEARLTECH UK LIMITED,BOURNEMOUTH,BH1 1JN,Fast growth & emerging,Subsidiary,Trading,Active
+16386465,voluntary_exit,voluntary_exit,29,0.9161933840127097,RIZMOS LTD,SOUTHAMPTON,SO14 0BH,Fast growth & emerging,No Filings,Trading,Active
+09717071,insolvency,insolvency,21,0.38465721238801726,RJD IT SERVICES LIMITED,STAINES-UPON-THAMES,TW18 4LX,Fast growth & emerging,Micro,Trading,Active
+08088342,lending,lending,67,0.3836642811961211,SMARTROOF LIMITED,SWADLINCOTE,DE11 9EU,Manufacturing,Medium,Trading,Active
+08672236,insolvency,insolvency,8,0.43555206019008375,SOLENT MARINE SURVEYS LTD,SOUTHAMPTON,SO31 9FD,"Technology, legal & professional",Micro,Trading,Active
+08033357,growth,growth,35,0.3514567802891367,SOLUTIONPATH LIMITED,BOURNEMOUTH,BH8 8EZ,Fast growth & emerging,Subsidiary,Trading,Active
+06467245,growth,growth,9,0.41886594949421535,THE MARKETING LOUNGE PARTNERSHIP LIMITED,LOWER STRETTON,WA4 4PG,Fast growth & emerging,Medium,Trading,Active
+07667393,growth,growth,59,0.30991213728201916,THE NETWORKING PEOPLE (TNP) LIMITED,LANCASTER,LA1 3PE,"Technology, legal & professional",Medium,Trading,Active
+03310580,insolvency,insolvency,78,0.1803516792057601,THE PROACTIVE ACCOUNTANT LTD,LONDON,EC3N 1AD,"Technology, legal & professional",Micro,Trading,Active
+00575914,lending,lending,97,0.35887715421301086,XEROX LIMITED,UXBRIDGE,UB8 1DH,Manufacturing,Large,Trading,Active
+03668232,insolvency,insolvency,33,0.3376828309280907,XPRESSNET (UK) LTD,KETTERING,NN14 6JG,Fast growth & emerging,Micro,Trading,Active
+12795105,growth,growth,66,0.30700252460421434,AMBER LABS LIMITED,LONDON,N3 1LF,Fast growth & emerging,Small,Trading,Active
+12588738,lending,lending,58,0.3943726520478575,AMBER ORANGE LIMITED,MORDEN,SM4 4LU,"Technology, legal & professional",Micro,Trading,Active
+16387646,voluntary_exit,voluntary_exit,51,0.9161933840127097,AMJEO LTD,LONDON,EC2A 4NE,Fast growth & emerging,No Filings,Trading,Active
+08828281,growth,growth,38,0.33843438850516516,AMTECH BUSINESS SOLUTIONS LIMITED,THATCHAM,RG19 4QD,Fast growth & emerging,Micro,Trading,Active
+05842285,insolvency,insolvency,65,0.20028907345538408,ANDREW CAMPBELL LIMITED,HERTS,AL10 8AJ,"Technology, legal & professional",Dormant,Trading,Active
+09088709,lending,lending,34,0.42440345695663556,ANSTEE COIL TECHNOLOGY LIMITED,STONEHOUSE,GL10 3RF,Manufacturing,Small,Trading,Active
+09249746,lending,lending,21,0.45596347920415814,BOATCO UK LTD,ROCHFORD,SS4 2HF,Manufacturing,Subsidiary,Trading,Active
+09229677,lending,lending,78,0.37619438280641115,BP3 GLOBAL LIMITED,BRISTOL,BS2 0EL,Fast growth & emerging,Large,Trading,Active
+12149503,growth,growth,88,0.2894821943077492,BRAIN LABS DC LIMITED,LONDON,EC1Y 8AF,Fast growth & emerging,Small,Trading,Active
+12148954,growth,growth,19,0.3906662182084268,BRAIN LABS UK HOLDCO LIMITED,LONDON,EC1Y 8AF,Fast growth & emerging,Small,Trading,Active
+03322295,insolvency,insolvency,35,0.3368046152031644,BRANTWOOD HOLDINGS LIMITED,POOLE,BH12 1NX,Fast growth & emerging,Micro,Trading,Active
+02457114,lending,lending,80,0.37494527680897594,COURTNEY INVESTMENTS LIMITED,LONDON,E1W 9US,"Technology, legal & professional",Small,Trading,Active
+SC184280,insolvency,insolvency,77,0.18432440226448632,COWIE SEAFOODS LIMITED,PETERHEAD,AB42 1TZ,Manufacturing,Small,Trading,Active
+16385444,voluntary_exit,voluntary_exit,73,0.9161933840127097,CREATIVE WEB EXPERT LIMITED,CHELTENHAM,GL51 8NS,Fast growth & emerging,No Filings,Trading,Active
+09659104,lending,lending,90,0.3672157112926452,CRUMPSALL ESTATES LIMITED,MANCHESTER,M7 4SE,"Technology, legal & professional",Micro,Trading,Active
+16386159,voluntary_exit,voluntary_exit,78,0.9161933840127097,CRYPSISCYBERTECH LTD,NEWPORT,NP20 4GG,Fast growth & emerging,No Filings,Trading,Active
+16393118,voluntary_exit,voluntary_exit,31,0.9161933840127097,CRYPTORIA SYSTEMS LTD,LONDON,W2 3AF,Fast growth & emerging,No Filings,Trading,Active
+13303937,growth,growth,74,0.300651790697187,CT 13303937 LIMITED,LONDON,WC1N 3AX,Fast growth & emerging,Small,Trading,Active
+15870805,growth,growth,80,0.2921890726770927,FDOE PRODUCTIONS LTD,LONDON,W1F 8DZ,"Technology, legal & professional",Subsidiary,Trading,Active
+16500748,lending,lending,36,0.4227537773094128,FENYX F2 LIMITED,LONDON,NW9 6BX,Fast growth & emerging,No Filings,Trading,Active
+10205768,insolvency,insolvency,56,0.20673276586593436,FERN FINANCIAL PLANNING LIMITED,LUDLOW,SY8 4AA,"Technology, legal & professional",Small,Trading,Active
+16391407,voluntary_exit,voluntary_exit,24,0.9161933840127097,FIGONDTECH LTD,HARROGATE,HG2 9BA,Fast growth & emerging,No Filings,Trading,Active
+04818735,lending,lending,9,0.49713710283691104,FILM & TV HOUSE LIMITED,WINCHESTER,SO23 7TA,"Technology, legal & professional",Small,Trading,Active
+06702659,growth,growth,54,0.31769074978887524,FIRESEC COMPLIANCE LIMITED,WITHAM,CM8 3YN,"Technology, legal & professional",Small,Trading,Active
+11147688,insolvency,insolvency,20,0.3878845872123988,FIRST BUSINESS DEVELOPMENT LTD,BARNET,EN5 5TZ,"Technology, legal & professional",Micro,Trading,Active
+02174882,growth,growth,39,0.33799552636812,HARDALL INTERNATIONAL LIMITED,DUNSTABLE,LU5 4PN,Manufacturing,Medium,Trading,Active
+12620180,insolvency,insolvency,80,0.17870716192824548,HARDOWN LTD,BRIDPORT,DT6 6DU,Fast growth & emerging,Small,Trading,Active
+08246871,lending,lending,56,0.3965698926938066,HARTSHORNE CROSSROADS GROUP CONTRACTS LIMITED,BATLEY,WF17 9LR,Manufacturing,Large,Trading,Active
+14997606,lending,lending,16,0.4628693739950371,HDM ENERGIES LTD,HULL,HU4 7DZ,"Technology, legal & professional",Subsidiary,Trading,Active
+04420590,insolvency,insolvency,71,0.19751454237826435,HEALTH AND SAFETY SERVICES (UK) LIMITED,TOWCESTER,NN12 6UN,"Technology, legal & professional",Micro,Trading,Active
+13661961,lending,lending,44,0.4060324896891581,HEALTHCARE SERVICES CONSULTANCY LTD,DUDLEY,DY1 4RH,"Technology, legal & professional",Small,Trading,Active
+12630918,insolvency,insolvency,91,0.17550864324253954,HEGETOR LTD,LONDON,E17 5DX,Fast growth & emerging,Micro,Trading,Active
+02147149,lending,lending,39,0.4172560534997965,HEL LIMITED,HEMEL HEMPSTEAD,HP2 7SU,Fast growth & emerging,Large,Trading,Active
+SC845412,voluntary_exit,voluntary_exit,58,0.9161933840127097,JGCK LIMITED,EDINBURGH,EH9 1SE,Fast growth & emerging,No Filings,Trading,Active
+16385990,voluntary_exit,voluntary_exit,3,0.9161933840127097,JOBS UK HELPING YOU ACHIEVE YOUR GOALS LTD,BIRMINGHAM,B23 7LX,Fast growth & emerging,No Filings,Trading,Active
+16390646,voluntary_exit,voluntary_exit,59,0.9161933840127097,JOBS UK MAKE IT EASY LTD,BIRMINGHAM,B23 7LX,Fast growth & emerging,No Filings,Trading,Active
+16390615,voluntary_exit,voluntary_exit,55,0.9161933840127097,JPA IT SOLUTIONS LIMITED,LONDON,NW3 3NX,Fast growth & emerging,No Filings,Trading,Active
+09386341,insolvency,insolvency,24,0.37488350814607746,MEDICAL EXAM PREP LTD,KINGSTON UPON THAMES,KT2 5TL,"Technology, legal & professional",Small,Trading,Active
+14339923,growth,growth,32,0.35603643207040264,MERCO FS LIMITED,SWINTON,M27 8UW,Fast growth & emerging,Micro,Trading,Active
+09068362,insolvency,insolvency,54,0.20945894760536493,MESSRS. KICK & DRUM LTD,LONDON,SE25 4LP,"Technology, legal & professional",Micro,Trading,Active
+16391036,voluntary_exit,voluntary_exit,26,0.9161933840127097,NUMBER CORPORATION LIMITED,LONDON,N1 7AA,Fast growth & emerging,No Filings,Trading,Active
+10664256,growth,growth,89,0.2868518629348434,NUTREE LIFE LTD,"BURSCOUGH, ORMSKIRK",L40 8AF,Manufacturing,Medium,Trading,Active
+13507341,lending,lending,40,0.41174896806599565,OB TELECOM LIMITED,SALFORD,M5 3TT,"Technology, legal & professional",Subsidiary,Trading,Active
+16385860,voluntary_exit,voluntary_exit,85,0.9161933840127097,OBLIVIONCORE LTD,BIRMINGHAM,B33 8JP,Fast growth & emerging,No Filings,Trading,Active
+SC845397,voluntary_exit,voluntary_exit,7,0.9161933840127097,OBOBO LTD,EDINBURGH,EH11 2DF,Fast growth & emerging,No Filings,Trading,Active
+05933693,growth,growth,10,0.41652274352506696,RAMON HOLDINGS LIMITED,SOUTHEND-ON-SEA,SS3 9FL,Manufacturing,Medium,Trading,Active
+11392308,insolvency,insolvency,86,0.17662436335301737,SPACETIME LABS LIMITED,LONDON,EC3N 1NT,Fast growth & emerging,Micro,Trading,Active
+05144979,insolvency,insolvency,2,0.47732667356953373,SPIDERWEBSITES LIMITED,PRESTON,PR1 9BY,Fast growth & emerging,Micro,Trading,Active
+08415666,insolvency,insolvency,72,0.1901128873996454,SSS ENGINEERING SERVICES LTD,KINGTON,HR5 3DJ,Manufacturing,Small,Trading,Active
+16389255,voluntary_exit,voluntary_exit,50,0.9161933840127097,THINK DATA MIGRATION SOLUTIONS LTD,LONDON,SE24 0JZ,Fast growth & emerging,No Filings,Trading,Active
+16389882,voluntary_exit,voluntary_exit,67,0.9161933840127097,THL GLOBAL INNOVATIONS LTD,MANCHESTER,M40 8WN,Fast growth & emerging,No Filings,Trading,Active
+10007469,lending,lending,46,0.4036500074213415,THOUGHTRIVER LIMITED,WATERBEACH,CB25 9PD,Fast growth & emerging,Small,Trading,Active
+16392251,voluntary_exit,voluntary_exit,53,0.9161933840127097,TIGER HOLDINGS LTD,LONDON,E6 2JA,Fast growth & emerging,No Filings,Trading,Active
+02205891,lending,lending,87,0.36839110524649166,WINDFALL FILMS LIMITED,LONDON,N1 8JD,"Technology, legal & professional",Large,Trading,Active
+14407269,growth,growth,78,0.2940094986954053,WINNERS FIRST TRADING LIMITED,LONDON,WC2A 2JR,Fast growth & emerging,Micro,Trading,Active
+09511198,growth,growth,52,0.3200932244137173,,,,,,,
+15554147,growth,growth,100,0.2800306922792549,,,,,,,
+14382532,lending,lending,15,0.4667490650385365,,,,,,,
+SC597190,lending,lending,82,0.37273292193613305,,,,,,,
+02599024,lending,lending,8,0.5001727342610349,,,,,,,
+15016818,lending,lending,63,0.38853123901231695,,,,,,,
+15890468,lending,lending,19,0.46056737158247874,,,,,,,
+16107952,growth,growth,23,0.37258193510500426,,,,,,,
+02591237,lending,lending,22,0.44653594506398686,,,,,,,
+09656168,lending,lending,35,0.4239420299901921,,,,,,,
+SC676128,lending,lending,32,0.4273200096821083,,,,,,,
+05314495,growth,growth,42,0.32921806526498426,,,,,,,
+13161842,lending,lending,28,0.43591731910713405,,,,,,,
+10362628,lending,lending,6,0.5140772374186816,,,,,,,
+14703270,growth|lending,lending,85,0.3692996659233187,,,,,,,
+10568990,lending,lending,41,0.4091694771136587,,,,,,,
+12809596,lending,lending,64,0.3863447735581843,,,,,,,
+14351083,lending,lending,65,0.3859255241676977,,,,,,,
+SC700538,lending,lending,79,0.3761737196459586,,,,,,,
+13866849,lending,lending,37,0.42025095597664996,,,,,,,
+16314307,lending,lending,14,0.4736137131979794,,,,,,,
+15229418,lending,lending,30,0.42818549914345677,,,,,,,
+09671288,lending,lending,45,0.40510823896878956,,,,,,,
+10946543,lending,lending,25,0.4368366358385816,,,,,,,
+16364484,lending,lending,20,0.4585152024245847,,,,,,,
+11843588,growth,growth,73,0.30161689285062954,,,,,,,
+15242648,growth,growth,87,0.28967285394701286,,,,,,,

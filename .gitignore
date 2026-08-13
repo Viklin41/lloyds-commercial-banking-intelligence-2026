@@ -28,3 +28,8 @@ __pycache__/
 dashboard/Lloyds_Banking_Group_Logo.png
 dashboard/Lloyds-Bank-Symbol.png
 dashboard/assets/horse-mark.png
+
+# Samuel's per-company feature files for the dashboard. Small enough to carry (7.5 MB)
+# and they are what the tiles read. The event files stay out, they are 60 MB.
+!data/processed/dashboard_pack/
+!data/processed/dashboard_pack/*.csv
