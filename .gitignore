@@ -22,3 +22,6 @@ LLoyds_googledrive/
 
 # Draft code/notebooks
 drafts
+# python bytecode
+__pycache__/
+*.pyc
