@@ -216,7 +216,7 @@ about 150x lift on lending.}
 \section{Papers: Predicting corporate distress and corporate demand}
 The classical approach to predicting company failure is built on financial ratios. The best known example is Altman's Z-score \cite{altman_1968}. It is a statistical model that takes a small set of accounting ratios and combines them using weights estimated by discriminant analysis, into a single number the 'Z-score'. That number places a company in a 'safe', 'grey' or 'distress' zone, a low score flags a firm as likely to fail. Because it is simple, interpretable and only needs figures from published accounts, it remains the reference point for corporate distress models. The difficulty is that it assumes those accounts are available and comparable. Small and medium-sized enterprises (SMEs), which make up the bulk of the UK company register are entitled to file abbreviated or 'micro entity' accounts, which only require a balance sheet and a few short notes, not a full profit and loss statement or detailed financial breakdown \cite{companieshouse_accounts_2026}. For these firms the ratios that drive a Z-score are either missing or too coarse to be useful.
 
-a second line of work responds to this gap by turning to non-financial and behavioural information. Altman, Sabato and Wilson \cite{altman_sabato_wilson_2010} show that non-financial signals materially improve SME default prediction over accounts only models and later credit scoring research finds that behavioral and trnsactional data can perform as well as or even better than traditional financial variables \cite{berg_etal_2020}. This motivates our own emphasis on register derived behvaiour such as charges, director changes, filing activity rather than on reported financial data alone.
+a second line of work responds to this gap by turning to non-financial and behavioural information. Altman, Sabato and Wilson \cite{altman_sabato_wilson_2010} show that non-financial signals materially improve SME default prediction over accounts only models and later credit scoring research finds that behavioral and transactional data can perform as well as or even better than traditional financial variables \cite{berg_etal_2020}. This motivates our own emphasis on register derived behvaiour such as charges, director changes, filing activity rather than on reported financial data alone.
 
 Almost all of this literature predicts distress which firms will fail. The complementary question which firms are about to need finance and ready to take it on is less studied, even though it is the question a commercial lender most wants answered. This 'demand side' framing is what distinguishes our project from conventional default model.
 
@@ -248,20 +248,17 @@ rather than as an apology.}
 \label{chap:execution}
 % 9 pages, the largest chapter. Owner: Sneha, Viktor, Sam, Vishal
 
-\section{How the project organised itself, and 3 times reorganised}
+\section{How the project organised itself and reorganised}
 \label{sec:orgs}
-\note{Short, one page at most, but do not skip it, because it is the evidence of
-project management the template asks for and it is genuinely informative.
-Split 1 mirrored the client's three teams (Growth, Attrition, Existing
-Relationships) and broke within two weeks, because the three needs are three
-questions asked of one dataset, not three datasets. Split 2 was by data type,
-structured against unstructured, and it held until the unstructured half
-measured its own coverage and found there was nothing there, at which point the
-team re-formed again around the structured core plus a delivery layer. Say
-plainly that both reorganisations were driven by measurement. Footnote the
-dating honestly: no commit records either decision, and the dates are inferred
-from when branches stopped and from what people started next. Table of branches
-and owners; the full record is Appendix~\ref{appx:chronology}.}
+Across the projects's lifetime, the team worked in three different organisational setups, each change happened because of what the data showed, not because of preference. The record of who worked on what is visible in the feature branches in repository (Table \ref{tab:branches}.
+
+The first split mirrored the project brief, the brief listed three needs namely growth, attrition and deepening existing relationships, so the team split into three strands to match and early work began along those lines. This arrangement broke within two weeks. The reason was structural, the three needs are three datasets but three questions asked of one dataset, the shared Companies House \cite{companieshouse_api}. Splitting the team by question meant repeating the same cleaning and fetaure work three times, with no one owning the shared base. The strands were merged back together.
+
+The second split was a by data type, one strand handling structured data from Companies House and related public records, and another explored unstructured text such as news articles for company-level signal \cite{guardian_api, newsapi}. This division held for several weeks, because the two halves genuinely needed different tools. It was found that the unstructured strand measured its own coverage and found that, for the population of interest especially SMEs has almost no coverage. Very few companies had any mathcing article or news  mention to draw on. 
+
+That measurement drove the third and final arrangement, which split the team by task rather than by data type. One pair moved into modelling, building the feature matrix, the prediction targets, the classifiers and SHAP explanantions \cite{lundberg_lee_2017} on top of the structured core. The other pair kept working on the unstructured side, news sentiment and the harmonization needed to attach it to establish how much signal, if any, could be recovered there. This is the shape the project held to the end.
+
+Both reorganisations were driven by measurement, not opinion. The first ended when the cost of duplicated work became clear, the second ended when the coverage count for unstructured data came back near zero.
 
 \section{Data acquisition and the base dataset}
 
@@ -290,7 +287,28 @@ row through a dense calendar spine. It dictated calendar-aware windows
 everywhere downstream and it comes back as a real limitation in
 \S\ref{sec:limits}.}
 
-\section{Structured Feature engineering: CH + any additional source}
+\section{Structured Feature engineering: Companies House and additional source}
+The team explored a wide range of public signals and not all of them were kept in the final model, this section records both what we kept and what we discarded along with the reasons. The retained features form four families, all keyed on eight digit \texttt{CompanyNumber}.  Two rules run through every family, every feature is calculated strictly as at the month it belongs to. A feature for month t can only use information that existed in the month t, never anything from the future, which is what  lets \S\ref{sec:targets} define learnable targets. Every feature's definition is stored in a catalogue and turned into a short hash, a finger print of exact input and logic used. This means any two runs can be proven to have used identical outputs, giving reproducibility and preventing silent changes.
+
+\paragraph{Group 1 - The company as it is now}
+The first group describes each company as the register currently shows it and it is pulled straight from the Companies Houses bulk file \cite{companieshouse_api} with no extra lookups needed. It covers how old the company is, how many loans it has secured against its assets and how many are still outstanding, a simple debt ratio built from those, whether its accounts are overdue or out of date, a size band which is read from type of accounts it files \cite{companieshouse_accounts_2026}, the industry it works in from its SIC code \cite{companieshouse_sic} and whether it has changed its name. Many of these were prototyped in attrition work, company health read from its status, a dormant flag, a rough size band and late filings warning and checked against early static exploration before comvinign in a single panel.
+
+\paragraph{Group 2 - how the company is changing}
+A single snapchat cannot show the changes over the years, and the changes is exactly the signal we mostly want. A company whose secured borrowing has jumped in six months was behaving very differntly from one that has sat still for years, even if the two look identical in the present. So thirty three month history was assembled and measured the change over the last three, six and twelve months. The change in charge counts, in outstanding charges, in the debt ratio and how many separate new-borrowing events happened in the past year was recorded.
+
+One considerable gap in the source shaped the entire design, Companies House never published a snapshot for June 2025 . This is  a permanent gap in their published data, the server was re-checked and the file has never existed, not a download that could be simply repeated. So 'going back three rows' in history to measure the change, could have been landed on May 2025 instead of June 2025. It would have quietly reported a four month change as if it were three, without a warning. Instead every company was laid against a full run of calender months, so the missing month appears as an explicit blank and every look-back is exactly the right number of calendar months, reaching across the gap returns a blank rather than a wrong number. This group also carries the earliest warning sign in the public record such as features that track how logn since a company last filed its accounts or confirmation statement and how long its accounts have been stale. These indicators stay flat while a company is still filling normally and only start to rise once the company stops filing, which usually happens before its status officially changes to insolvency.
+
+\paragraph{Group 3 - winning public work}
+This register shows how a company files and borrows, but not whether its winning business. From the Contracts Finder and Find a Tender \cite{contractsfinder, findatender, ocds}, each company's public-sector contract wins were aggregated including the count, their total and average value, and whether it has just won its very first, matched using the Companies House number carried in contract record. Part-way through the window the rules changed. When Procurement Act 2023 came into force on 24 February 2025, new public contracts stopped being published on Contracts Finder and began appearing on Find a Tender \cite{findatender}, while Contracts Finder kept only older notices. So information from both were combined to avoid false drop in wins that has nothing to do with companies themselves. Every win is counted only up to the month in question, so 2026 award never lands on 2024 row.
+
+\paragraph{Group 4 - who the company banks with}
+For companies that have secured loans, lender names attached to each charge was read using Charges API \cite{companieshouse_api} , every name was sorted using a clear ordered rule list, into either "a Lloyds brand" (Lloyds Bank, Bank of Scotland, Halifax, HBOS and related names \cite{lbg_brands} or "a rival". This turns a raw public record into necessary information of who the company banks with, the very axis the client's growth and attrition questions are asked on. Two more relationship signals from Officiers and Filling History records were added, recent director appointments and resignations, and new-share (SH01) filings as a sign that company is raising money.
+
+\subsection{Signals we tried but left out}
+Several signals were built and measured, then deliberately left out. The financial data route failed on coverage, the market data feeds only carry companies listed on stock exchange and almost none of the private small businesses were listed, so the data simple did not describe the population. The news route failed the same way for a different reason, when how many of the targeted companies had any matching news was measured, the answer was almost none, so there was no signal to add. Both were honest dead ends found by measurement. Furthermore, the unstructured data for companies based on signals were added as an enrichment layer.
+
+
+
 \note{The four families and why each exists. Level features from the register
 as it stands. Delta features at 3, 6 and 12 months, computed on a dense calendar
 spine rather than a positional lag, so the June 2025 hole yields NULLs instead of
@@ -642,7 +660,7 @@ command and only the API cost per company is unknown.}
 % =============================================================================
 \backmatter
 
-\bibliography{report.bib}
+\bibliography{bibtex.bib}
 % Owner: Sneha, Viktor, Sam, Vishal
 
 % -----------------------------------------------------------------------------
