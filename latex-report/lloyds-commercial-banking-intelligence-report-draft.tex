@@ -220,7 +220,7 @@ a second line of work responds to this gap by turning to non-financial and behav
 
 Almost all of this literature predicts distress which firms will fail. The complementary question which firms are about to need finance and ready to take it on is less studied, even though it is the question a commercial lender most wants answered. This 'demand side' framing is what distinguishes our project from conventional default model.
 
-\section{The main data source : UK public company record
+\section{The main data source: UK public company record
 }
 The backbone of project is the UK public company record maintained by Companies House, which we access in two ways \cite{companieshouse_api}. The first is the bulk product, a snapshot of every company on the register (5,698,276 records at the time of download) conatining static, ready to use fields. The second is the public REST API, which returns richer per company  detail such as officers, filing history, charges but is rate limited. Enriching the full population this way would take more time, so API is applied selectively
 
@@ -267,7 +267,6 @@ when, and the single most important property for us: \textbf{the register gives
 you status, not the date trouble began}. A company is Active until it is not.
 That one fact is what forced every target to be defined as an event inside a
 forward window rather than as a state, and it should be stated here so}
-
 \note{The bulk product, 5,698,276 registered companies. The SIC scrape (731
 codes) and the mapping of 325 of them onto three target sectors. The Active
 filter and the size tiering off \texttt{Accounts.AccountCategory}, with the
@@ -286,6 +285,28 @@ Companies House server, and rather than interpolating we carry an honest NULL
 row through a dense calendar spine. It dictated calendar-aware windows
 everywhere downstream and it comes back as a real limitation in
 \S\ref{sec:limits}.}
+
+\subsection{The initial June 2026 snapshot}
+As mentioned, we started experimenting with our approach on the June bulk product from CH. CH is an executive agency, sponsored by the UK Department for Business and Trade. As stated on their official website, their responsibilities are to "incorporate, maintain and dissolve limited companies... examine and publish company information" \cite{companieshouse_api}. This is crucial to understand as it explains how we could access this data in the first place. A company must file annual accounts, a confirmation statement once a year restating its basic details, and, on an event basis, when certain events occur. All of this is public and enabled us to create the data basis to run our modelling. Here it is worth noting that the register maintained by CH records a company's \textbf{status} (active, insolvent, etc.), but does not carry any information on when or why it switched to a particular status. For this reason, we later incorporate data from the Gazzette, which records insolvency filings and maps the path a company took before insolvency. This is important as it explains why every target in \S\ref{sec:targets} is defined as an event inside a forward window rather than as a state at a point in time.
+
+Once we obtained the June snapshot comprising the 5,698,276 companies, we decided to narrow it down for initial testing. We utilised the official Standard Industrial Classification codes list \cite{companieshouse_sic}, scraping the full 731 codes. From this, we mapped 325 of them onto our 3 target sectors: Technology, Legal \& Professional, Manufacturing and Fast growth \& emerging. See \ref{app:sic-filtering} for more details on how the mapping logic works. We also filtered to \texttt{CompanyStatus == "Active"} and tiered by size based on \texttt{CompanyNumber} \cite{companieshouse_accounts_2026}. This left us with 1,372,321 companies.
+
+The join key we used here and for every table in this report is stated once here and never restated: \texttt{CompanyNumber}, zero-padded to eight digits. 
+
+\subsection{Acquiring the historical data}
+We quiclky incurred a limitation as the single snapshot described a company today, but did not express change, which is essential to encapsulate the modelling signal. More fundamentally, a single snapshot contains limitations on what to predict as it has no time-linked target event. For this reason, we successfully attempted to create a time series dataset, solving both problems at once and turning the target label into a future value of a column we already hold.
+
+To do so, we dug deeper into the CH website and found older monthly zips stored on the server, reachable by direct URL. These file names are not reliably dated to the first of the month, so rather than guessing, we probed days 1 to 15 of each candidate month once and recorded the dates that resolved. This gave us a manifest of 33 snapshots from October 2023 to July 2026. We keep all 33 zips, roughly 15 GB, permanently: the server ages older months off, at which point our copy is the only one, and re-deriving the panel with a different column set then costs no downloads at all.
+
+While doing this operation we encountered two limitations that changed our design moving forward:
+\begin{enumerate}
+    \item The panel is built in two passes rather than one. The obvious approach is to replay the cross-sectional filter on every month independently. That is wrong, because a company can be re-coded out of our target sectors without dying, and under a per-month filter that company simply disappears from the panel, which is indistinguishable from a dissolution. So pass one collects every \texttt{CompanyNumber} matching our sectors in any month, and pass two emits a row for every member of that universe present in a given month, whatever its status or current sector. Absence from the panel now means one thing only: gone from the register. The \texttt{recoded\_out_of\_sector} column records how often this mattered.
+    \item The second is that the panel keeps every status. Filtering to Active (as we did in the first filtering logic for practicality), replayed monthly, would delete every failure event and produce a panel in which no company ever fails, leaving a credit-risk model with nothing to learn from. Insolvent companies are not prospects, but they are precisely the labels we need. They stay in the panel, and we apply \texttt{is\_active} at scoring time instead. Under an Active-only build the non-Active share would read zero in all 33 months; in the panel it rises steadily, which is exactly the signal \S\ref{sec:targets} keys off.
+    \item A third, smaller decision protects point-in-time correctness at build time: the static feature computation is passed the real snapshot date rather than being allowed to default to the current date, so company age, accounts-overdue and accounts-stale reflect what was true in that month rather than what is true whenever the code happens to run.
+\end{enumerate}
+
+This results inot a panel holding 49,556,152 rows over roughly 2.04 million companies, stored long rather than wide: one row per company per month, so a company's history is read down the rows rather than across the columns. We saved the bulk dataset as 33 parquet transitions keyed on the month start, with the true extract date carried alongside as \texttt{source\_date}. 
+
 
 \section{Structured Feature engineering: Companies House and additional source}
 The team explored a wide range of public signals and not all of them were kept in the final model, this section records both what we kept and what we discarded along with the reasons. The retained features form four families, all keyed on eight digit \texttt{CompanyNumber}.  Two rules run through every family, every feature is calculated strictly as at the month it belongs to. A feature for month t can only use information that existed in the month t, never anything from the future, which is what  lets \S\ref{sec:targets} define learnable targets. Every feature's definition is stored in a catalogue and turned into a short hash, a finger print of exact input and logic used. This means any two runs can be proven to have used identical outputs, giving reproducibility and preventing silent changes.
@@ -453,9 +474,22 @@ dictionary's limits could become a client-facing error. Each row carries its top
 three SHAP reasons.}
 
 \section{Engineering practice}
-\note{Feature definitions live in a shared package rather than being re-implemented per notebook, so the training
-matrix matches the exploratory notebooks exactly. Version control uses a branch per workstream, and
-the modelling run records its configuration and metrics so that a re-run is a diff rather than a mystery}
+
+A constant risk in a project like this is that the code used to explore an idea and the code used to finally train the model can slowly drift apart. So that chart in a notebook can no longer be reproduced by the pipeline. Three practical steps was taken to prevent this.
+
+\paragraph{One shared definition of every feature}
+Feature or label logic was never re-written in each notebook. It was defined once, in a shared Python package \texttt{(src/features)} and \texttt{(src/models)} and imported by every notebook rather than copied. The panel and its deltas, the contract and lender features, the targets and training pipeline were all defined there and called from the exploratory notebooks. This guarantees that the matrix used for modelling is exactly the same one we explored.
+
+It also makes the logic testtable, the leakage and consistency tests run against the same functions that build the features, rather than against a separate notebook version that might quietly diverge. The modelling pipeline itself was built on scikit-learn \cite{sklearn_docs}, with a small registry so that adding a new model was a small change rather than edit threaded through several functions.
+
+\paragraph{A branch per workstream}
+Since five people worked in paralled, version control was organised as one feature branch per workstream rather than a single shared line. Each strand namely filtering, attrition, the structured panel and modelling, the unstructured lab and harmonisation owned its own branch so work processed without people overwriting one another, and the history recorded who did what and when.
+
+\paragraph{Runs that could be re-checked}
+Every modelling run writes down exactly how it has been produced. Alongside its metrics, each run wrote its full configuration, which feature matrix was used, the exact ordered list of features and the short \texttt{feature\_hash} , the model settings, the code version and a timestamp into small record on disk and refused to overwrite an existing one. Two things followed. A run could be reproduced from its record without reading any code and two runs could be compared by simply looking at the difference between their records. Any changes in the results is always traceable to change in inputs, not to an untracked edit.
+
+
+
 
 % -----------------------------------------------------------------------------
 \chapter{Critical Evaluation}
@@ -608,21 +642,19 @@ relationship itself.}
 
 \section{Limitations}
 \label{sec:limits}
-\note{Collect them honestly and do not soften them; this section makes the
-chapter stronger. The June 2025 gap in the source and its real consequence for
-any one-month lag at the July 2025 origin. The growth defect: nine features that
-were 100\% NULL in every training origin and populated in test, so the
-41-feature count was a fiction for that target and it is now a 27-feature model
-that says what it is. Voluntary exit precision@$N$ is partly arbitrary because
-982 of the top 1000 scores are exact ties, so nobody should quote it to three
-digits. MLP seed instability, per \S\ref{sec:errors}. The two-company residual
-that the rewritten verification still fails on the historical lender panel, and
-why it nearly went unnoticed. Four run manifests that record the wrong gate
-value. One misleadingly named feature that stays misleadingly named because
-renaming it would invalidate the comparability of every recorded run. Secured
-lending is only a proxy for a banking relationship. And the population question:
-Active-only caps the Gazette at 1,033 companies, so a statutory-informed model
-would need a wider population than the one we modelled.}
+The limitations below are listed plainly without softening. Naming them makes the work more trustworthy. Most of them are recorded openly in the project's own run log.
+
+\paragraph{A permanent gap in the source}
+Companies House never published a snapshot for June 2025 \cite{companieshouse_api}. The is a permanent gap, not a download error. The pipeline was built to cope with it, but it still leaves a mark for the month that sits right  next to the gap, most of all a one-month change measured at July 2025, those features comes back blank rather than being guessed.
+
+\paragraph{The growth model's feature count was, for a while, misleading}
+A bug in the growth pipeline meant nine  of its features were completely empty in every training month, even though they had values in the test months. A model cannot learn from a column it never sees while training, so the growth model was really  using far fewer features than its label claimed. Those columns were removed, taking the nominal featured from a forty-one featured to twenty-seven it actually uses, and is reported honestly.
+
+\paragraph{Secured lending does not show the full relationship}
+Features used in this project show who has registered a loan against a company, but that captures secured borrowing only. It says nothing about current accounts, deposits, unsecured loans or advice, so it is a narrow view of the real relationship. A fuller picture would need informtion the public record does not hold and it is well established that non-financial and behavioral data add real value beyong any single record like this \cite{altman_sabato_wilson_2010,berg_etal_2020}
+
+\paragraph{Limited population}
+the modelling data was deliberately not restricted to actively trading firms. It keeps every company status, so that failed companies supply the insolvency labels the model learns from and it includes roughly 181,000 dormant companies rather than dropping them. But the two boundaries remain.
 
 % -----------------------------------------------------------------------------
 \chapter{Conclusion}
@@ -684,6 +716,65 @@ contributions are made auditable.}
 \note{The 325 SIC codes mapped onto the three target sectors, the size tiering
 from account category with each regulatory definition, and the resulting
 segment-by-sector counts.}
+
+This appendix documents the Standard Industrial Classification (SIC)
+filtering procedure used to define the analytical population. The purpose is
+to make the sector selection and classification rules fully reproducible.
+
+\section{Sector definitions}
+
+The final sector classification consisted of three groups:
+
+\begin{enumerate}
+    \item \textbf{Technology, Legal \& Professional}: companies whose SIC
+    classification belongs to either Section J (Information and communication)
+    or Section M (Professional, scientific and technical activities).
+
+    \item \textbf{Manufacturing}: companies whose SIC classification belongs
+    to Section C (Manufacturing).
+
+    \item \textbf{Fast growth \& emerging}: companies with at least one SIC
+    code matching one of the specifically selected SIC codes listed in
+    Section~\ref{app:sic-specific-codes}.
+\end{enumerate}
+
+The classification was applied across all four SIC-code fields available for
+each company. A company was assigned to Fast growth \& emerging if at least
+one of its four SIC codes matched the specified codes. This category takes
+precedence over the broader sector classifications.
+
+\section{Specific SIC codes for Fast growth \& emerging}
+\label{app:sic-specific-codes}
+
+The Fast growth \& emerging category was defined using the following SIC
+codes:
+\begin{table}[!htbp]
+\centering
+\caption{SIC codes used to identify Fast growth \& emerging companies}
+\label{tab:sic-fast-growth}
+
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{1.8cm}
+                                >{\raggedright\arraybackslash}X
+                                >{\raggedright\arraybackslash}p{3cm}}
+\toprule
+\textbf{SIC code} & \textbf{Activity} & \textbf{Grouping} \\
+\midrule
+62011 & Business and domestic software development & Software / IT services \\
+62012 & Business and domestic software development & Software / IT services \\
+62020 & Information technology consultancy activities & Software / IT services \\
+62030 & Computer facilities management activities & Software / IT services \\
+62090 & Other information technology service activities & Software / IT services \\
+63110 & Data processing, hosting and related activities & Data / web \\
+63120 & Web portals & Data / web \\
+72110 & Research and experimental development on biotechnology & Biotech / R\&D \\
+72190 & Other research and experimental development on natural sciences and engineering & Biotech / R\&D \\
+72200 & Research and experimental development on social sciences and humanities & Biotech / R\&D \\
+66190 & Activities auxiliary to financial services, except insurance and pension funding & Fintech-adjacent \\
+\bottomrule
+\end{tabularx}
+
+\end{table}
+
 
 \chapter{The feature catalogue}
 \label{appx:features}
