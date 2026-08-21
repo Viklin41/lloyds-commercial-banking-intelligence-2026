@@ -1,0 +1,34 @@
+\begin{table}
+\caption{Lender-family SHAP importance on lending across the three as-of gates. Rank is out of the run's full feature list.}
+\label{tab:shap_gate_ladder_lending}
+\begin{tabular}{llrrr}
+\toprule
+feature & tag & mean_abs_shap & rank & n_features \\
+\midrule
+competitor_charge_created_6m & lender & 0.042000 & 15 & 54 \\
+competitor_charge_created_6m & lender_fixed & 0.023300 & 19 & 54 \\
+competitor_charge_created_6m & lender_asof21 & 0.000200 & 48 & 54 \\
+lbg_share_of_outstanding & lender & 0.145600 & 5 & 54 \\
+lbg_share_of_outstanding & lender_fixed & 0.073100 & 10 & 54 \\
+lbg_share_of_outstanding & lender_asof21 & 0.002200 & 37 & 54 \\
+months_since_last_lbg_charge_created & lender & 0.006300 & 31 & 54 \\
+months_since_last_lbg_charge_created & lender_fixed & 0.005200 & 31 & 54 \\
+months_since_last_lbg_charge_created & lender_asof21 & 0.005100 & 29 & 54 \\
+months_since_last_lbg_satisfaction & lender & 0.002200 & 41 & 54 \\
+months_since_last_lbg_satisfaction & lender_fixed & 0.002100 & 40 & 54 \\
+months_since_last_lbg_satisfaction & lender_asof21 & 0.002100 & 38 & 54 \\
+n_charges_outstanding & lender & 0.413800 & 1 & 54 \\
+n_charges_outstanding & lender_fixed & 0.284100 & 3 & 54 \\
+n_charges_outstanding & lender_asof21 & 0.001700 & 40 & 54 \\
+n_competitor_lenders & lender & 0.002200 & 42 & 54 \\
+n_competitor_lenders & lender_fixed & 0.003000 & 37 & 54 \\
+n_competitor_lenders & lender_asof21 & 0.001600 & 41 & 54 \\
+n_distinct_lenders & lender & 0.022600 & 20 & 54 \\
+n_distinct_lenders & lender_fixed & 0.011800 & 25 & 54 \\
+n_distinct_lenders & lender_asof21 & 0.002800 & 35 & 54 \\
+primary_lender_group & lender & 0.017800 & 23 & 54 \\
+primary_lender_group & lender_fixed & 0.018200 & 21 & 54 \\
+primary_lender_group & lender_asof21 & 0.017700 & 20 & 54 \\
+\bottomrule
+\end{tabular}
+\end{table}
