@@ -287,9 +287,9 @@ everywhere downstream and it comes back as a real limitation in
 \S\ref{sec:limits}.}
 
 \subsection{The initial June 2026 snapshot}
-As mentioned, we started experimenting with our approach on the 2026 bulk product from CH. CH is an executive agency, sponsored by the UK Department for Business and Trade. As stated on their official website, their responsibilities are to "incorporate, maintain and dissolve limited companies... examine and publish company information" \cite{companieshouse_api}. This is crucial to understand as it explains how we could access this data in the first place. A company must file annual accounts, a confirmation statement once a year restating its basic details, and, on an event basis, when certain events occur. All of this is public and enabled us to create the data basis to run our modelling. Here it is worth noting that the register maintained by CH records a company's \textbf{status} (active, insolvent, etc.), but does not carry any information on when or why it switched to a particular status. For this reason, we later incorporate data from the Gazzette, which records insolvency filings and maps the path a company took before insolvency. This is important as it explains why every target in \S\ref{sec:targets} is defined as an event inside a forward window rather than as a state at a point in time.
+As mentioned, we started experimenting with our approach on the June 2026 bulk product from CH. CH is an executive agency, sponsored by the UK Department for Business and Trade. As stated on their official website, their responsibilities are to "incorporate, maintain and dissolve limited companies... examine and publish company information" \cite{companieshouse_api}. This is crucial to understand as it explains how we could access this data in the first place. A company must file annual accounts, a confirmation statement once a year restating its basic details, and other statements on an event basis. All of this is public and enabled us to create the data basis to run our modelling. Here it is worth noting that the register maintained by CH records a company's \textbf{status} (active, insolvent, etc.), but does not carry any information on when or why it switched to a particular status. For this reason, we later incorporate data from the \textit{Gazette}, the UK's official public record, which publishes formal notices relating to corporate insolvency. These notices cover a range of insolvency events, including administrations, receiverships, voluntary liquidations, winding-up petitions and winding-up orders, and can contain event-specific information such as the date on which a petition was filed and the date on which a winding-up order was made \cite{gazette_insolvency}. This makes The Gazette particularly valuable for reconstructing the sequence of events preceding and surrounding insolvency, rather than relying only on a company's observed status in the CH register. This distinction is important as it explains why every target in \S\ref{sec:targets} is defined as an event occurring within a forward window rather than as a state observed at a particular point in time.
 
-Once we obtained the June snapshot comprising the 5,698,276 companies, we decided to narrow it down for initial testing. We utilised the official Standard Industrial Classification codes list \cite{companieshouse_sic}, scraping the full 731 codes. From this, we mapped 325 of them onto our 3 target sectors: Technology, Legal \& Professional, Manufacturing and Fast growth \& emerging. See \ref{app:sic-filtering} for more details on how the mapping logic works. We also filtered to \texttt{CompanyStatus == "Active"} and tiered by size based on \texttt{CompanyNumber} \cite{companieshouse_accounts_2026}. This left us with 1,372,321 companies.
+Once we obtained the June snapshot comprising the 5,698,276 companies, we decided to narrow it down for initial testing. We utilised the official Standard Industrial Classification codes list \cite{companieshouse_sic}, scraping the full 731 codes. From this, we mapped 325 of them onto our 3 target sectors: Technology, Legal \& Professional, Manufacturing and Fast growth \& emerging. See \ref{app:sic-specific-codes} for more details on how the mapping logic works. We also filtered to \texttt{CompanyStatus == "Active"} and tiered by size based on \texttt{CompanyNumber} \cite{companieshouse_accounts_2026}. This left us with 1,372,321 companies.
 
 The join key we used here and for every table in this report is stated once here and never restated: \texttt{CompanyNumber}, zero-padded to eight digits. 
 
@@ -298,14 +298,14 @@ We quiclky incurred a limitation as the single snapshot described a company toda
 
 To do so, we dug deeper into the CH website and found older monthly zips stored on the server, reachable by direct URL. These file names are not reliably dated to the first of the month, so rather than guessing, we probed days 1 to 15 of each candidate month once and recorded the dates that resolved. This gave us a manifest of 33 snapshots from October 2023 to July 2026. We keep all 33 zips, roughly 15 GB, permanently: the server ages older months off, at which point our copy is the only one, and re-deriving the panel with a different column set then costs no downloads at all.
 
-While doing this operation, we encountered two limitations that changed our design moving forward:
+While doing this operation, we encountered two methodological considerations that changed our design moving forward:
 \begin{enumerate}
     \item The panel is built in two passes rather than one. The obvious approach is to replay the cross-sectional filter on every month independently. That is wrong, because a company can be re-coded out of our target sectors without dying, and under a per-month filter that company simply disappears from the panel, which is indistinguishable from a dissolution. So pass one collects every \texttt{CompanyNumber} matching our sectors in any month, and pass two emits a row for every member of that universe present in a given month, whatever its status or current sector. Absence from the panel now means one thing only: gone from the register. The \texttt{recoded\_out\_of\_sector} column records how often this mattered.
     \item The second is that the panel keeps every status. Filtering to Active (as we did in the first filtering logic for practicality), replayed monthly, would delete every failure event and produce a panel in which no company ever fails, leaving a credit-risk model with nothing to learn from. Insolvent companies are not prospects, but they are precisely the labels we need. They stay in the panel, and we apply \texttt{is\_active} at scoring time instead. Under an Active-only build the non-Active share would read zero in all 33 months; in the panel it rises steadily, which is exactly the signal \S\ref{sec:targets} keys off.
     \item A third, smaller decision protects point-in-time correctness at build time: the static feature computation is passed the real snapshot date rather than being allowed to default to the current date, so company age, accounts-overdue and accounts-stale reflect what was true in that month rather than what is true whenever the code happens to run.
 \end{enumerate}
 
-This results inot a panel holding 49,556,152 rows over roughly 2.04 million companies, stored long rather than wide: one row per company per month, so a company's history is read down the rows rather than across the columns. We saved the bulk dataset as 33 parquet files keyed on the month start, with the true extract date carried alongside as \texttt{source\_date}. Both choiches matter later. The long format means adding a feature adds a column and never a row. TBC 
+This results in a panel holding 49,556,152 rows over roughly 2.04 million companies, stored long rather than wide: one row per company per month, so a company's history is read down the rows rather than across the columns. We saved the bulk dataset as 33 parquet files keyed on the month start, with the true extract date carried alongside as \texttt{source\_date}. Both choiches matter later. The long format means adding a feature adds a column and never a row. TBC 
 
 Before moving forward we performed two checks to determine the historical correctness of our files. First, we took the panel's June 2026 partition, filtered it back to Active and in-sector, and verified it landed exactly on the cross-sectional build, at
 1,372,321 rows with an identical company set and identical sector counts (Tech and legal 837,066, Fast growth 320,670, Manufacturing 214,585). It did. Since the other 32 months are
@@ -409,6 +409,63 @@ was benign strike-off) to genuine insolvency only, and voluntary exit redefined
 from a state at $t{+}H$ to an event anywhere in the window, roughly doubling the
 base rate, because about half of strike-off proposals are withdrawn but still
 mark a real distress moment.}
+
+\subsection{The targets defined}
+Everything before this section covered features, here we will go more into detail on how we used the dataset design to create lables to be predicted. Because we hold a time series, a label will be a future value of a column we already own.
+
+In this context we model feature on month \texttt{t} and labels from \texttt{t+1} to \texttt{t+H} and never from \texttt{t} itself. It is easy to state and easy to violate, which would produce a model with excellent AUC that is however worthelss in deployment as in deployment \texttt{t+1} has not happened yet.
+
+The four targets are set out in Table ~\ref{tab:targets}. All four are conditioned on the company beign active at the origin, because a company already in liquidation is not a prospect and asking wheter it will become insolvent is not a meaningful question to put to it.
+
+\begin{table}[htbp]
+    \centering
+    \caption{The four targets}
+    \label{tab:targets}
+    \begin{tabular}{llll}
+        \hline
+        \textbf{Index} & \textbf{Event} & $\boldsymbol{H}$ & \textbf{Base rate} \\
+        \hline
+        Lending Readiness
+            & registered charge count increases
+            & 3m
+            & 0.25 to 0.31\% \\
+        Credit Risk Exposure
+            & enters genuine insolvency
+            & 6m
+            & 0.30 to 0.41\% \\
+        Voluntary Exit
+            & a strike-off proposal appears \footnotemark
+            & 6m
+            & 6.7 to 8.5\% \\
+        Growth Signal
+            & size tier moves up
+            & 12m
+            & 2.1 to 2.2\% \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\footnotetext{Here, voluntary strike-off refers to the process by which a company applies to CH to be removed from the register and dissolved. This is distinct from formal insolvency: a company may apply for voluntary strike-off when it is no longer needed or has ceased trading, provided that it satisfies the relevant eligibility conditions. The application is made by the directors (or a majority of them) using form DS01, after which CH publishes a notice of the proposed strike-off in the Gazette. If no objection is raised, the company is subsequently struck off and dissolved. Thus, in this study, "a strike-off proposal appears" refers to the observable initiation of this voluntary dissolution process, rather than to the company already being dissolved. Voluntary strike-off is therefore interpreted as a signal of voluntary exit, rather than as a direct indicator of insolvency. See Companies House~\cite{companieshouse_strikingoff_2025}.}
+
+\subsection{Distress logic evolution \& Growth signal segments  }
+The original plan defined the distress label as Active at \texttt{t} and non-Active by \texttt{t+H}, this meant that if a company disappeared from the Actice category for any reason, it was laelled as a general distress. That runs at roughly four per cent, and about ninety per cent of it is voluntary strike-off: dormant micro-companies quietly closing. That is not a credit event, and we assumed no bank wants it in a risk model. We therefore narrowed the definition to genuine insolvency status, explicitly listing the ten relevant statuses rather than relying on text matching. This ensures that any new, unexpected status is flagged rather than silently missed. This dropped the rate to about 0.34\%. We model both outcomes, separately, as Credit Risk Exposure and Voluntary Exit, because they are different questions with different audiences and blending them lets the loud label drown the important one.
+
+We compared the two outcomes to determine if this was the right. Restricted to rows
+where both labels are defined, a company that proposes a strike-off is less likely than
+average to enter genuine insolvency, at a lift of 0.59. The two also separate cleanly and in
+opposite directions on company age: voluntary exit runs at 14.6\% for companies under two years
+old and falls to 3.1\% past twenty, while genuine insolvency runs at 0.05\% under two years and
+rises with age. Those are two different phenomena, a dormant shell being abandoned and an established trading business failing, and merging them would have produced a risk model
+predominantly about the former.
+
+Delving deeper into this distinction, we measured whether a company was still sitting in "Proposal to Strike off" at exactly \texttt{t+6} and reported 3.4 to 3.8\%. The shipped label measures whether a proposal appeared at any month in the window and reports 6.7 to 8.5\%. Both numbers are correct about what they measure, and the entire gap is proposals raised and then withdrawn, which happens routinely once a company files its overdue accounts and accounts for about half of all proposals at every origin. We keep the event definition for two reasons. A proposal raised and withdrawn is still the moment a relationship manager wanted to know about, and it is specifically the half where intervention was still possible; defining it away because the company recovered would discard exactly those cases. And a state read off a single month is hostage to that month existing, which, given that June 2025 does not, is not a property we want any label to depend on. The honest cost is that Voluntary Exit means a strike-off process started, not that the company died. We flag this in the report as it requires caution when interpreting.
+
+One further definitional care: the \texttt{segment} field mixes real size tiers with filing states such as Dormant and No Filings, so a naive "segment changed" test runs at about thirteen per cent over
+twelve months and is mostly filing churn rather than growth. The growth label therefore ranks
+only the four genuine tiers, and companies with no rank are excluded from the label rather than
+assigned to one.
+
+\subsection{}
 
 \section{The modelling pipeline as software}
 \note{Frame this as reproducibility engineering, not as plumbing.
