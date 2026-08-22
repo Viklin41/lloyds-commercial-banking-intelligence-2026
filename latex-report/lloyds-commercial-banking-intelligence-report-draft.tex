@@ -165,22 +165,17 @@ of the public data we relied on entirely. One paragraph is enough.}
 \label{chap:introduction}
 % 3 pages. Owner: Sneha.
 
-\section{The problem}
 LLoyds Banking Group's Commercial Banking division provides lending, transactional banking, working -capital management, debt financing and risk-management services to business\cite{lloyds_products}, operating through LLoyds Banking Group and its family of brands \cite{lbg_brands}. This project, carried out by a student team in collaboration with the bank, asks whether the public record alone including Companies Houses and other free sources, can identify commercial opportunites and risks among both existing customers and companies the bank currently does not serve, without any access to internal client data.
 
 \section{The problem}
 \label{sec:problem}
-The brief asks whether
+The central question is whether publicly available data can supply useful, company-level signals of future banking need and risk without access to bank's internal client data. A commercial bank has complete visibility of its own customers and very little of those it does not serve, so the task is to identify, among roughly 5.7 million companies on the UK register \cite{companieshouse_api}, those likely to need lending, those showing early signs of distress and growth opportunites, explicitly including companies that do not bank with LLoyds. This is therefore a search problem over a large and highly sparse population, in which teh events of interest are rare and most of the population is invisible to the bank today, rather than classification problem over a a known customer base. To make this tractable, scope of analysis was chosen to roughly 1.4 million companies targeting Small and medium-sized  enterprises (SMEs) and sectors including manufacturing, legal and professional services and fast-growth and emerging companies. These sectors were chosen because they were expected to have high proportion of SMEs rather than large corporates. Concretely, we ask whether structured public records can be turned into features, whether a model can use these features to rank companies for further commercial review of the news and articles regarding the flagged companies that shows relative signals and whether the resulting scores can be explained and linked to specific Lloyds services such as inoice finance, assest finance and working capital support\cite{lloyds_products}.
 
 
 
 \section{Why it matters, and to whom}
-\note{Three named audiences from the client brief: the Growth team (``not
-ours''), the Attrition team (``ours and leaving''), the Maintenance team
-(``ours and staying''). Say here that those three are defined by
-\emph{counterparty}, not by need, which is why counterparty identity became a
-workstream of its own and why the routing in \S\ref{sec:routing} is the piece
-that turns a ranked list into something a person can act on.}
+Small and medium-sized enterprises (SMEs) account for the overwhelming majority of the UK businesses and employment \cite{beis_bpe}. Yet, they face persistent gaps in acces to finance, which makes their banking relationships both commercially valuable and contested \cite{bbb_2024,oecd_2024_sme}.
+
 
 \section{Central challenges}
 \note{Four that we surmounted and one that we did not, and the fifth is the
@@ -488,6 +483,41 @@ a \texttt{record\_run} that refuses to overwrite an existing tag. Staged
 execution via a script rather than a notebook, and the honest reason: the
 machine kept rebooting under long jobs. The \texttt{src/} module map, one line
 each. Point at Appendix~\ref{appx:runs} for the run registry.}
+
+In this section we go through the machinery that made a run cost one line of code.
+
+\subsection{The three axes for a run, model families \& evaluation settings}
+Firstly, we need to establish what the three axes are that constitute a run: which matrix is read, which feature list is applied to it and which model families are fitted. In our previous design, each was a separate keyword argument threaded through six functions, which meant they had to agree else the run would have silently done the wrong thing. This design caused a silent failure, for instance pointing at the wider "lender matrix" (i.e. the one including additional variables on lender data) while passing the baseline feature list simply dropped the lender columns and raised nothing at all. To fix this crippled design, we tied the three azes into one frozen \texttt{RunConfig}, which makes the illegal combinations unpresentable and makes a run reproducible from a single value. 
+
+We applied these changes after a supervisor review on the 27th July 2026, after which we turned the two hard-coded fitting functions called by name inside the training loop into a registry in which each entry knows how to build a complete model architecture, whether it requires the dense preprocessing path (i.e. special preprocessing used for dense models), which SHAP explainer applies to it, and what its hyperparameter grid is. The training loop iterates the registry. This, in turns allows us to add a new model family by simply adding one dictionary entry, which is what made fitting a third family affordable at all.
+
+We use the three model families according to this rationale:
+\begin{itemize}
+    \item \textbf{Gradient-boosted trees} \cite{ke2017lightgbm} are the real model.
+    \item \textbf{Regularised logistic regression} is the interpretable floor, meaning that if the boosting cannot clearly beat a linear model on the same features, then it is not earning its complexity and we should flag that. Moreover, its signed coefficients serve as an independent check on the SHAP directions, since a disagreement means one of the two its wrong.
+    \item The \textbf{multi-layer perceptron} occupies the complex end of the interpretability trade-off; its job is not to win. 
+\end{itemize}
+
+Both dense families share a single preprocessing block of imputation, scaling and one-hot encoding\footnote{Imputation replaces missing feature values with estimated values based on the observed data; scaling transforms numerical features to a comparable scale, commonly by centring them at zero and dividing by their standard deviation; and one-hot encoding represents a categorical variable as a set of binary indicator variables, one for each category. These transformations are standard preprocessing steps for machine-learning estimators. \cite{scikit_learn_preprocessing}}. This is deliberate, because if the network and the linear floor saw differently prepared features, the comparison between them would be about the preprocessing rather than about the model.
+
+During imputation, missingness is flagged rather than filled, via an imputer configured to add an indicator column. A NULL delta means "cannot say", and that is information the boosted model expresses natively
+and the dense models cannot express at all without the indicator. The behaviour of that same
+imputer on a column with no observed value in training turns out to matter a great deal, and
+is taken up in \S\ref{sec:limits}.
+
+Additionally, we implemented three smaller decisions to protect the evaluation:
+\begin{itemize}
+    \item Early stopping for performance validation runs on a company-grouped slice of the training rows and never on the test set, using the test set for early stopping would use the evaluation data to make a training decision, compromising the independence of the final performance estimate; scikit-learn's network does its own early stopping on a random slice \cite{scikit-learn_early_stopping_gradient_boosting} and offers no way to supply a grouped one, this may cause early-stopping to train somewhat longer than ideal, but the final out-of-time test set remains completely independent and is used only after training is finished.
+    \item The dense models are row-capped at 500,000 and 300,000 rows respectively; this means we are limiting how many observations are fed into the dense models, not how many features. We do this because backpropagation over a dense one-hot matrix is by far the slowest operation in the module, and what we want from it is a fair comparison rather than the best obtainable network. 
+    \item Finally, the evaluation matrices are rebuilt with no downsampling at all, because precision@$N$ does not survive negative downsampling and it is the headline metric we use in the dashboard. We use the same matrix-building function for both purposes, with the negative keep rate set below 1 for training and to 1 for evaluation.
+\end{itemize} 
+
+
+
+\subsection{?}
+
+\subsection{Recording a run}
+
 
 \subsection{Baseline}
 
