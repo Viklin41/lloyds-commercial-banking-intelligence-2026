@@ -382,6 +382,7 @@ examples in \S\ref{sec:sources-eval}, since they are the cautionary evidence for
 this whole subsection.}
 
 \subsection{Counterparty identity: the Charges harvest}
+\label{sec:charges}
 \note{Why lender identity is the axis the client brief is actually defined on.
 The harvest: 158,684 companies, 558,693 charges, 25.4 hours, zero 404s, staged
 and resumable. The ordered regex taxonomy collapsing free-text lender names onto
@@ -450,22 +451,35 @@ The four targets are set out in Table ~\ref{tab:targets}. All four are condition
 \subsection{Distress logic evolution \& Growth signal segments  }
 The original plan defined the distress label as Active at \texttt{t} and non-Active by \texttt{t+H}, this meant that if a company disappeared from the Actice category for any reason, it was laelled as a general distress. That runs at roughly four per cent, and about ninety per cent of it is voluntary strike-off: dormant micro-companies quietly closing. That is not a credit event, and we assumed no bank wants it in a risk model. We therefore narrowed the definition to genuine insolvency status, explicitly listing the ten relevant statuses rather than relying on text matching. This ensures that any new, unexpected status is flagged rather than silently missed. This dropped the rate to about 0.34\%. We model both outcomes, separately, as Credit Risk Exposure and Voluntary Exit, because they are different questions with different audiences and blending them lets the loud label drown the important one.
 
-We compared the two outcomes to determine if this was the right. Restricted to rows
-where both labels are defined, a company that proposes a strike-off is less likely than
-average to enter genuine insolvency, at a lift of 0.59. The two also separate cleanly and in
-opposite directions on company age: voluntary exit runs at 14.6\% for companies under two years
-old and falls to 3.1\% past twenty, while genuine insolvency runs at 0.05\% under two years and
-rises with age. Those are two different phenomena, a dormant shell being abandoned and an established trading business failing, and merging them would have produced a risk model
-predominantly about the former.
+We compared the two outcomes to determine if this was the right. Restricted to rows where both labels are defined, a company that proposes a strike-off is less likely than average to enter genuine insolvency, at a lift of 0.59. The two also separate cleanly and in
+opposite directions on company age: voluntary exit runs at 14.6\% for companies under two years old and falls to 3.1\% past twenty, while genuine insolvency runs at 0.05\% under two years and rises with age. Those are two different phenomena, a dormant shell being abandoned and an established trading business failing, and merging them would have produced a risk model predominantly about the former.
 
 Delving deeper into this distinction, we measured whether a company was still sitting in "Proposal to Strike off" at exactly \texttt{t+6} and reported 3.4 to 3.8\%. The shipped label measures whether a proposal appeared at any month in the window and reports 6.7 to 8.5\%. Both numbers are correct about what they measure, and the entire gap is proposals raised and then withdrawn, which happens routinely once a company files its overdue accounts and accounts for about half of all proposals at every origin. We keep the event definition for two reasons. A proposal raised and withdrawn is still the moment a relationship manager wanted to know about, and it is specifically the half where intervention was still possible; defining it away because the company recovered would discard exactly those cases. And a state read off a single month is hostage to that month existing, which, given that June 2025 does not, is not a property we want any label to depend on. The honest cost is that Voluntary Exit means a strike-off process started, not that the company died. We flag this in the report as it requires caution when interpreting.
 
-One further definitional care: the \texttt{segment} field mixes real size tiers with filing states such as Dormant and No Filings, so a naive "segment changed" test runs at about thirteen per cent over
-twelve months and is mostly filing churn rather than growth. The growth label therefore ranks
-only the four genuine tiers, and companies with no rank are excluded from the label rather than
-assigned to one.
+One further definitional care: the \texttt{segment} field mixes real size tiers with filing states such as Dormant and No Filings, so a naive "segment changed" test runs at about thirteen per cent over twelve months and is mostly filing churn rather than growth. The growth label therefore ranks only the four genuine tiers, and companies with no rank are excluded from the label rather than assigned to one.
 
-\subsection{}
+\subsection{Quarterly Origins \& Train/Test Split design choices}
+\label{sec:train-test-split-logic}
+We decided to keep the the label origins quarterly rather than creating a training example for every month. This is done so each company contributes one observation every three months rather than a sequence of near-identical monthly observations, and the three-month lending windows do not overlap. This causes the six- and twelve-month targets to overlap by factors of two (6/3) and four (12/3) respectively. This is particularly dangerous for leakage as the same company can appear multiple times in training and validation if the split is performed randomly. For this reason we apply a grouped cross-validation in \S\ref{sec:pipeline}, splitting between training and validation by keeping the same company's observation across one or the other. Moreover, label windows are expressed as calendar range frames rather than positional offsets, for the same reason the delta features are: a positional frame would silently reach an extra month past the June 2025 hole. Finally, where a window contains no observed month at all the label is NULL and never zero, to separate unkown from unhappened.
+
+The split we created follows \S\ref{sec:leakage-bg} directly: train on early origins, test on late ones, with an embargo of at least $H$ months between them so that training labels do not extend into test period. The quarterly grid pays off here. Lending has a three-month horizon and quarterly origins, so consecutive origins are already exactly $H$ apart and it loses nothing to the embargo, which is why it gets five training origins where the six-month targets get three. The twelve-month growth label pays the full price, losing three origins. 
+
+To make things more shielded, we implemented a guard, \texttt{FIRST\_FULL\_ORIGIN} (October 2024), that marks the first month at which every feature has enough historical data to be properly formed rather than NULL for calendar reasons. However, if enforcing that rule would leave us with fewer than three training origins, we relax it rather than train on an unusably small sample. For the twelve-month target this fallback always fires, which means that that target has less ideal training history than the other targets and the pipeline has to relax the guard to get enough training origins. This turns out to matter and is treated as a limitation in \S\ref{sec:limits} rather than as a design choice here.
+
+\subsection{Negatives downsampling}
+We faced a significant problem due to the targets scarcity. At a base rate near three in a thousand, most of 1.4 million rows per origin are negatives that teach a model nothing, and carrying them costs real computational time. For this reason, we kept every positive but downsampled the negative observations. Sampling is done per origin months so the origin mix is preserved for the out-of-time split described in \S\ref{sec:train-test-split-logic}, and negatives are selected by a hash of the company number rather than a random draw, which makes the sample reproducible without threading a seed through the query engine and more importantly keeps the choice consistent for a company across origins. The sampled positive rate lands at 1:10 for all four targets, which confirms it correctly downnsampled to the desired rate. We recorded the fraction of negative observations that we retained under the keep rate, which we carried as a column on every row. This is crucial as downsampling negatives at rate $r$ multiplies the odds by $1/r$ and inflates every predicted probability by roughly thirtyfold. While the probability ranking survives that, being a monotone transform; the numbers do not, and a statement that a company has a x\% chance of insolvency is false until we correct it by
+$\text{odds}_{\text{true}} = r \cdot \text{odds}_{\text{sampled}}$.
+
+\subsection{Verification}
+Finally, we performed three checks to determine if our design choiches where corrected:
+\begin{itemize}
+    \item First, we tested leakage. Structurally the boundary holds by construction, but structure is an argument rather than evidence, so we measured the correlation of every feature with every label. The strongest is 0.37, and the ordering is economically sensible, with larger companies, companies already carrying debt and companies that have recently taken on charges being the most likely to take on another. A near-unit correlation would have meant a feature was secretly the answer, but this is not the case for our setup.
+    \item Second, we stress-tested the June 2025 hole on the label side to determine if the pipeline correctly calculated the April label using the months that actaully exists, withouth accidentally pulling August or declaring the label mission. The April 2025 origin has a three-month window
+covering May, June and July, and it must still produce a normal label built from May and July rather than being silently NULL or silently reaching into August. It does.
+\item Finally, we tested for base-rate stability. All four rates are flat across all eleven origins and fall inside the plausibility ranges written down before measuring. That is what licenses the out-of-time split, because with no drift in the underlying rate, if the model performs better on the test set than expected, we have more reason to believe that the improvement comes from the model's ability to predict the event, rather than simply because the test period happens to have a very different event rate.
+\end{itemize}
+
+A fifth label, \texttt{switching}, was also built from the charge data described in \S\ref{sec:charges}, measuring if the company is changing which lender it uses. It is measured and deliberately not trained as it did not meet the pre-specified sample-size threshold for ML training. But in future work we would have attempted to develop this signal further.
 
 \section{The modelling pipeline as software}
 \note{Frame this as reproducibility engineering, not as plumbing.
