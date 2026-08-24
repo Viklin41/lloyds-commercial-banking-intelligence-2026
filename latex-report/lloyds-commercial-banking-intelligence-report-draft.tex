@@ -62,7 +62,23 @@ form: rows of panel built, features engineered, hours of API harvest, runs
 recorded, lift achieved. State the outcome view explicitly, including that two
 of our headline results are negative and measured.}
 
-A commercial bank has full visibility of its own customers and very little of companies it does not serve. Working with lloyds Banking Group's Commercial Banking division, this project asks whether the public record alone can identify business and SME prospects and risks among companies that are not 
+A commercial bank has full visibility of its own customers and very little of companies it does not serve. Working with lloyds Banking Group's Commercial Banking division, this project asks whether the public record alone can identify business and SME prospects and risks among both its existing customers and companies that are not yet clients, using only freely available data and no internal information. The question is framed as a search over large and sparse population rather than a classification over a known customer base and is scoped to roughly 1.4 million SMEs across three target sectors.
+
+To answer it, we reconstructed a history the register does not provide, assembling thirty-three monthly snapshots of Companies House into a company month panel of 49.6 million rows. On this panel we engineered 41 features across four families and defined four self-labelled targets, each read from a future state of the same register so that the labels are learnable without look ahead. We then compared an interpretable baseline against a gradient boosted tree and a neural network over eleven recorded model runs, and attached a SHAP explanation to every score, so that the output is ranked and defensible shortlist with a reason for each entry.
+
+The project's central finding is that the structured public record does carry predictive signal, with the lending readiness shortlist ranks companies at roughly one hundred times the base rate among its top candidates. Unstructured news, articles and media however, does not reach companies of this size at all, and when its coverage of target population was measured it was negligible, so unstructured signals was added for companies flagged with signals. The statutory record of insolvency describes a company only after it has failed, to late to act on. Establishing these boundaries with evidence is contribution in its own right, because it direct effort toward the sources that work and away from those that cannot.
+
+\noindent
+In quantitative terms the project delivered the following
+\begin{itemize}
+    \item a 33-month company month panel of 49.6 million rows over the Companies House register;
+    \item 41 engineered feature across four families and four self-labelled prediction targets;
+    \item an elevn run model comparison across three model families;
+    \item a 25.4 hour programmatic harvest of 558{,}693 secured charges;
+    \item a 284{,}230 notice crawl of \emph{The Gazette};
+    \item a data leakage defect identified and correct over four passes;
+    \item and a lending shortlist running at roughly one hundred times the base rate among its top 500 candidates
+\end{itemize}
 
 % -----------------------------------------------------------------------------
 % \chapter*{Summary of Changes}
