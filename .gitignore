@@ -7,8 +7,22 @@ env/
 # Environment variables
 .env
 
+# Live API credentials. This repository is public; the key must never be committed.
+GUARDIAN_API_KEY.txt
+
+# Staging area for files pulled out of the project, pending manual relocation.
+Unwanted_files/
+
 # Data (all raw, processed, and output files)
 data/
+
+# Large regenerable datasets kept at the repo root rather than under data/.
+# The dashboard does not read either: serve.py loads the external data tree
+# (LLOYDS_DATA), and the similarly named file it does use is
+# data/processed/filtered_bb_sme_sectors_all_status_2026-08-01.csv, not this one.
+# Both are rebuilt by notebooks/01_companies_house.ipynb.
+filtered_bb_sme_sectors.csv
+notebooks/BasicCompanyDataAsOneFile-2026-06-01.csv
 
 # Draft code/notebooks
 drafts/
@@ -22,3 +36,9 @@ __pycache__/
 .vscode/
 .idea/
 *.swp
+
+# Lloyds brand assets. Kept local: this repository is public and these are
+# trademarked marks. The dashboard renders without them.
+dashboard/Lloyds_Banking_Group_Logo.png
+dashboard/Lloyds-Bank-Symbol.png
+dashboard/assets/horse-mark.png
