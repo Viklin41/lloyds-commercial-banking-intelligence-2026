@@ -77,6 +77,7 @@
 \RequirePackage{array}
 \RequirePackage{tabularx}
 \RequirePackage{booktabs}
+\RequirePackage{longtable}
 
 
 % =============================================================================
