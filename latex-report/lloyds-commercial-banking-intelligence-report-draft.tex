@@ -239,7 +239,20 @@ self-labelled targets, 11 recorded model runs across 3 model families, a
 leakage defect found and corrected in four passes, and a shortlist running at
 about 150x lift on lending.}
 
+\begin{itemize}
+    \item \textbf{Aim :} To determine whether publicly available company information contains useful and interpretable signals that can rank companies for commercial review better than chance, and whether interpretable models can show which factors drive each score across the growth, relationship deepening and attrition priorities.
 
+    \item \textbf{Objective 1 (Pipeline) :}Build a reproducible pipeline from Companies House register to company level feature matrix. \emph{Achieved (Chapter~\ref{chap:execution}).}
+
+    \item \textbf{Objective 2 (Signals) :} Engineer additional signals from director activity, secured lenders and public contract awards, and map each to candidate business need and Lloyds service. \emph{Achieved.}
+
+    \item \textbf{Objective 3 (Modelling) :} Compare an interpretable baseline (logistic regression) against a gradient boosted tree and neural network with SHAP explanations for each score. \emph{Achieved (Chapter~\ref{chap:evaluation}).}
+
+    \item \textbf{Objective 4, (Targeted enrichment and its evaluation :} Design the pipeline so that news and article retrieval runs only for companies flagged with signals, and measure whether that unstructured layer adds signal. \emph{Achieved with negative result: the coverage of unstructured layer was measured and found insufficient).}
+\end{itemize}
+
+\noindent
+The project delivered 33 monthly snapshots of register, a company monthly panel of 49.6 million rows, engineered features across four families, four self labelled targets, 11 recorded model runs across three model families, a 25.4 hour programmatic harvest of 558,693 secured charges, a 284,230 notice crawl of \emph{Gazette}, a data leakage defect identified and corrected over four passes, a lending shortlist running at roughlt one hundred times the base rate among its top 500 candidates.
 
 % -----------------------------------------------------------------------------
 \chapter{Background}
@@ -586,7 +599,7 @@ The \texttt{baseline} run is the 41-feature control matrix fitted with the boost
 It is not, however, a like-for-like row in the results table, and Chapter 4 says so wherever it appears. It holds eight rows rather than twelve because it predates the third model family, and
 it predates the bootstrap, so it carries point estimates with no intervals attached. 
 
-After rewriting the pipeline, we ran the same baseline configuration through the new code. The three reported metrics were exactly the same as before: ROC-AUC 0.761520, PR-AUC 0.016923 and precision@100 19.0\%. This confirms that the software rewrite changed the structure of the code without changing the underlying modelling result.
+After rewriting the pipeline, we ran the same baseline configuration through the new code. The three reported metrics were exactly the same as before: ROC-AUC 0.761520, PR-AUC 0.016923 and precision@$100$ 19.0\%. This confirms that the software rewrite changed the structure of the code without changing the underlying modelling result.
 
 \section{Unstructured data}
 \note{Samuel's survey. One short paragraph per source: Contracts Finder and
@@ -672,10 +685,11 @@ Every modelling run writes down exactly how it has been produced. Alongside its 
 \section{Modelling design eval + results}
 
 \subsection{Evaluation design}
+\label{sec:evaldesign}
 \note{State the rules before the numbers, so no result later looks chosen after
 the fact. Why ranking rather than classification. Why ROC-AUC and precision@$N$
 together, and what each one actually answers: ROC-AUC is a global ranking score
-that survives the negative downsampling, precision@$N$ is what a relationship
+that survives the negative downsampling; precision@$N$ is what a relationship
 manager experiences. Why per-origin rather than pooled, which \S\ref{sec:errors}
 then justifies with a measurement. What the bootstrap intervals resample.}
 
@@ -736,14 +750,29 @@ Here we flag a methodological correction when interpreting SHAP. As mentioned, w
 Most features give similar directions in the SHAP analysis and the logistic model. The main disagreements occur for insolvency. This is not necessarily a problem because logistic coefficients measure a feature's effect while holding the other variables constant, while SHAP shows the feature's relationship with predictions. Hence, when features are strongly correlated, a partial effect can honestly flip sign against the marginal relationship SHAP displays.
 
 \subsection{Is the target balanced, and what does that do to the metrics?}
-The four targets we are aiming to predict have a very different base rates. They range from 0.26\% for lending to about 8\% for voluntary exit. This matters because the same predicted metric can mean very different things based on the target. For instance, if a model predicts "no" for every company on the lending task, it would achieve 99.74\% accuracy. On the surface, that sounds excellent, but the model would be misleading given that its predicting accuracy on a very low base rate. The same problem applies to recall, precision and F1 performance metrics. Instead, we use ranking metrics such as ROC-AUC and precision@$N$. We also report a column \texttt{lift}, defined as precision@$N$ divided by the target's base rate. This is the only fair way to compare a result on a target that fires 1:100 with one that fires 1:12.
+The four targets we are aiming to predict have very different base rates. They range from 0.26\% for lending to about 8\% for voluntary exit. This matters because the same predicted metric can mean very different things based on the target. For instance, if a model predicts "no" for every company on the lending task, it would achieve 99.74\% accuracy. On the surface, that sounds excellent, but the model would be misleading given that its predicting accuracy on a very low base rate. The same problem applies to recall, precision and F1 performance metrics. Instead, we use ranking metrics such as ROC-AUC and precision@$N$. We also report a column \texttt{lift}, defined as precision@$N$ divided by the target's base rate. This is the only fair way to compare a result on a target that fires 1:100 with one that fires 1:12.
+
+This imbalance also affects how much downsampling we need:
+\begin{itemize}
+    \item For insolvency, the dataset is reduced by about 27 times, from 13.8 million rows to 520,000, without removing any positive cases.
+    \item Lending is reduced by about 33 times.
+    \item Voluntary exit is different: the dataset only falls from 13.8 million to 11.9 million rows, with a keep rate of 0.85. This happens because voluntary exit has a much higher base rate of about 7.8\%, so there is little need to remove additional negative observations.
+\end{itemize}
+
+The number of positive cases also determines how precise the confidence intervals can be:
+\begin{itemize}
+    \item Voluntary exit has about 215,000 positive cases, so it has the narrowest intervals, around ±0.001.
+    \item Lending has only about 7,500 positive cases, so its intervals are much wider, around ±0.0045.
+\end{itemize}
+
+We must also interpret with caution the results of voluntary exit. Its apparently strong precision@$N$ is partly caused by many companies receiving exactly the same score. Therefore, precision@$N$ is partly measuring which companies were selected from a large tied group, rather than measuring a precise ranking, for reasons measured in \S\ref{sec:errors}, and it should not be read to three digits.
 
 
 \subsection{A leakage defect, found and fixed}
 \label{sec:leak}
 \note{The strongest methodological section in the report, and per the 8 August
 decision it stays a section here rather than becoming its own chapter. Tell it
-in four acts. (i) The lender run returns precision@100 = 1.000 on lending
+in four acts. (i) The lender run returns precision@$100$ = 1.000 on lending
 against a 0.271\% base rate, while ROC-AUC barely moves; explain why that
 combination is a leakage signature rather than a win, because a genuinely better
 feature set lifts the global ranking and the top of the list together. (ii) The
@@ -761,6 +790,112 @@ rather than catching it, because it replayed the harvest against the same wrong
 clock, and that a single-month version of the rewritten test would still have
 passed. Figures: the gate progression on lending P@500, the calibration ladder,
 the lag-error plots.}
+
+\subsubsection{The symptom}
+Since we already started with a pretty solid model, including many deltas, the original comparison was designed to test if the 25 hours of Charges API harvest improved prediction. 
+
+For three of the four targets, the answer appeared to be no. However, the lending result looked extremely strong: precision@$100$ of 1.000 against a base rate of 0.271\%, and
+precision@$500$ of 0.992, a lift of 366 times, while ROC-AUC moved only from 0.8767 to 0.8951.
+
+These two things cannot co-exist, and it's the reason why \S\ref{sec:evaldesign} reports both metrics. If the model had generally become much better at ranking companies, both ROC-AUC and precision@$N$ should have improved substantially. Instead, precision@$N$ became almost perfect, while ROC-AUC changed only slightly. 
+
+The explanation is that ROC-AUC looks at th,e ranking across about 2.8 million evaluation rows, while precision@$N$ looks only at the very top of the list. Hence, if the model receives information about the outcome for only a small group of companies, that can make the top of the list look almost perfect, while having very little effect on the global ranking. The gap between a global metric and a local one is the entire tell, and had we tracked only AUC we would have shipped this.
+
+Before explaining this bizarreness with leakage, we ruled out several simpler explanations:
+\begin{itemize}
+    \item The test rows and the positive counts were identical between the runs, so the comparison was fair.
+    \item The lender features existed for 100\% of the rows because we designed for companies without charges to be assigned assigned 0 rather than a NULL. Hence, this rules out any selection effect.
+    \item Finally, the best individual feature had a precision@$500$ of only 0.164, while the full model reached 0.992. This meant that no individual column was driving the label. On the contrary, the model was combining several features, which demanded further analysis rather than isolating one single problematic feature.
+\end{itemize}
+
+\subsubsection{The cause}
+Every charge in the Companies House API carries: \texttt{created\_on}, the date the charge was made; \texttt{delivered\_on}, the date it reached the registrar and became visible to anyone looking.
+
+The original as-of join used the first one and this created the leakage.
+
+Imagine that a charge was created on 20 January, but delivered on 28 January. The original system could include this charge in the feature row for 1 January, even though the charge was not yet visible at that time. 
+
+The lending label, however, was calculated from the bulk register. That register could not contain the charge before it had been delivered. The feature, therefore, contained information that the label could only know later. 
+
+The model was not actually predicting future lending. Instead, it was partly reading information about something that had already happened.
+
+We also measured this disruption, making the size of the problem even clearer. 
+
+For companies that went on to borrow within three months, the API's charge count was already 0.29 charges higher than the register's count. In 19.2\% of these cases, the API had already reached the future post-borrowing value. 
+
+Across the whole population that same gap is about 0.05, so the discrepancy is six times larger precisely where it does damage.
+
+If we then consider the top 500 companies ranked by the model, 46.6\% had a charge that was counted before it was observable. Across the whole population, this happened for only 0.01\% of companies. This was the strongest evidence of leakage.
+
+\subsubsection{The obvious fix we attempted}
+
+The first obvious solution we attempted to fix the problem was to use \texttt{delivered\_on} instead of \texttt{created\_on}. This reduced the problem substantially, moving the mean gap from 0.29 to 0.16 and the share of companies already at the future value from 19.2\% to 9.7\%, but the problem was not gone altogether. After rerunning the model, lending precision@$500$ was still 0.742, compared with 0.282 for the control model.
+
+After digging deeper into how the charge API works, we discovered that delivery is not the same as registration: after a charge is delivered, the registrar still needs time to process it before it appears in the register used to compute the label. To estimate that delay, we ran a sweep: increasing a margin day by day until the API's charge count agreed on average with the register's count. Three choices went into how we ran it, each a sensible-looking default at the time. We swept over only seven monthly origins rather than all of them, to limit the cost of repeatedly rebuilding and comparing the panel. We assumed each register extract was cut on the 1st of the month, which is what the monthly bulk file is nominally dated and is true the large majority of the time. And we measured the gap only on companies that go on to borrow (the subset where the distortion is worst) on the instinct of calibrating where the problem actually shows up. Comparing the two counts this way, the margin that made them agree on average came out at 21 days, and that is the figure we fitted.
+
+\subsubsection{The calibration}
+The 21-day value initially looked reasonable, but we decomposed it. Walking from the old estimate to the new one, changing one thing at a time with the same estimator throughout, we created an audit trail that helped us in our calibration. The aim was to figure out how many days of "margin" to add so that the API's view of a company's charges lined up with the register's view. We did so by sweeping the margin until the two counts agreed on average. The 21-day answer came out of one particular way of running that sweep, and this decomposition re-runs it correctly, one change at a time, to see where the 21 came from:
+\begin{itemize}
+    \item Using all origins rather than seven moves the crossing from 22.1 to 23.7 days
+    \item Using the real extract date moves it from 23.7 to 23.6
+    \item Pointing the sweep at the right target moves it from 23.6 to 5.3: the register count it had been matching against moves both when a charge is created and when one is satisfied, so calibrating the creation clock against it forced the margin to absorb the satisfaction (i.e. a charge exiting when repaid) clock's error too; matching against a count that reflects creation alone removes that.
+    \item and finally, removing the conditioning on companies that go on to borrow moves it from 5.3 to 1.8.
+\end{itemize}
+
+The key result is that 18 of the 21 days came from the satisfaction clock. 
+
+ There was also independent evidence of the leakage inside the model itself. In fact, under the leaking \texttt{created\_on} gate, \texttt{n\_of\_charges\_outstanding} was the most important feature, with a mean absolute SHAP value of 0.414, ranking 1st out of 54 features. After we changed to \texttt{delivered\_on}, it fell to 0.284, ranking 3rd. And after we added the 21-day margin, it fell almost completely to 0.002, ranking 40th. A similar pattern appeared for \texttt{lbg\_share\_of\_outstanding}, whose importance fell from 0.146 to 0.073 to 0.002. 
+ 
+This mattered because it is not derived from the metric we are trying to explain. precision@$100$ = 1.000 tells
+us the top of the list is wrong. Thanks to the SHAP ranking, we could understand which feature the model was using to obtain that wrong information. Two independent instruments, one mechanism.
+
+Moving on to other results we obtained from the decomposition, we originally thought that most of the 21 days were caused by differences in the monthly extract dates. In reality, we showed this explains only 0.11 days. The extract date usually was the first of the month: 29 of 33 extracts were on the first, with an average drift of 0.39 days. The correction actually goes in the opposite direction from what we expected because an extract taken after the first includes more charges, not fewer. So extract drift is real, but it is not the main explanation.
+
+The deeper issue is that the register is only observed once a month. If a charge is delivered on the tenth, it cannot appear in the observed register until the next monthly extract, regardless of how quickly the registrar processes it. Therefore, matching the average API count to the monthly register can incorrectly interpret waiting time as processing time.
+
+\subsection{The final solution}
+Instead of a mean-matching sweep, we calibrated on first appearance. For each charge, we find the first monthly extract in which the register shows that charge. This gives\footnote{The confidence intervals collapse to a single point because the estimated value is stable, not because the underlying criterion is beyond debate.}:
+\begin{itemize}
+    \item creation lag: 4 days (95\% CI [4, 4], (n=51,669))
+    \item satisfaction lag: 1 day (95\% CI [1, 1], (n=47,480))
+\end{itemize}
+
+This was the best overall solution.
+
+Moreover, the old 21-day gate carried a large practical cost. The margin exists to prevent leakage, but pushing it too far causes the opposite problem: charges that the register already contained, and that the model was entitled to see, get withheld from the feature row anyway, leaving the model to work from an outdated picture. This is staleness, and at 21 days it was severe. The gate bought only 0.60 percentage points of reduced leakage while paying 43 percentage points of staleness for it, so that more than half of all charges were hidden for a full month after they had genuinely become visible. That is why the 21-day model scored below the plain control: it was no longer peeking at future charges, but it was now blind to past ones it should have used.
+
+But then, why did the original test never caught it?
+The original verification test truncated the charge history at a cut-off date and checked whether the rebuilt panel matched the original panel. However, both the truncation and the panel used \texttt{created\_on}. Same clock on both sides, so the test could never fail. In other words, the test was effectively asking if the panel included charges created after the cut-off date. By construction, the answer was no. Instead, we were trying to verify if the panel included charges that were already created but were not yet observable at the cut-off date.
+
+The rewritten test keeps the reference clock and the visibility clock separate. It also checks that rebuilding the panel from the full history reproduces the stored panel. Any difference in the blind replay can therefore be attributed to the truncated history rather than to the test itself.
+
+There is one more important lesson.
+
+Even the rewritten test would have passed if it had been run on only one month. Hence, we tested it on:
+\begin{itemize}
+    \item January 2025, with no extract drift
+    \item February 2024, with the largest drift of six days
+\end{itemize}
+
+In February 2024, the six-day extract drift happened to compensate for the missing satisfaction delay. The leakage therefore remained hidden.
+
+From this we learnt that a blind-replay test (i.e. taking the full history, cutting it off at some date, rebuilding what the model should have been able to see at that date, and checking it matches the stored data) is successful contingent on having the same date field for when you cut and when you check against and the range of months you run it on.
+
+The final table and figures document the four gates and their sensitivity range. The main lending precision@500 sequence is:
+
+0.282 → 0.992 → 0.742 → 0.310 → 0.332
+
+with a sensitivity band from 0.294 to 0.406.
+
+[Table: the four gates against two months. `lender_panel/` fails at 256 and 189 companies;
+`lender_panel_asof21/` fails at 2 and 0, on the satisfaction clock; the calibrated gate passes
+both; the sensitivity pair costs 43 and 63, so the entire width of the band is a fifth to a third
+of the defect it replaced.]
+
+[Figures: `19_gate_progression_lending_p500.pdf`, the five acts read as one column of numbers,
+0.282, 0.992, 0.742, 0.310, 0.332 with a band from 0.294 to 0.406;
+`nb16_margin_sweep_ladder.pdf`, the attribution of the 21 days; `nb16_lag_error_curves.pdf`, leak
+against staleness with the old gate marked; `nb16_extract_date_drift.pdf`.]
 
 \subsection{Does counterparty identity help? (N4)}
 \note{The verdict, read off the most conservative gate against the deterministic
@@ -864,6 +999,8 @@ banks; and wallet-share concentration on the LBG book. Carry the limits with it:
 secured lending only, 7.8\% of the universe, 22.5\% of lender names
 unclassified, and a charge is a proxy for a banking relationship rather than the
 relationship itself.}
+
+This section profiles the UK SME secured lending market descriptively
 
 \section{Limitations}
 \label{sec:limits}
