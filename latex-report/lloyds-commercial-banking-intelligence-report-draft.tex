@@ -175,6 +175,7 @@ run, tag &:& one recorded execution of the pipeline under a named configuration 
 \note{Supervisor, the Lloyds contacts who gave us the brief, and the maintainers
 of the public data we relied on entirely. One paragraph is enough.}
 
+We would like to thank our supervisor, Professor Fernando Moreno Pino, for his guidance and feedback throughout this project, and our teaching assistant, Abhishek Bhat, for his support along the way. We are grateful to the Commercial Banking team at Lloyds Banking Group for setting the brief and for their input on what would be commercially useful, which kept the work grounded in a real problem. We also thank the maintainers of the freely available public data this project relied on entirely, Companies House, The Gazette and the open government data services behind contracts Finder and Find a Tender, whose records made the entire analysis possible. Finally, this report was a collaborative effort by our team Samuel, Sneha, Viktor and Vishal, across data collection, feature engineering, modelling and analysis.
 % =============================================================================
 \mainmatter
 
@@ -729,6 +730,15 @@ is that one source keys on a name and the other keys on a number.}
 \note{This section would cover samuel/spine-crosswalk. we never used this but if we have space we can talk about it}
 
 \section{Dashboard}
+The dashboard brings the project's separa
+te outputs into one place where a company can actually be thoroughly investigated. Work was produced across several branches and notebooks, each answering a different part of the problem, so a question as simple as "What do we know about this company?" meant opening several separate outputs. The dashboard therefore designed as the final layer connecting these pieces together, rather than as a replacement for the underlying analysis.
+
+The population is the July 2026 Companies House Universe of 1,531,094. Six sources are joined onto this spine on company number: Gazette notices, contracts, property titles, trade marks, grants and news. The division between themis delibrate. Anything on the spine (borrowing, lender, relationships, filing behaviour, momentum, model scores) can be filtered, while property, trade marks and grants sit in side tables and appear only on a company profile. That single rule decides what the interfact can offer
+
+\subsection{A Bankers View}
+From a bankers perspective, anyone would rarely start with a company number and ask for every variable. They start with a question: whcih companies show signs of financial pressure, which former clients may have moved to another lender, which have recently taken on borrowing. The Main / Home is built for that. Filters covering company characteristics, borrwing, lender relationships, filing behaviour, momentum and Gazette signals combine freely, each careying a live count so the population stays visible as conditions are added to them. Without counts
+, an empty result gives no way to tell meaningful query from a broken one.
+
 
 \label{sec:delivery}
 \note{The dashboard, Vishal and Samuel. Precompute-then-serve: one Python build
@@ -1056,6 +1066,7 @@ The number is kept in the report so that anyone who finds it elsewhere also sees
 \subsection{Sneha doc sections}
 
 \subsection{What the model learned: global SHAP analysis}
+\label{sec:label-shap-importance}
 We created four beeswarm summaries from the control run, one per target at figures~\ref{fig:beeswarm}. This section interprets those graphs and explains what the models actually learned from the data.
 
 There is one important technical point about all SHAP values in this chapter. \texttt{TreeExplainer} for \texttt{LGBMClassifier} gives contributions in log-odds, not probabilities. These contributions add up to the logit of the model's uncalibrated score. Hence, the final score used in production is recalibrated using: $$odds_{true} = odds_{sampled} \times neg\_keep\_rate$$. For example, the top lending company in the July 2026 list has an uncalibrated probability of 0.972 but a final shipped score of 0.500. The ranking does not change because the recalibration is monotonic. Therefore, the SHAP values explain the ranking, while the displayed probability is the recalibrated version of that ranking. The SHAP values should therefore not be added together and expected to reproduce the probability shown on the shortlist.
@@ -1173,7 +1184,7 @@ The two rare targets behave differently. Their score gaps around rank 500 are ar
 
 The paired bootstrap is important when comparing two models. We know that, both models are evaluated on the same companies at the same origins. Therefore, much of the uncertainty caused by the companies themselves is shared by both models. Hence, if we calculate separate confidence intervals for each model and simply ask whether the intervals overlap, we ignore this shared variation. This makes the test unnecessarily conservative. Instead, we resample the rows once and calculate both models' metrics on exactly the same resample. The difference between the two models then becomes the quantity of interest. For the lending comparison, the separate intervals overlap heavily and suggest that the difference is unclear. The paired interval is about five times narrower and clearly excludes zero. The paired method is therefore the appropriate test because the question is not. Instead of asking ourselves if a different group of companies would produce different results, we must investigate if these same companies do receive different rankings under the two models.
 
-\subsection{Why pooled precision@N is misleading}
+\subsection{Why pooled precision@$N$ is misleading}
 Precision@$N$ calculated by combining several months is not the average of the monthly precision@$N$ values. When the two test origins are pooled together, the pooled value falls outside the range of the two monthly values in 9 of 12 target-and-model-family combinations. In six of those nine cases, the difference is greater than 0.02.
 
 This happens for two reasons.
@@ -1282,6 +1293,52 @@ within a target and month but not across targets. Show one company end to end
 with its score and its top three SHAP reasons, because that is the actual
 deliverable.}
 
+While in the previous section we evaluated the models, here we're trying to determine the effectiveness of our model for a commercial reader. We are trying to explore, if Lloyds ran this tomorrow, what would land on somebody's desk, and how often would it be right?
+
+So first we need to define what the deliverable actually is: Precision@$N$ is not the shortlist we then use in the deliverable. We use this metric as a report card on a month we held out, describing how many of the model's top $N$ picks went on to do the actual scoring. The list itself comes from the scoring stage: the fitted model is applied to the most recent panel month and writes a recalibrated probability for every one of the 1,409,284 companies active at July 2026, and the shortlists are the top hundred of that ranking, per target. This distinction also answers the natural objection about staleness. The model is trained across thirty-three months but applied to a single current month, which is exactly what a relationship manager would do, so we do not hand out a company that was predicted to fail in October 2023 and has since been struck off; we analyse only the current month's active companies.
+
+Inspecting the per-held-out-month results (rather than pooled, for the reason established in \S\ref{sec:errors}), we can establish how often the model is correct:
+\begin{table}[htbp]
+\centering
+\begin{tabular}{lcccc}
+\hline
+\textbf{Target} & \textbf{Precision@100, per month} & \textbf{Base rate} & \textbf{Lift\footnotemark} \\
+\hline
+Lending Readiness    & 0.43, 0.41 & 0.26\% & \textbf{$\sim$150x} \\
+Credit Risk Exposure & 0.16, 0.14 & 0.38\% & $\sim$45x \\
+Growth Signal        & 0.22, 0.22 & 2.2\%    & $\sim$10x \\
+Voluntary Exit       & 0.85, 0.78 & $\sim$8\% & $\sim$10x \\
+\hline
+\end{tabular}
+\end{table}
+
+\footnotetext{Lift represents how many times better the model's top 100 is than random picking. It's precision divided by base rate.}
+
+The most important metric of the table is lift; voluntary exit is the worked example of why. One might think it looks like the best result with 85\% correct precision. However, it is the weakest of the four, because roughly one company in 12 proposes a strike-off within six months anyway. So, a list picked at random from the register would already be right about 80\% of the time. 
+
+On the other hand, lending readiness at 43\% is the stronger result the project produced on a clean run. This is because it operates at an extremely low base rate: with the event it is predicting happening to about one company in 400, getting 43 correct calls in 100 against that background is a huge improvement, and the one we most strongly present commercially. A newly registered charge is a financing event with a decision behind it, and a company that is about to make that decision is one worth speaking to first for Lloyds.
+
+In terms of how sound the 4 target approach is, we have measured it. Across the 400 rows (4 shortlist, one per target x top 100 companies = 400 rows total) there are 398 unique companies. There are two appearing twice, both on Lending Readiness and Growth Signal, but this is economically sensible given that a company that's growing is exactly the kind of company that also needs to borrow to fund that growth, so the overlap isn't random noise. That is the operational payoff of the decision in \S\ref{sec:targets} to build four separate indices rather than one composite prospect score: the four carve the book into nearly non-overlapping groups rather than re-ranking the same few thousand companies four times.
+
+We need however to flag a limitation here: the voluntary exit ranking should not be treated as a
+ranking of individuals. Its top 1000 scores contain only fourteen distinct values, and 138
+companies are tied at exactly the score sitting in 100th place, so "the top 100" there is an
+arbitrary hundred drawn from a pool of more than two hundred equally ranked companies, and
+re-running the sort could return a different hundred with identical scores. In other words, the model can't tell apart the companies at the top of its list; it lumps them into a few big groups with identical scores instead of ranking them one by one. The other three targets do not have this problem: their top 1000 hold 993, 961 and 994 distinct scores, with a single company at the cut.
+
+\subsection{One company, end to end}
+Because a ranked list is not the deliverable and a scored, explained row is. Our worked example throughout Chapter 3 is a Small manufacturer, about ten years old, active in all thirty-three panel months. It took on new secured borrowing three separate times inside the window, it was a Lloyds client at the start of the panel and released both Lloyds charges in November 2023 before borrowing from two competitors, and in February 2026 it won its first public-sector contract, a £597k award. The pipeline places it 499th of 1,409,284 on Lending Readiness, which puts it literally inside a top-500 call list, and in the bottom 0.2\% on Voluntary Exit. Both answers are right about that company, and the reasons behind the first are the ones an RM would actually open with: it already carries charges, it has borrowed repeatedly and recently, and it has just landed a first public contract, which is a textbook working-capital trigger.
+
+%INTERNAL COMMENT: This is what we planned to do; it is not confirmed to be covered in the dashboard, so we need to double-check it
+Those reasons are now in the shipped artefacts rather than being described as a thing we could build. \texttt{scripts/make\_shortlist\_reasons.py}` writes a sibling file beside each shortlist carrying, per company, the three features with the largest absolute SHAP contribution together with the signed contribution and the feature value it came from, because a contribution without its value cannot be turned into a sentence. It also writes a long-format extract of the top 5,000 per target for the dashboard, deliberately not all 1.4M companies, since the browser store it feeds is already 11 MB. We present here the comapny ranked 1st of the July 2026 lending list, which makes the shape obvious: MS LENDING GROUP LIMITED ranks first on 578 mortgage charges (+2.77 log-odds), eleven new charge events in twelve months (+0.92) and a Large segment (+0.86). One caveat travels with every one of those numbers (and is covered in \S\ref{sec:label-shap-importance}: \texttt{TreeExplainer} works in raw log-odds, so the three contributions add up toward the model's raw internal logit, not toward the tidy probability shown in the \texttt{score} column beside them. However, the ranking is unaffected, because the recalibration is monotone (i.e. it never reorders anything). The reasons explain the ranking; the score is that ranking recalibrated.
+
+Two further caveats travel with every number on this page.
+\begin{itemize}
+    \item Companies that are not Active carry no score at all, which is correct rather than missing: the models are fitted on trading companies, and a lending-readiness forecast for a company already in liquidation would be a number with nothing behind it. Any interface showing these scores has to say "not scored" rather than render a zero.
+    \item And the scores are forecasts about August 2026 onwards, not descriptions of July, so each needs its horizon displayed beside it, and the wording should lead with the measured hit rate rather than the raw probability, which runs optimistic at the very top of the list, which is exactly where a dashboard looks. 
+\end{itemize}
+
+Finally, a ranked list still has to reach the right desk. \S\ref{sec:routing} partitions the scored universe by lender relationship, which is what turns these four rankings into work for the three teams the client actually named.
 
 \section{What each public source was worth (N2, N3)}
 \label{sec:sources-eval}
@@ -1478,7 +1535,7 @@ seven sources live and a measured reason for the other six; the model scores
 are joined into the dashboard; and the competitor market intelligence is either
 done or explicitly out, per the decision taken on 16 August.}
 
-\section{Further work}
+\chapter{Further work}
 \note{Focus on the interesting openings rather than on a wish list. The gate
 gradient has not flattened at the tightest margin we tested, so the leak-free
 intercept may be lower still and a tighter rung would settle it. Persist
@@ -1489,7 +1546,7 @@ rather than decorate it. And the enrichment loop that we parked: rank the top
 500 per target, enrich all of them, re-run, now that the ranking half costs one
 command and only the API cost per company is unknown.}
 
-% =============================================================================
+=============================================================================
 \backmatter
 
 \bibliography{bibtex.bib}
