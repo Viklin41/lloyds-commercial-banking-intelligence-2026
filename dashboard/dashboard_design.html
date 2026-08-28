@@ -1,0 +1,1185 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>How the dashboard was built</title>
+<style>
+@page { size: A4; margin: 18mm 16mm; }
+:root{ --ink:#0d1512; --rule:#d8e0dc; --green:#046A38; --mint:#0f8f6a; }
+*{ box-sizing:border-box; }
+body{
+  font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  font-size:10.6pt; line-height:1.62; color:var(--ink);
+  max-width:190mm; margin:0 auto; padding:14mm 6mm 20mm;
+  -webkit-font-smoothing:antialiased;
+}
+h1{ font-size:23pt; line-height:1.2; margin:0 0 4mm; color:var(--green);
+    letter-spacing:-.01em; border-bottom:2.5px solid var(--green); padding-bottom:4mm; }
+h2{ font-size:15pt; margin:11mm 0 3mm; color:var(--green); letter-spacing:-.005em;
+    page-break-after:avoid; break-after:avoid; }
+h3{ font-size:12pt; margin:7mm 0 2mm; color:var(--mint);
+    page-break-after:avoid; break-after:avoid; }
+p{ margin:0 0 3.4mm; }
+strong{ color:#08120f; font-weight:650; }
+em{ color:#33443e; }
+a{ color:var(--mint); }
+hr{ border:0; border-top:1px solid var(--rule); margin:9mm 0; }
+
+/* A table split across a page boundary is unreadable, hence the break rules. */
+table{ border-collapse:collapse; width:100%; margin:4mm 0 6mm; font-size:9.3pt;
+       page-break-inside:avoid; break-inside:avoid; }
+th{ text-align:left; background:#eef4f1; color:#08251c; font-weight:650;
+    padding:2.2mm 3mm; border-bottom:1.5px solid var(--green); }
+td{ padding:2.2mm 3mm; border-bottom:1px solid var(--rule); vertical-align:top; }
+tr:nth-child(even) td{ background:#fafcfb; }
+
+code{ font-family:"Cascadia Mono",Consolas,ui-monospace,monospace; font-size:9pt;
+      background:#eef4f1; padding:.4mm 1.4mm; border-radius:2px; color:#0a3c2c; }
+pre{ background:#f4f8f6; border:1px solid var(--rule); border-left:3px solid var(--green);
+     padding:3.5mm 4mm; border-radius:3px; overflow-x:auto;
+     page-break-inside:avoid; break-inside:avoid; }
+pre code{ background:none; padding:0; font-size:8.8pt; line-height:1.5; }
+
+/* The screenshots are dark, so they get a light rule to sit against the page. */
+img{ max-width:100%; height:auto; display:block; margin:4mm auto 6mm;
+     border:1px solid var(--rule); border-radius:4px;
+     page-break-inside:avoid; break-inside:avoid; }
+
+ul{ margin:0 0 3.4mm; padding-left:6mm; }
+li{ margin-bottom:1.6mm; }
+
+@media print{
+  body{ padding:0; max-width:none; }
+  a{ color:var(--ink); text-decoration:none; }   /* a blue underline on paper is noise */
+}
+@media screen{ html{ background:#e9eeec; } body{ background:#fff; } }
+</style>
+</head><body>
+<h1>How the dashboard was built</h1>
+<p>This is the companion to <code>dashboard_handbook.md</code>. The handbook explains how to use the dashboard.
+This one explains how it came to be the way it is: what we set out to build, what we found when we
+tested it, what we had to change, and what we can actually prove about it.</p>
+<p>It is written mostly from two records. <code>reports/integration-design.md</code> is the original plan, written
+before any of this existed. <code>dashboard/FILTER_SPEC.md</code> is the implementation and decision log, and it
+is the more valuable of the two because it contains the arguments we lost as well as the ones we won.
+The architecture history and the engine benchmark in section 2 are not in either file and come from the
+working record instead, which is flagged again at the end. Where a decision is recorded I have kept the
+original reasoning. Where something is not written down anywhere I have said so rather than
+reconstructing a plausible story.</p>
+<p>The short version: almost nothing about the final architecture matches the original plan, and the two
+most important corrections in the project came from checking work we had already called finished.</p>
+<hr />
+<h2>1. The problem, as it actually was</h2>
+<p>The original design document states it in one line:</p>
+<blockquote>
+<p>Nobody can answer "what do we know about company 12345678" without opening six notebooks.</p>
+</blockquote>
+<p>That was the whole problem. Eight branches, roughly twenty notebooks, each producing a different shape
+of output, saved in a different place, with a different idea of what a company key looks like. The
+document is explicit that this was the <em>only</em> problem being solved:</p>
+<blockquote>
+<p>That is the only problem we are solving. We are <strong>not</strong> rebuilding anyone's pipeline.</p>
+</blockquote>
+<p>That constraint shaped everything downstream. Every source in the dashboard today is still owned by
+the notebook that produced it, and nothing upstream was rewritten to suit the dashboard.</p>
+<hr />
+<h2>2. What we planned, and why it was wrong</h2>
+<p>The architecture went through three versions before it settled, and the second one is the interesting
+one, because it was fully designed and was still the wrong answer.</p>
+<h3>The first plan: a signals table</h3>
+<p>The plan was a <strong>signals table</strong>. Every pipeline would keep working as it did, and each would get a
+thin adapter, about thirty lines, that translated its output into rows of one shared shape:</p>
+<pre><code>your notebook  -&gt;  adapter  -&gt;  signals table  -&gt;  dashboard
+(unchanged)       (~30 lines)   (one shared      (reads only,
+                                 shape)           never fetches)
+</code></pre>
+<p>One row per company per fact per date, with <code>company_number</code>, <code>signal_type</code>, <code>signal_date</code>, <code>value</code>,
+<code>detail</code>, <code>source</code>, <code>confidence</code> and <code>retrieved_at</code>. All of it precomputed into a <strong>store</strong>, a
+finished database file the dashboard would read.</p>
+<p>Three rules came with it, and these did survive, all three:</p>
+<ol>
+<li>Always join on company number, never on company name.</li>
+<li>Every signal must have a real date, no nulls.</li>
+<li><strong>A company with no signals is a real answer, not a missing one.</strong></li>
+</ol>
+<p>The third is the single most durable idea in the project. It is why the source tiles distinguish
+"none found" from "not searched", why zero news coverage is presented as a finding, and why the
+change panel says how many of its checks have no history to compare against.</p>
+<h3>The second plan: ship the data to the browser, in pieces</h3>
+<p>The signals table was going to be delivered to the browser as JavaScript, and the first attempt at that
+was one file. <code>data.js</code> grew to 27 MB holding only part of what was needed; the full set across all
+sources came to somewhere between <strong>85 and 100 MB</strong>. No one is going to wait for that.</p>
+<p>So the design was sharded, and it was a genuinely reasonable design:</p>
+<pre><code>1.53M company universe   (parquet, unchanged)
+            |
+       core.js  ~5 MB  ·  loaded once at startup
+       105,078 signalled companies: number, name, status, sector,
+       segment, and a bitmask of which sources each one has
+            |
+    +-------+--------+
+    v                v
+features/&lt;src&gt;/NN.js   events/&lt;src&gt;/NN.js
+   ~150 KB/shard         ~320 KB/shard
+</code></pre>
+<p>The sharding key was the <strong>last two characters of the company number</strong>, giving 100 shards per source per
+kind. Search only ever needs <code>core.js</code>, because search is over identity, not evidence. The moment you
+open a company you know its number, so you know its shard, and the browser pulls that one file in by
+injecting a <code>&lt;script&gt;</code> tag. Once pulled it stays cached, so the second company you open from the same
+shard costs nothing.</p>
+<p>The arithmetic worked. <strong>About 5 MB up front instead of 85 to 100 MB</strong>, then a few hundred KB when you
+actually open something. The bitmask in <code>core.js</code> meant the interface knew which source tiles to show
+before it had fetched any of them.</p>
+<p><strong>Why it still was not right.</strong> Everything in that diagram is precomputed. The 105,078 figure is a build
+artefact: it is the set of companies that had a signal <em>at the time the shards were generated</em>. Any
+count on screen is only as true as the last build, and the browser holds a second copy of the data that
+can drift from the parquet. Filtering the full 1.53M was impossible, because the browser only ever had
+the 105,078 with signals. And every new filter meant regenerating 100 shards.</p>
+<h3>What we actually built: query in place</h3>
+<p><code>FILTER_SPEC.md</code> records the architecture inverting underneath the specification:</p>
+<blockquote>
+<p>The architecture changed underneath the spec: the browser is no longer where the company universe
+lives. DuckDB reads the parquet in place and answers over all 1,531,094 companies, and the API
+returns only the rows asked for. Nothing is precomputed into a store, no database file is created,
+and the parquet is never written to.</p>
+</blockquote>
+<p>The consequence line matters more than the change: <em>"This is why every count in this document is now
+measurable at runtime rather than baked at build time."</em> The dashboard cannot disagree with the data,
+because there is no second copy to disagree with. And the universe went from 105,078 to 1,531,094,
+because a company with no signals stopped being something you had to precompute a row for.</p>
+<p>The residue was still visible for a while: <code>data.js</code> sat at 27 MB on disk that the browser no longer
+loaded, kept only so the server could lift a metadata block at startup. <strong>That has since been closed.</strong>
+The block moved to <code>store_meta.json</code>, 2.5 KB, and <code>data.js</code> was deleted. The loader still accepts the
+old file as a fallback so an older checkout keeps working, but nothing requires it.</p>
+<h3>Choosing the engine: DuckDB against PyArrow</h3>
+<p>Both read parquet, so this was a query-engine comparison rather than a format one. Measured on this
+dataset:</p>
+<table>
+<thead>
+<tr>
+<th>Operation</th>
+<th style="text-align: right;">PyArrow</th>
+<th style="text-align: right;">DuckDB</th>
+<th style="text-align: right;">Ratio</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Startup</td>
+<td style="text-align: right;">~2 s</td>
+<td style="text-align: right;"><strong>24 ms</strong></td>
+<td style="text-align: right;">83×</td>
+</tr>
+<tr>
+<td>Filtering</td>
+<td style="text-align: right;">~28 ms</td>
+<td style="text-align: right;"><strong>25 ms</strong></td>
+<td style="text-align: right;">1.1×</td>
+</tr>
+<tr>
+<td>Name search</td>
+<td style="text-align: right;">~65 ms</td>
+<td style="text-align: right;"><strong>52 ms</strong></td>
+<td style="text-align: right;">1.25×</td>
+</tr>
+<tr>
+<td>Sorting</td>
+<td style="text-align: right;">370 ms</td>
+<td style="text-align: right;"><strong>30 ms</strong></td>
+<td style="text-align: right;">12×</td>
+</tr>
+<tr>
+<td>Aggregation</td>
+<td style="text-align: right;">151 ms</td>
+<td style="text-align: right;"><strong>17 ms</strong></td>
+<td style="text-align: right;">9×</td>
+</tr>
+<tr>
+<td>Memory</td>
+<td style="text-align: right;">444 MB</td>
+<td style="text-align: right;"><strong>0.2 MB</strong></td>
+<td style="text-align: right;">2,200×</td>
+</tr>
+</tbody>
+</table>
+<p>The two rows people expect to be decisive, filtering and name search, are close to a tie. Had those been
+the only operations that mattered, either engine would have done. The decision came from the other four,
+and each maps onto something the dashboard actually does:</p>
+<ul>
+<li><strong>Aggregation, 9×.</strong> This is the one that settled it. Every facet repaint fires 57 aggregate queries,
+  because the counts beside each filter option have to be live (section 7). A nine-fold penalty on the
+  single most repeated operation in the application is not something you optimise around later.</li>
+<li><strong>Sorting, 12×.</strong> Every result list is ordered, and after defect B1 (section 9) every one of them
+  carries a tie-break on a second column to guarantee a total ordering. Cheap sorting is what makes
+  correct sorting affordable.</li>
+<li><strong>Memory, 444 MB against 0.2 MB.</strong> PyArrow materialises the table into memory; DuckDB streams from the
+  parquet and holds almost nothing. This is the difference between a process you have to think about and
+  one you do not, and it is why there is no cache anywhere in the server.</li>
+<li><strong>Startup, ~2 s against 24 ms.</strong> Least important analytically, most important in practice, because a
+  development server gets restarted constantly.</li>
+</ul>
+<p>The through-line from all three architectures is the same: the parquet is the truth, and the further a
+design moves a copy of it away from that file, the more ways it finds to be wrong.</p>
+<hr />
+<h2>3. Which company list is the master list</h2>
+<p>The original document flagged this as the first thing to settle, before any code:</p>
+<blockquote>
+<p><strong>Which company list is the master list?</strong> There are currently three, and they disagree:
+Sam's spine 869,043 · the SHAP feature matrix 1,372,321 · the 33-month panel 2,038,130.
+A company can be in one and missing from another, so until we pick one, every join quietly drops
+rows and nobody notices.</p>
+</blockquote>
+<p>The dashboard settled on <strong>1,531,094</strong>, which is none of the three. It is the row count of
+<code>dashboard_bulk_gazette_2026-07.parquet</code>, the July 2026 Companies House bulk file with the Gazette
+enrichment already joined on.</p>
+<p>The decision that matters is not which number won but that <strong>the universe is never narrowed</strong>. The
+"All Companies" view applies no predicate at all. From <code>FILTER_SPEC.md</code> section 1:</p>
+<blockquote>
+<p>All Companies applies no predicate — the full universe, nothing removed.</p>
+</blockquote>
+<p>Everything else is a filter over that, which means a count on screen is always a count out of
+1,531,094 and never out of some earlier subset nobody remembers choosing. It also means the answer to
+"why isn't my company here?" is almost always "it is, you have a filter on".</p>
+<hr />
+<h2>4. The spine and the side tables</h2>
+<p>The final shape is one parquet plus six auxiliary files, all read in place:</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>What it is</th>
+<th>Rows</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The spine</td>
+<td><code>dashboard_bulk_gazette_2026-07.parquet</code></td>
+<td>1,531,094 × 124 columns</td>
+</tr>
+<tr>
+<td>Gazette notices</td>
+<td><code>nb10_gazette_notices_thru_2026-07.csv</code></td>
+<td>291,045</td>
+</tr>
+<tr>
+<td>News</td>
+<td><code>nb14_news_signals_...csv</code> plus <code>news_coverage_summary.csv</code></td>
+<td>96 + 398</td>
+</tr>
+<tr>
+<td>Property</td>
+<td><code>land_registry_company_features.csv</code> and its events file</td>
+<td>60,629</td>
+</tr>
+<tr>
+<td>Trade marks</td>
+<td><code>ipo_trademarks_company_features.csv</code> and its events file</td>
+<td>15,713</td>
+</tr>
+<tr>
+<td>Grants</td>
+<td><code>ukri_grants_company_features.csv</code></td>
+<td>10,254</td>
+</tr>
+<tr>
+<td>Identity</td>
+<td>the crosswalk</td>
+<td>1,496,693</td>
+</tr>
+</tbody>
+</table>
+<p>The split is deliberate and it decides what a source can do. <strong>Anything on the spine can be filtered.
+Anything in a side table can only be shown on a profile.</strong> Borrowing, lender, filing, momentum and the
+model scores are columns on the spine, so they are filterable. Property, trade marks and grants are
+side tables keyed on company number, so they appear on a company page and nowhere else.</p>
+<p>That is why the filter panel has no "has property" control, and it is not an oversight. It also
+produced the one preset the system cannot take apart, which section 9 covers.</p>
+<hr />
+<h2>5. Company numbers</h2>
+<p>The original document listed this under "things we already know (bad)":</p>
+<blockquote>
+<p>Company numbers are formatted differently in different places. Some code keeps them exactly as they
+came, some pads them to 8 digits. Some CSV column names have a leading space. We need one shared
+cleaning function that everybody calls.</p>
+</blockquote>
+<p>That is what happened. <code>serve.py</code> carries a single SQL cleaner, <code>CLEAN_CN</code>, applied to every side table
+as it loads, and its comment records the check:</p>
+<blockquote>
+<p>Canonical company number, matching the rest of the pipeline. Verified row-for-row against the Python
+cleaner in <code>build_data.py</code> on 3,027,787 rows, 0 mismatches.</p>
+</blockquote>
+<p>Two cleaners existed, one in Python for the build and one in SQL for the server, and they were checked
+against each other on three million rows rather than assumed to agree. Empty strings, <code>NAN</code> and <code>NONE</code>
+all resolve to NULL rather than to a company called "NAN".</p>
+<hr />
+<h2>6. The sources, one at a time</h2>
+<p>Each source arrived with a decision attached, and most of those decisions are about how to present
+something honestly rather than how to compute it.</p>
+<h3>Gazette</h3>
+<p>The only source matched on company number throughout, so a hit is certain rather than probable. It is
+also the only source that is both filterable and profile-visible, because its flags are columns on the
+spine.</p>
+<p>The interesting decision is temporal. The Companies House snapshot is 1 July 2026; the Gazette
+enrichment runs to 31 July. <code>FILTER_SPEC.md</code> 4.1 records that this is deliberate:</p>
+<blockquote>
+<p>The dashboard intentionally treats Gazette-through-31-July as enrichment on top of the 1 July
+snapshot, not as a contradiction of it. Companies House status lags Gazette publication, so July
+notices are the most valuable rows in the file, not contamination.</p>
+</blockquote>
+<p>That is defensible for a dashboard that describes. It would not be defensible for a model, and the
+record says so, with the fix pre-loaded:</p>
+<blockquote>
+<p><strong>Condition on this decision:</strong> if <code>gaz_*</code> fields are ever used as features in predictive modelling,
+those 740 are circular and must be excluded (<code>gaz_new_in_july_flag = 1</code>).</p>
+</blockquote>
+<p>740 companies got their first ever notice in July. <strong>656 of them are still "Active" in Companies House
+and 586 have never been flagged distressed by CH at all</strong>, which is exactly why the July rows are worth
+having and exactly why a model must not see them.</p>
+<p>The Gazette filter is ten named states rather than one toggle. A bare "Gazette" switch was explicitly
+excluded as ambiguous. The most important of the ten is <strong>"No notice" at 1,511,569</strong>, because without
+it the <em>Silent distress</em> preset could not exist.</p>
+<h3>News</h3>
+<p>The most conservative source and the one whose result looks most like a bug. 467 companies searched
+out of 1,531,094, and <strong>zero</strong> with coverage that survived verification.</p>
+<p>The verification is the story. One company, <code>16392251</code>, is recorded in the code by hand:</p>
+<blockquote>
+<p>Matched an article about Flying Tiger Copenhagen. "HOLDINGS" is stripped as a legal suffix, leaving
+the single word TIGER, which appears inside "Flying Tiger"; the corroborating signal was the town
+LONDON, which appears in most Guardian business articles. Reviewed and rejected.</p>
+</blockquote>
+<p>That is a false positive produced by two reasonable rules interacting: strip legal suffixes so
+"TIGER HOLDINGS LTD" matches "Tiger Holdings", and corroborate with the registered town. On a
+one-word name and a London company, both rules fire on an article about a Danish gift shop.</p>
+<p>The handling is worth noting because it would have been easier to delete the row. Instead the raw hit
+is still counted and only the verification is reversed, so the profile can say a hit was found and
+rejected rather than quietly showing nothing. Fifteen companies are in that state.</p>
+<h3>Contracts</h3>
+<p>On the spine as <code>contracts_won_12m</code>, but <strong>not offered as a filter</strong>. This is the source of the one
+permanent exception in the preset system, covered in section 9.</p>
+<h3>Property</h3>
+<p>Land Registry titles, matched on company number. The decision here is about a long tail:</p>
+<blockquote>
+<p>Holdings are wildly skewed: median 1 title, 90th percentile 4, 99th 29, maximum 65,556. The long
+tail is trust and corporate-services firms holding titles for clients rather than on their own
+balance sheet, so a profile reading "65,556 properties" would say something untrue about the
+business.</p>
+</blockquote>
+<p>The threshold is 30, the 99th percentile rounded up, which puts 680 of 60,629 companies on the
+caveated side. The rule the code states is the one that matters: <strong>the true count is always shown and
+never altered</strong>; above the threshold the page adds an explanation. Nothing is hidden to make the
+number look sensible.</p>
+<h3>Trade marks</h3>
+<p>The weakest of the packs and labelled as such everywhere. Matched on <strong>name plus postcode area only,
+confidence 0.85 on all 15,713 rows</strong>.</p>
+<p>It also has the worst vintage problem in the project, and it is not a lag but a hard stop. The register
+behind the file is the IPO's <strong>historical register, which ends on 28 January 2018</strong>. The Intellectual
+Property Office published that free bulk extract on 13 February 2018 and <strong>has never updated it</strong>. So
+this is not eight-year-old data that will refresh; it is a closed archive. Every number carries the
+vintage, because otherwise a reader concludes the company stopped filing marks rather than that the
+source stopped recording them. The code is correspondingly careful about tense:</p>
+<blockquote>
+<p>Status is also as-at-2018: a mark "Registered" then may have lapsed since, so the screen says
+"registered as at" and never "currently holds".</p>
+</blockquote>
+<h3>Grants</h3>
+<p>UKRI research funding, matched on name and postcode area rather than number, so it carries a
+confidence and the tile says "name match only".</p>
+<h3>Hiring, and why it is not here</h3>
+<p>The original design assigned Adzuna job adverts to Sam as a hiring signal, notebook 07, described as
+"already built". It is not in the dashboard, and there are now <strong>zero references to hiring anywhere in
+the code</strong>.</p>
+<p>The evidence for what happened is in <code>data.js</code>, the earlier build artefact still on disk. It records:</p>
+<pre><code>&quot;sources_live&quot;:    [&quot;gazette&quot;,&quot;news&quot;,&quot;contracts&quot;]
+&quot;sources_pending&quot;: [&quot;hiring&quot;,&quot;property&quot;,&quot;trademark&quot;,&quot;grants&quot;]
+</code></pre>
+<p>Four sources were pending at that point. Three of them landed. Hiring did not, because no usable data
+reached the dashboard, and it was removed rather than left as a permanently empty tile promising
+something that would never arrive. The live server now reports six sources live and none pending.</p>
+<p>That is the honest version of a decision that could easily have been dressed up: we cut a source
+because we did not have the data for it.</p>
+<hr />
+<h2>7. The filter system</h2>
+<p>27 filters across six groups: Core, Borrowing, Lender, Filing, Momentum, Signals. The implementation
+note explains the shape:</p>
+<blockquote>
+<p>One declarative table driving three consumers: the WHERE builder, the facet-count endpoint, and
+<code>/api/filters</code>, which the UI renders itself from. <strong>Defining a filter once is what stops the panel
+and the query drifting apart.</strong></p>
+</blockquote>
+<p>The panel is not hand-written HTML. The browser asks the server what filters exist and draws whatever
+it is told, so a filter cannot appear in the UI without a predicate behind it, and a predicate cannot
+change without the panel following.</p>
+<h3>The rule that governs NULLs</h3>
+<p>This is the most consequential design rule in the filter system:</p>
+<blockquote>
+<p><strong>A missing value is never treated as a negative.</strong> Every filter with NULLs offers three states,
+Yes / No / Not stated, where "No" means <em>observed false</em>, not <em>unknown</em>.</p>
+</blockquote>
+<p>It exists because the NULL rates are enormous and they mean specific things:</p>
+<table>
+<thead>
+<tr>
+<th>Filter</th>
+<th>NULL rate</th>
+<th>What NULL actually means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Main lender</td>
+<td><strong>94.4%</strong></td>
+<td>No outstanding charge. Not "unbanked"</td>
+</tr>
+<tr>
+<td>Size tier moved</td>
+<td>41.4%</td>
+<td>No 12-month history, or no segment to move</td>
+</tr>
+<tr>
+<td>Relocated / Industry changed</td>
+<td>13.9%</td>
+<td>Incorporated less than 12 months ago</td>
+</tr>
+<tr>
+<td>Model scores</td>
+<td>8.0%</td>
+<td>Company is not Active, so it was never scored</td>
+</tr>
+</tbody>
+</table>
+<p>Collapsing any of those to "No" would produce a confidently wrong list. A company incorporated eight
+months ago has not "not relocated"; we cannot say.</p>
+<h3>Live counts, and why they are mandatory</h3>
+<p>Every option carries its own count. The specification argues for this with a worked collapse:</p>
+<table>
+<thead>
+<tr>
+<th>Stack</th>
+<th>Companies</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Active</td>
+<td>1,409,284</td>
+</tr>
+<tr>
+<td>+ segment Small</td>
+<td>374,875</td>
+</tr>
+<tr>
+<td>+ outstanding mortgages &gt; 0</td>
+<td>53,086</td>
+</tr>
+<tr>
+<td>+ former LBG</td>
+<td>2,807</td>
+</tr>
+<tr>
+<td>+ competitor entered 12m</td>
+<td>56</td>
+</tr>
+<tr>
+<td>+ won a contract in 12m</td>
+<td><strong>0</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Without counts, users build empty queries and conclude the tool is broken.</p>
+</blockquote>
+<p>That table was later used as a verification target in its own right, and it reproduces exactly through
+the fifth step. The sixth cannot be reproduced because contract activity is not a filter, which is the
+same gap that appears again in section 9.</p>
+<hr />
+<h2>8. Presets, and the rule that killed two of them</h2>
+<p>Presets started as saved combinations. The final pass added a test that a preset had to pass:</p>
+<blockquote>
+<p><strong>Redundancy rule adopted:</strong> a preset earns its slot only if it retains <strong>under ~80%</strong> of the
+population of its most restrictive single-filter component. Otherwise it is a filter, not a preset.</p>
+</blockquote>
+<p>Two failed it.</p>
+<p><strong>Preset F, "Won public work recently", retained 93.5%</strong> of the "Won in 12m" filter. It was a
+repackaging. The record shows alternatives being tested rather than the preset simply being cut:
+never borrowed 2,303 (39.2%), no outstanding borrowing 3,234 (55.1%), first ever award 2,160 (36.8%).
+The replacement was <strong>F2, "Contract winner with no borrowing", 2,303</strong>, and the note says the business
+logic improved as a side effect: a company that has just won public work and has never borrowed is
+the one with a genuine new financing need.</p>
+<p><strong>Preset B, at 78.2%, was borderline.</strong> Adding the trading-segment restriction took it to 8,992
+(63.8%).</p>
+<p>A third decision is more subtle. Presets A and H are restricted to trading segments, and the reason is
+a distinction that is easy to miss:</p>
+<blockquote>
+<p><code>is_active</code> is a <em>status</em>; <code>Dormant</code> is a <em>segment</em>, and <strong>89.4% of Dormant companies hold Active
+status</strong>, so <code>is_active</code> alone does not exclude them.</p>
+</blockquote>
+<p>Two presets, C and D, are deliberately left unrestricted, and the reasoning is commercial rather than
+technical: <em>"A deteriorating exposure or a lapsed client entering administration is more urgent, not
+less. Restricting them would hide the cases that matter most."</em></p>
+<hr />
+<h2>9. The adversarial pass, and the five defects it found</h2>
+<p>On 19 August a full verification pass was run against the live server. The method matters:</p>
+<blockquote>
+<p>Independent DuckDB ground truth <strong>written from column semantics rather than copied from
+<code>serve.py</code></strong>, with every count check paired with a row-level re-test of each returned company.
+Roughly 400 assertions.</p>
+</blockquote>
+<p>Ground truth copied from the implementation only proves the implementation agrees with itself.</p>
+<p><strong>The filtering logic came through clean.</strong> 63 facet counts, 34 filter cases, 9 presets decomposed
+into 36 conditions, 22 hand-built combinations including 8 deliberate contradictions, and 120 seeded
+random combinations produced zero count mismatches and zero rows that failed the predicate they were
+selected by. Every injection attempt returned 0 rows.</p>
+<p>Then it found five defects, and none of them were in the filtering.</p>
+<h3>B1: ordering was not deterministic</h3>
+<p>The worst of the five, because it was silently losing data.</p>
+<p>The Gazette and Former LBG views ordered by non-unique keys with no tie-break, so DuckDB's parallel
+scan was free to arrange ties differently on each run. The measured consequence:</p>
+<ul>
+<li>Five identical calls to the LBG view returned <strong>five different sets of companies</strong></li>
+<li>Walking six pages of 100 showed <strong>526 distinct companies in 600 slots, so 74 were never displayed</strong></li>
+<li>It reached the UI: growing the list from 25 to 50 moved <strong>15 of the 25 visible rows</strong></li>
+</ul>
+<p>A user paging through a list was not seeing 74 companies, and nothing anywhere indicated that.</p>
+<p>The fix is one constant, <code>TIE_BREAK = ", CompanyNumber ASC"</code>, appended to every ordered query: both
+view orders, the default name order, the custom sort branch, and the legacy endpoints.
+<code>CompanyNumber</code> is unique across all 1,531,094 rows and never null, so the sort became a total order.</p>
+<p><strong>The lesson, and it is the one that generalises:</strong> an ordering that is merely correct is not enough.
+It has to be <em>total</em>, or pagination quietly lies.</p>
+<h3>B3: filters failing open</h3>
+<p>Unrecognised values were silently dropped, and the failure widened the result set:</p>
+<table>
+<thead>
+<tr>
+<th>Input</th>
+<th>What it did</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>gazette=not_a_state</code></td>
+<td>Dropped the filter, returned <strong>all 1,531,094</strong></td>
+</tr>
+<tr>
+<td><code>repayment=bogus</code></td>
+<td>Same</td>
+</tr>
+<tr>
+<td><code>preset=not_a_preset</code></td>
+<td>Same</td>
+</tr>
+<tr>
+<td><code>view=not_a_view</code></td>
+<td>Same</td>
+</tr>
+<tr>
+<td><code>segment=NoSuchSegment</code></td>
+<td>Correctly returned <strong>0</strong></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>Same user error, opposite outcomes, and the failure widened the result set.</p>
+</blockquote>
+<p>That is the dangerous direction. A typo that returns nothing is obvious. A typo that returns
+everything looks like a working query. Fixed with a <code>FilterError</code> and a 400 handler that names the
+valid options.</p>
+<h3>B2 and B4: input handling</h3>
+<p>A negative <code>limit</code> reached DuckDB as <code>LIMIT -5</code> and returned HTTP 500, because only offset was
+floored. And range inputs had the same split personality as B3: <code>age_min=nan</code> silently returned 0
+while <code>age_min=abc</code> silently returned everything. Two kinds of bad input, two silent and opposite
+outcomes. Both now return 400.</p>
+<h3>B5: a real value that looked like a null</h3>
+<p>27 matched companies carry the genuine severity tier <code>'none'</code>. The shared text helper <code>_txt()</code> treats
+the literal string "none" as a null marker, which is correct for the CSV side files and wrong here, so
+those rows rendered as <code>· 2 notices</code> with a dangling separator.</p>
+<p>The fix is narrow on purpose: a separate <code>_cat()</code> used for <code>gaz_severity_tier</code> only, plus a label map
+rendering it "No severity tier". <strong>Stored values and every filter predicate are unchanged.</strong> A
+presentation bug got a presentation fix.</p>
+<hr />
+<h2>10. The investigation that overturned our own conclusion</h2>
+<p>This is the most valuable thing in the record, because it is the project catching itself being wrong
+about something it had already decided.</p>
+<h3>How it started</h3>
+<p>Preset A tested <code>debt_ratio = 0</code>. Cross-verifying a proposed change to
+<code>Mortgages.NumMortOutstanding = 0</code> turned up one company's worth of difference, <strong>ANTALIS LIMITED,
+01088345</strong>: 416 charges, 2 still outstanding, 414 satisfied. Its true ratio is 0.0048, and
+<code>debt_ratio</code> is rounded to two decimals upstream, so it stores as 0.00. It is the only company in the
+entire file whose ratio falls in the 0 to 0.005 band.</p>
+<p>Preset A moved to <code>Mortgages.NumMortOutstanding = 0</code>. 31,003 became 31,002. One company removed, none
+added.</p>
+<h3>What the cross-check then uncovered</h3>
+<p>The file carries <strong>two different "outstanding" measures and they disagree</strong>:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Mortgages.NumMortOutstanding</code></td>
+<td>the Companies House bulk count</td>
+</tr>
+<tr>
+<td><code>n_charges_outstanding</code></td>
+<td>the charge-level lender pipeline</td>
+</tr>
+</tbody>
+</table>
+<p>They differ on 2,859 companies, and on 1,300 of those one is zero while the other is not. Every lender
+field is built on the pipeline column, not the bulk one, which produces the number that started the
+argument: <strong>996 companies where the bulk says nothing is outstanding but a named lender is attached.</strong></p>
+<p>Inside preset A, a list whose entire promise is "no incumbent to displace", that left <strong>661 companies
+carrying a named lender and 118 of them current LBG clients</strong>.</p>
+<h3>The conclusion we reached first, and it was wrong</h3>
+<p>The record preserves it rather than deleting it, struck through, with a note explaining why it is
+still there:</p>
+<blockquote>
+<p>The paragraph that stood here was wrong and has been replaced by 9.6. It read the 661 as "661
+companies wrongly in a prospecting list, a business error", and recommended moving preset A onto
+<code>n_charges_outstanding = 0</code>.</p>
+</blockquote>
+<p>That reads like an obvious business error. It is not.</p>
+<h3>What the investigation found</h3>
+<p>The disagreement is a function of <strong>company age</strong>, not of data freshness:</p>
+<table>
+<thead>
+<tr>
+<th>Company age</th>
+<th>Pipeline says outstanding</th>
+<th>Bulk disagrees</th>
+<th>Rate</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>under 10y</td>
+<td>20,592</td>
+<td>21</td>
+<td><strong>0.10%</strong></td>
+</tr>
+<tr>
+<td>10-20y</td>
+<td>30,298</td>
+<td>49</td>
+<td>0.16%</td>
+</tr>
+<tr>
+<td>20-30y</td>
+<td>26,988</td>
+<td>70</td>
+<td>0.26%</td>
+</tr>
+<tr>
+<td>30-50y</td>
+<td>18,112</td>
+<td>442</td>
+<td>2.44%</td>
+</tr>
+<tr>
+<td><strong>50y+</strong></td>
+<td>7,549</td>
+<td>701</td>
+<td><strong>9.29%</strong></td>
+</tr>
+</tbody>
+</table>
+<p>A ninety-fold gradient. The supporting evidence points the same way: disputed LBG relationships carry
+an average charge age of <strong>34.4 years</strong> against 12.9 where the two sources agree, <strong>88 of 173 have no
+satisfaction record at all</strong>, and of the 118 current LBG clients inside preset A, 86 hold a charge over
+30 years old while only <strong>4 hold one under 10 years</strong>. The 17 companies disagreeing in the opposite
+direction show no age gradient and are noise.</p>
+<p>That is the signature of <strong>charges left open on the register because a satisfaction was never filed</strong>,
+not of live secured borrowing. The pipeline's gate holds a charge open whenever the satisfaction date
+is missing, which is precisely the condition expected on a 1980s charge.</p>
+<p>Two checks were run to rule out alternative explanations. It is not a jurisdictional artefact: England
+and Wales disagrees more (0.088%) than Scotland (0.020%) or Northern Ireland (0.015%). And the bulk is
+not flawless either: its own three counts fail to reconcile on 463 companies, and on 41 companies the
+pipeline sees more outstanding charges than the bulk records as ever having existed.</p>
+<h3>The decision</h3>
+<p><strong>Preset A stays on <code>Mortgages.NumMortOutstanding = 0</code>.</strong> The change we had recommended would have
+taken it from 31,002 to 30,163, and:</p>
+<blockquote>
+<p>That would delete real prospects to fix a phantom.</p>
+</blockquote>
+<p>The record is also honest about what the evidence does not cover: charge age is measurable only for
+the LBG subset, because that is the only charge-date column in the file. For the other 543 lendered
+companies in preset A the live-versus-stale split is inferred from the same gradient rather than
+measured.</p>
+<h3>What this one taught us</h3>
+<p>Three things, and they are the reason this section is the longest in the document.</p>
+<p><strong>A number that looks like an error can be the data telling you about the world.</strong> 661 companies in a
+prospecting list with an incumbent attached is a bug-shaped fact, and it was not a bug.</p>
+<p><strong>Provenance beats plausibility.</strong> The two columns were compared on where they came from, how they
+were gated, and what they can and cannot know, rather than on which produced the more comfortable
+number.</p>
+<p><strong>A gap got recorded rather than papered over.</strong> Unlike the Gazette block and the contracts block, the
+lender block carries <strong>no as-of date and no staleness flag</strong>, so its currency cannot be checked from
+the file at all. The record calls that "a gap worth closing at source" rather than pretending the
+question was fully settled.</p>
+<hr />
+<h2>11. Making presets adjustable</h2>
+<p>The specification asked for one thing the first build did not deliver:</p>
+<blockquote>
+<p>Presets populate the panel rather than bypassing it, so a user can see what a preset did and adjust
+it.</p>
+</blockquote>
+<p>The first build made a preset an opaque server-side clause. It worked, and you could not see inside
+it or change it. That was logged as the one substantive deviation and closed on 21 August.</p>
+<p>A preset now carries a second expression of itself in the panel's own vocabulary. Selecting one loads
+those conditions into the actual filter controls. The chips shown are read back off the live filter
+state rather than off a stored description, so they stay true after an edit.</p>
+<p>One invariant keeps the two halves honest:</p>
+<blockquote>
+<p><code>where</code> remains the definition of a preset. <strong>The count is always computed from <code>where</code>, never from
+the mapping</strong>, so the two cannot drift silently in the direction that matters.</p>
+</blockquote>
+<h3>How it was verified, and why counts were not enough</h3>
+<blockquote>
+<p>The mapping was verified before any UI was written, <strong>by SET DIFFERENCE rather than by count</strong>. Two
+predicates can agree on a total and still select different companies.</p>
+</blockquote>
+<p>For every preset, the companies matched by <code>where</code> and the companies matched by the filter expansion
+were compared in both directions. Eight of nine returned 0 and 0.</p>
+<h3>The ninth</h3>
+<p><code>contract_no_borrowing</code> cannot be taken apart, and the set difference shows exactly how badly:</p>
+<table>
+<thead>
+<tr>
+<th>Preset</th>
+<th><code>where</code></th>
+<th>expansion</th>
+<th>only in <code>where</code></th>
+<th>only in expansion</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>contract_no_borrowing</td>
+<td><strong>2,303</strong></td>
+<td><strong>805,602</strong></td>
+<td>0</td>
+<td><strong>803,299</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Its <code>contracts_won_12m &gt; 0</code> condition has no filter control, because contracts are not a filterable
+source. Expressed without it the preset returns 805,602 companies instead of 2,303.</p>
+<p>The decision was to leave it alone:</p>
+<blockquote>
+<p>Inventing a contracts filter would change the filter system this document verified, so the preset
+stays exactly as it was: applied server-side from <code>where</code>, with its four conditions listed as fixed,
+dashed chips and the reason stated on screen.</p>
+</blockquote>
+<p>The dashboard tells the user it cannot take this one apart, and why. That is better than a control
+that silently does something different from what its label says.</p>
+<p>Two equivalences were also recorded here because they are not obvious, and both were measured at
+0 rows of disagreement in each direction: <code>lifecycle = Trading</code> is exactly <code>is_active</code>, and
+<code>lbg = current</code> is exactly <code>n_lbg_charges_outstanding &gt; 0</code>.</p>
+<hr />
+<h2>12. Scores, and what they are not</h2>
+<p>Four models, held to a presentation discipline that is stricter than the modelling:</p>
+<table>
+<thead>
+<tr>
+<th>Score</th>
+<th>Horizon</th>
+<th>Event</th>
+<th>Measured hit rate at the top</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lending readiness</td>
+<td>3 months</td>
+<td>Takes on new secured borrowing</td>
+<td>43 in 100</td>
+</tr>
+<tr>
+<td>Credit risk</td>
+<td>6 months</td>
+<td>Hits a genuine insolvency event</td>
+<td>16 in 100</td>
+</tr>
+<tr>
+<td>Voluntary exit</td>
+<td>6 months</td>
+<td>Has a strike-off proposal filed</td>
+<td>not ranked</td>
+</tr>
+<tr>
+<td>Growth</td>
+<td>12 months</td>
+<td>Moves up a size tier</td>
+<td>22 in 100</td>
+</tr>
+</tbody>
+</table>
+<p>Three rules apply. Scores are shown as <strong>bands, never as probabilities</strong>, and the horizon is always
+visible. Scores exist only for companies whose status is exactly Active, 1,409,284 of 1,531,094, and
+for the rest the panel disappears with a reason rather than showing zeros.</p>
+<p><strong>Voluntary exit is deliberately not offered as a filter at all:</strong></p>
+<blockquote>
+<p>998 of its top 1,000 values are exact ties and the top-100 cutoff is shared by 139 companies. It
+cannot support a ranked or banded filter.</p>
+</blockquote>
+<p>It still appears on the company page, where a band is a fact about one company rather than an
+invitation to sort a list by it.</p>
+<hr />
+<h2>13. The company profile and the timeline</h2>
+<p>The original design named the timeline as the thing that would justify the project:</p>
+<blockquote>
+<p><strong>One timeline with every signal from every source on it.</strong> This is the view no single branch can
+produce today, and it is the thing that will sell the project.</p>
+</blockquote>
+<p>It survived intact, and it is the clearest expression of the whole architecture: a Gazette notice, a
+contract win and a property title in one column in date order, which no individual notebook can
+produce.</p>
+<p>The rest of the profile follows the original list closely: header, a row of source tiles each showing
+an honest "nothing found", a panel per source, the model scores labelled as scores rather than
+predictions, and for every fact its source, date and confidence.</p>
+<p>The confidence requirement came from a known problem, flagged before any code was written:</p>
+<blockquote>
+<p>Matches are not always certain. Name plus postcode matching is about 92% correct, and only 55% of
+Gazette notices carry a company number at all. <strong>The confidence value must survive all the way to
+the screen, so a shaky match never looks like a certain one.</strong></p>
+</blockquote>
+<p>That is why the Evidence panel shows "certain match" against Gazette notices, and why grants and trade
+marks say "name match only".</p>
+<hr />
+<h2>14. Market Analytics</h2>
+<p>The Analytics page was added late and it works on a different principle from the rest of the
+dashboard. It presents Sneha's competitive market analysis, and the constraint was to change nothing
+about it.</p>
+<p>The code comment records why the files are read where they sit:</p>
+<blockquote>
+<p>The three CSVs are her saved outputs and are read where they sit rather than copied in: serve.py
+already reads from outside the repo for <code>data/</code>, and <strong>duplicating a file is how two versions of
+the same number start to disagree.</strong></p>
+</blockquote>
+<p>Eleven figures were rebuilt as native HTML, CSS and SVG rather than pasted in as notebook images, so
+they inherit the dashboard's typography and respond to the window. The numbers are not recomputed in
+the browser. A verification script compares every displayed figure against her CSVs and against an
+independent recomputation from the parquet, and it is part of the regression suite.</p>
+<p>One deliberate constraint: <strong>Analytics does not respond to the Home filters.</strong> It always describes the
+whole market. A page that silently re-scoped itself would make it impossible to tell whether a number
+was about the market or about a filtered slice.</p>
+<hr />
+<h2>15. The interface</h2>
+<p>Two decisions here are worth recording because both were reversals.</p>
+<p><strong>The card system was unified late.</strong> The dashboard had grown two card languages: the company profile
+and landing page on a translucent glass treatment, Market Analytics on a later solid dark treatment
+with a green ambient glow. Side by side they read as two products. They were reconciled into one
+surface driven by a shared token set, with glass kept as the material and the analytics card
+contributing the geometry and the pointer response.</p>
+<p><strong>The liquid-glass treatment was scoped to controls, not everything.</strong> The refraction effect uses an
+SVG displacement filter inside <code>backdrop-filter</code>, which only Chromium resolves, so a capability probe
+sets an attribute on <code>&lt;html&gt;</code> and everything else degrades to plain blur. It is applied to navigation
+and controls and deliberately <strong>not</strong> to analytical cards, on the reasoning that a page where
+everything is glass has no hierarchy at all.</p>
+<p>An attempt to build a full optical liquid-glass effect from a Three.js and GLSL reference was
+investigated and rejected on a specific technical ground rather than on effort. The shader samples its
+background from a WebGL render target, which works because everything behind the glass is also WebGL
+content. Behind our navigation is live DOM, and there is no supported way to rasterise live DOM into a
+WebGL texture. The workarounds all fail: <code>html2canvas</code> does not support <code>backdrop-filter</code>, which this
+dashboard uses on nearly every surface.</p>
+<p>The animation on the view switcher was also reversed. A squash-and-stretch deformation was built, then
+removed in favour of a plain glide, on the grounds that the effect was decorating a control rather
+than helping anyone use it.</p>
+<hr />
+<h2>16. Defects found after the specification closed</h2>
+<p>The record in <code>FILTER_SPEC.md</code> ends on 21 August. Three more defects were found in the final
+verification and visual passes, and they are worth adding because two of them were invisible.</p>
+<p><strong>Two animations were frozen, not slow.</strong> The view marker and the KPI flip both used a <code>transform</code>
+transition on an unpromoted element, which makes it a main-thread animation. Clicking a view calls
+<code>refresh()</code>, which re-renders the result list and occupies the main thread for one to two seconds, and
+the animation sat behind that work. Measured: the marker's inline target was correct within 1ms but it
+did not visibly leave the old segment until the render finished. First movement went from <em>"never
+within 1.3s"</em> to <em>"1ms"</em> once the element was promoted with <code>will-change: transform</code>.</p>
+<p><strong>A stray <code>}</code> in the stylesheet had been silently eating a rule.</strong> The <code>html[data-field="light"]</code> block
+was closed with one brace too many, left over from when it sat inside a media query. Chromium recovers
+from a stray brace by consuming the next rule. For a long time the victim was the <code>@supports</code>
+no-backdrop-filter fallback, which therefore never worked. When the intro overlay was added in that
+position, the victim became the rule that made it a full-screen fixed curtain, so the loading video
+rendered as an unstyled transparent element with the whole dashboard drawing on top of it. Both rules
+came back when the brace was removed.</p>
+<p><strong>The logo was requesting files that never existed.</strong> <code>brand()</code> probed <code>assets/lloyds-logo.svg</code> and
+<code>assets/lloyds-logo.png</code> before falling through to the mark that is actually on disk, so <strong>every page
+load logged two 404s</strong>. Neither file was ever added; the naming convention existed only in a README.
+The probe list now names what exists, and the README records that the list is fetched with real
+requests so any wrong name costs a 404 on every load. The favicon was inlined as a data URI at the
+same time, and a normal page load now produces zero console errors.</p>
+<hr />
+<h2>17. What we can actually prove</h2>
+<p>The evidence, in the order it would convince someone:</p>
+<ul>
+<li><strong>Filtering:</strong> 63 facet counts, 34 filter cases, 9 presets decomposed into 36 conditions, 22 hand-built
+  combinations including 8 deliberate contradictions, 120 seeded random combinations. Zero count
+  mismatches, zero rows failing the predicate they were selected by. Ground truth written independently
+  from column semantics, not copied from the implementation.</li>
+<li><strong>Presets:</strong> verified by set difference in both directions, not by count. Eight of nine return 0 and 0;
+  the ninth is documented as a permanent exception with its exact divergence measured.</li>
+<li><strong>Ordering:</strong> 10 identical calls per view return identical rows; page walks of 300 to 600 slots show
+  zero duplicates and zero skipped companies; four pages of 25 equal one call for 100.</li>
+<li><strong>Market Analytics:</strong> every displayed figure checked against Sneha's CSVs, the notebook output, and an
+  independent recomputation from the parquet.</li>
+<li><strong>Performance, measured rather than assumed:</strong> a full panel repaint issues roughly 57 aggregate
+  queries, one per option, at 0.58s cold. <code>/api/presets</code> recomputes all nine populations over 1.5M rows
+  in 0.17s. The record notes plainly: <em>"DuckDB absorbs that without a cache. No optimisation is needed."</em></li>
+</ul>
+<hr />
+<h2>18. Limitations that remain</h2>
+<p>Stated plainly, because most of them are recorded in the spec as open items rather than discovered
+later.</p>
+<p><strong>The lender block has no as-of date.</strong> Unlike the Gazette and contracts blocks it carries no
+staleness flag, so its currency cannot be checked from the file. This is the gap behind the whole of
+section 10, and it is a fix at source rather than in the dashboard.</p>
+<p><strong>Contracts cannot be filtered</strong>, which is why one preset can never be taken apart.</p>
+<p><strong>Three sources are name-matched</strong>, not number-matched: grants and trade marks on name plus postcode
+area, and the news search on cleaned name. Trade marks are the weakest at confidence 0.85 across all
+15,713 rows, and the register itself is five years old.</p>
+<p><strong>News coverage is effectively nil.</strong> 467 searched, zero verified. That is a finding rather than a
+defect, but it means the news source contributes almost nothing to the dashboard today.</p>
+<p><strong>The <code>gaz_new_in_july_flag</code> exclusion has not been applied anywhere</strong>, correctly, because the
+dashboard describes rather than predicts. It must be honoured before any <code>gaz_*</code> field is used as a
+model feature.</p>
+<p><strong><code>/api/watchlist</code> still treats an unrecognised view as "gazette"</strong>, the last silent fallback left in
+the API after the B3 fix. It is not reached by the UI.</p>
+<p><strong>There is no URL routing.</strong> Navigation never changes the address bar, so browser Back leaves the
+dashboard rather than returning to the previous view, and nothing is deep-linkable.</p>
+<p><strong>The data path was hardcoded</strong> until late in the project. It now resolves from <code>--data</code>, then the
+<code>LLOYDS_DATA</code> environment variable, then a fallback, so the dashboard can run on a machine other than
+the one it was built on.</p>
+<hr />
+<h2>19. What changed after this document was first written</h2>
+<p>Everything above describes the dashboard as it was specified and built. What follows is the substance
+of what has happened to it since. The change record with the full reasoning, the verification output
+and the defects found along the way is <code>POST_BUILD_CHANGES.md</code>; this section is the summary a reader of
+this document needs so that it does not quietly go out of date.</p>
+<h3>19.1 The LBG relationship filter went from three options to five</h3>
+<p>The filter offered current, former and never. The report's routing section, drafted earlier, routes the
+shortlist on a five-way partition, and "never" was silently merging three of those five.</p>
+<table>
+<thead>
+<tr>
+<th>Bucket</th>
+<th>Active companies</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Current LBG client</td>
+<td>11,007</td>
+</tr>
+<tr>
+<td>Lapsed</td>
+<td>13,412</td>
+</tr>
+<tr>
+<td>Borrowing elsewhere, never ours</td>
+<td>64,517</td>
+</tr>
+<tr>
+<td>Charge held, lender unclassified</td>
+<td>14,651</td>
+</tr>
+<tr>
+<td>No charge ever</td>
+<td>1,305,697</td>
+</tr>
+</tbody>
+</table>
+<p>Two things were wrong with the old shape. The Growth population read as 1.5 million when the companies
+that <strong>demonstrably borrow, from someone else</strong> number 64,517, an overstatement of more than twenty
+times. And the 14,651 whose lender the charge register does not name were sitting inside a label a
+reader would take as "no bank", which is the taxonomy gap becoming a client-facing error.</p>
+<p>Verified as a genuine partition: every one of the 1,409,284 active rows satisfies exactly one bucket,
+no pair overlaps across all ten pairwise tests, the five sum to the population with no remainder, and
+none of the four driving columns contains a null that could silently drop a row.</p>
+<p><code>lbg=never</code> is now rejected rather than silently accepted, so a saved link using it fails loudly.</p>
+<h3>19.2 The model scores panel was rebuilt, and one of its sentences was wrong</h3>
+<p>The panel now shows the score as a percentage, with precision, base rate and lift beside it and the
+three SHAP drivers underneath. The reason for the rebuild was a defect rather than a preference.</p>
+<p><strong>The precision sentence was a global statistic narrated as a local one.</strong> Every row carried "43 in 100
+at this level went on to take on new secured borrowing", built from a per-model constant that never
+read the company's own percentile. A company in the <strong>Lower half</strong> on lending was shown that sentence
+directly beneath a band saying Lower half. <code>hit_rate</code> is precision@100: a property of the top hundred
+and of nothing else. For a company at the median lending score the true figure is near the base rate,
+about 1 in 400. <strong>The card overstated it by a factor of roughly 170.</strong></p>
+<p>It now reads "of the <strong>top 100</strong> companies by this score, 41 to 43...", with the base rate and lift
+beside it, given as a <strong>range across two held-out origins</strong> rather than the better of the two. The
+previous figures were the flattering month in every case, and the lift constant of 160 matched no
+measurement at all: the per-origin lifts are 167 and 144.</p>
+<p><strong>A second claim was also false.</strong> The footnote said the score should be read "as a ranking near the
+top, where it runs optimistic". Measured against realised outcomes, that is backwards for the model the
+panel leads with: on lending, observed over predicted is 1.21 in the 0.40 to 0.50 band and 1.12 above
+0.50, so at the very top lending runs low, not high. It holds for insolvency and growth and inverts for
+lending. The wording now claims no direction of error at the top, only that too few past cases exist
+there to check it. The inline label also stopped calling the number "raw", which it is not: the shipped
+column has been through <code>recalibrate</code>.</p>
+<h3>19.3 SHAP drivers on the company page</h3>
+<p><code>shortlist_reasons_2026-07.parquet</code> is loaded as a side table alongside the Gazette, news, property,
+trade mark and grant packs. 60,000 rows: four targets, the top 5,000 companies each, three reasons per
+company.</p>
+<p><strong>The join key is <code>CompanyNumber</code> and <code>target</code>.</strong> A company can sit in the lending top 5,000 and not
+the growth one, so joining on the number alone would attach one model's reasons to another model's
+score. Of the 18,644 distinct companies, 17,368 appear under one target only, 1,196 under two, 80 under
+three and none under all four.</p>
+<p>Two data problems were found before implementing, either of which would have shipped nonsense.
+<strong>10.15% of rows carry the literal string <code>"nan"</code></strong> where the feature had no value at the scoring
+frame, concentrated in <code>months_since_last_confstmt</code> (4,681 rows) and <code>tier_rank</code> (1,357). By target,
+at least one unusable value affects <strong>4,683 of voluntary exit's 5,000 companies</strong>. The value is
+suppressed and the driver still shown: the model did use that feature, we simply cannot state the
+figure. A sentinel of <code>-95669</code> in <code>months_since_last_accounts_filing</code> is treated the same way.</p>
+<p>The panel is headed <strong>"SHAP analysis: what drives this score"</strong>, not "why this company is in your
+list". On lending the top feature is <code>Mortgages.NumMortCharges</code> for <strong>100.00% of all 5,000 companies</strong>
+in the extract, so a "why this company specifically" label would be answered identically thousands of
+times. Each driver therefore leads with the feature's <strong>value</strong>, not its name. Weights are each
+contribution as a share of that company's own three absolute contributions; the signed log-odds is kept
+behind the info reveal and never shown inline, because three contributions that visibly fail to sum to
+the score would invite exactly the arithmetic this document warns about elsewhere.</p>
+<p>Coverage is 0.35% of the scored population, so most company pages show no drivers. That state says
+<strong>"No SHAP analysis available"</strong> rather than nothing, because an empty panel would read as "nothing
+drives this score", which would be wrong on roughly 99.65% of pages.</p>
+<h3>19.4 Model rankings, a fourth starting point on Home</h3>
+<p>The ranked view that was in the original design and never built. It is an ORDER over the existing
+spine: no ranking pipeline, no extra file, no new scoring. Selecting it reveals a Lending, Insolvency,
+Growth selector and the list becomes the top 100 on that score, numbered #1 to #100.</p>
+<p><strong>Voluntary exit is excluded on a measurement, not a preference.</strong> 138 companies share its rank-100
+score, so positions 100 to 237 would be one arbitrary tie-break apart. On the other three exactly one
+company holds the rank-100 score.</p>
+<p>It is served from <code>/api/ranking</code> rather than added to <code>VIEWS</code>. A member of <code>VIEWS</code> is a WHERE clause,
+consumed by the facet endpoint, the presets and the watchlist as well as by browse; a ranking is an
+ORDER and a cut. Adding it there would have changed facet counts that are verified elsewhere, and
+<code>total</code> would have read 1,409,284 under a heading saying Top 100. Rank is produced by the same window
+that orders the rows, <code>row_number() OVER (ORDER BY score DESC, CompanyNumber ASC)</code>, so the number
+beside a company and its position cannot disagree. Filters and presets are hidden in this view, because
+narrowing a fixed hundred leaves a list that is no longer the top hundred of anything.</p>
+<p>Two cards sit above the list. The <strong>score curve</strong> is drawn against zero rather than the range between</p>
+<h1>1 and #100, so a shallow fall cannot be stretched into a cliff; hovering it names the company at that</h1>
+<p>position. The <strong>composition</strong> card says which team the list belongs to, on the same five predicates as
+the LBG relationship filter so the two cannot tell different stories.</p>
+<p>Two richer chart ideas were measured and rejected. <strong>Overlaying the other model scores</strong> is not honest
+at true scale: across the lending top 100 the medians are lending 0.402, growth 0.028, insolvency
+0.018, voluntary exit 0.0008, so the other three would be flat lines on the floor and making them
+visible would require the per-series normalisation this design already refuses. <strong>Colouring the curve
+by counterparty</strong> would carry nothing: by decile down the lending hundred, "borrowing elsewhere" runs
+9, 8, 7, 7, 5, 5, 8, 8, 6, 7, and on insolvency "no charge ever" runs 10, 10, 10, 10, 10, 9, 10, 7, 8,
+9. The variable does not vary with rank, so the colour would be ink rather than information.</p>
+<h3>19.5 Defects found by verification rather than by eye</h3>
+<p>Worth recording because in each case the measurement caught what looking did not.</p>
+<ul>
+<li><strong>A non-deterministic sort, twice.</strong> The segment strip ordered on <code>count(*)</code> alone, which is not a
+  total order: Dormant and No Filings both hold 4 on lending and swapped places between successive
+  calls to the same endpoint. This is defect B1 from <code>FILTER_SPEC</code> in a smaller costume, fixed the same
+  way, with a name tie-break.</li>
+<li><strong><code>display:flex</code> beating <code>[hidden]</code>, twice.</strong> Setting the attribute did nothing, so the Tools block
+  and then the model selector both stayed visible where they should not have been.</li>
+<li><strong>An SVG sizing itself by aspect ratio.</strong> <code>height:100%</code> against an auto-height parent resolves to
+  auto, and an SVG with a <code>viewBox</code> and no height then takes its aspect ratio: a 100x40 box at 700px
+  wide was claiming 276px and setting the height of two cards, while the <code>min-height</code> written beside it
+  never bound at all.</li>
+<li><strong>Height jumps between a skeleton and its content</strong>, measured at 117px and then 149px, in both cases
+  invisible in a screenshot and obvious in a measurement.</li>
+</ul>
+<h3>19.6 The identity source stopped being the biggest file for the smallest job</h3>
+<p><code>serve.py</code> read a <strong>639 MB, 58 column, untyped CSV</strong> at every startup for four fields: incorporation
+date and the three address lines. Fifty-four columns were parsed and discarded once per restart, and it
+was by some distance the largest thing the dashboard touched, for the least work.</p>
+<p>It is now a <strong>26.8 MB parquet</strong>, 24 times smaller and 21 times faster to load (2.9s to 0.14s), written
+by <code>post_build_change/build_identity_parquet.py</code> using character-for-character the SELECT that
+<code>load_aux()</code> ran. The CSV remains the fallback. Verified by materialising both paths and running a full
+<code>EXCEPT</code> in both directions: 1,496,693 rows each side, zero rows present in one and not the other.</p>
+<p>This is the same argument as section 2, one layer down. The parquet is the truth and the further a
+design moves work away from it, the more it pays for nothing.</p>
+<h3>19.7 What is verified, and how to re-run it</h3>
+<p>Three scripts, all of which write their ground truth from column semantics rather than lifting it from
+<code>serve.py</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Script</th>
+<th>Covers</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>post_build_change/verify_model_rankings.py</code></td>
+<td>55 checks: all 100 positions per model, the endpoints, the fall, the curve, the counterparty split, the segment mix and its ordering, the SHAP coverage, and the top-1% claim</td>
+</tr>
+<tr>
+<td><code>post_build_change/audit_model_panel.py</code></td>
+<td>Every figure on the model scores panel traced to a source, on 175 companies</td>
+</tr>
+<tr>
+<td>The <code>FILTER_SPEC</code> regression set</td>
+<td>Facet counts, presets, filter cases</td>
+</tr>
+</tbody>
+</table>
+<p>One distinction that script two enforces and that matters: <strong>precision, base rate and lift are not in
+either parquet and cannot be.</strong> They are held-out evaluation metrics measured against realised outcomes
+on past origins, so they are checked against the source document instead. Everything else on the panel
+is checked against the data.</p>
+<hr />
+<h2>Sources used</h2>
+<table>
+<thead>
+<tr>
+<th>Document</th>
+<th>What it gave</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>reports/integration-design.md</code></td>
+<td>The original problem statement, the signals-table plan, the three join rules, the master-list question, the known-problems list, the source ownership split including hiring</td>
+</tr>
+<tr>
+<td><code>dashboard/FILTER_SPEC.md</code></td>
+<td>The decision and error record. Sections 0 to 10: the redundancy rule, the filter taxonomy and NULL rule, preset definitions and restriction reasoning, the Gazette temporal decision, the five defects, the two-outstanding-measures investigation, the preset-adjustability work, the logo 404s</td>
+</tr>
+<tr>
+<td><code>dashboard/serve.py</code></td>
+<td>Source-integration decisions recorded as code comments: the property trustee threshold, the news false positive, trade mark vintage and confidence, the company-number cleaner check, why the market CSVs are read in place</td>
+</tr>
+<tr>
+<td><code>dashboard/data.js</code></td>
+<td>The evidence for the hiring source being dropped rather than completed, and the only surviving trace of the sharded build</td>
+</tr>
+<tr>
+<td>The working record</td>
+<td>The three-stage architecture history, the sharding design, and the DuckDB-against-PyArrow benchmark in section 2, none of which is in a repository file</td>
+</tr>
+<tr>
+<td>The running dashboard</td>
+<td>Confirmation that the described behaviour is the current behaviour</td>
+</tr>
+<tr>
+<td><code>post_build_change/meeting-answers-2026-08-25.md</code></td>
+<td>The calibration evidence, the per-origin precision and lift figures, the SHAP coverage decision, and the two panel defects in section 19.2</td>
+</tr>
+<tr>
+<td><code>post_build_change/shortlist_reasons_2026-07.parquet</code></td>
+<td>The per-company SHAP reasons in section 19.3</td>
+</tr>
+<tr>
+<td><code>POST_BUILD_CHANGES.md</code></td>
+<td>The full change record behind section 19</td>
+</tr>
+</tbody>
+</table>
+<h2>What could not be established from the records</h2>
+<p><strong>The architecture history and the engine benchmark in section 2</strong> are not in any file in the repository.
+The sharded <code>core.js</code> design and the DuckDB-against-PyArrow measurements come from the working record
+rather than from <code>FILTER_SPEC.md</code> or the code, and the intermediate sharded build no longer exists on
+disk to be inspected. <code>data.js</code> is the only surviving trace of it. The figures are reported as recorded.</p>
+<p>One number in that record does not reconcile: the shard design is described as roughly 15,000 companies
+per shard, but 105,078 signalled companies across 100 shards is closer to 1,050 each. The shard sizes in
+KB and the 5 MB startup cost are consistent with the smaller figure, so the per-shard company count is
+left out of section 2 rather than guessed at.</p>
+<p><strong>The precise reason the hiring source produced no usable data</strong> is not recorded. What is recorded is
+that it was pending and never landed, and that it was removed rather than left as an empty tile.</p>
+<p><strong>The interface and liquid-glass decisions in sections 14 and 15</strong> are documented only in code comments
+and in the working history, not in <code>FILTER_SPEC.md</code>, whose scope ends at the filter system. They are
+recorded here at a lower evidentiary standard than everything above them.</p>
+</body></html>

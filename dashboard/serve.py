@@ -93,10 +93,26 @@ FILTERS = {
                            expr="new_charge_events_12m > 0"),
 
     # ---- Lender ---------------------------------------------------------------
+    # Five-way, not three. "Never a client" was one option covering everything from a company
+    # borrowing from NatWest to one that has never registered a charge at all. That put the
+    # Growth population (borrowing elsewhere, 64,517 active) in the same bucket as the 1,305,697
+    # with no borrowing history, and hid the 14,651 whose lender the dictionary cannot name
+    # inside a label that reads as "no bank". The report routes the shortlist on this partition
+    # (section "Routing the shortlist by counterparty"), so the filter has to expose it.
+    #
+    # The five are mutually exclusive and exhaustive, verified against the parquet: every row
+    # satisfies exactly one, no pair overlaps, and the five sum to the population exactly. All
+    # four driving columns are non-null throughout, so no predicate can evaluate to NULL and
+    # silently drop a row. Scope to active with the Core lifecycle filter: is_active is exactly
+    # lifecycle = Trading, which is the population the report quotes.
     "lbg":            dict(group="Lender", label="LBG relationship", kind="choice", choices={
                            "current": "is_lbg_client",
                            "former": "ever_lbg_client AND NOT is_lbg_client",
-                           "never": "NOT ever_lbg_client"}),
+                           "elsewhere": "NOT ever_lbg_client AND n_competitor_lenders > 0",
+                           "unclassified": "NOT ever_lbg_client AND n_competitor_lenders = 0 "
+                                           "AND n_charges_outstanding > 0",
+                           "no_charge": "NOT ever_lbg_client AND n_competitor_lenders = 0 "
+                                        "AND n_charges_outstanding = 0"}),
     "main_lender":    dict(group="Lender", label="Main lender", kind="in",
                            col="primary_lender_group", nullable=True),
     "lenders":        dict(group="Lender", label="Number of lenders", kind="range",
@@ -201,7 +217,7 @@ PRESETS = [
          where=f"is_active AND {TRADING} AND score_lending >= __P99_LENDING__ "
                f"AND NOT ever_lbg_client",
          filters={"lifecycle": ["Trading"], "segment": ["Micro", "Small", "Medium", "Large"],
-                  "lending": "top1", "lbg": "never"},
+                  "lending": "top1", "lbg": ["elsewhere", "unclassified", "no_charge"]},
          note="Top 1% for new borrowing, never an LBG client."),
     dict(key="exposure_deteriorating", label="Secured exposure deteriorating", pop=5916, retains=8.8,
          where='"Mortgages.NumMortOutstanding" > 0 AND accounts_overdue_streak_months >= 6',
@@ -304,6 +320,101 @@ SAM = DATA / "processed" / "sam_sc" / "data"
 # reads from outside the repo for `data/`, and duplicating a file is how two versions of the
 # same number start to disagree.
 MARKET = DATA.parent / "market_analysis"
+
+# Viktor's per-company SHAP reasons, the top 5,000 companies per target. Two things about
+# this file decide how it may be used, and both were verified against it rather than taken
+# from the handover note:
+#
+#   The join key is CompanyNumber AND target. A company can sit in the lending top 5,000
+#   and not the growth one, so joining on the number alone would attach one model's reasons
+#   to another model's score. 18,644 distinct companies appear; 17,368 in one target only,
+#   1,196 in two, 80 in three, none in all four.
+#
+#   `contribution` is signed raw log-odds and must never be summed against `score`. Three
+#   contributions that visibly fail to add up to the score invite exactly the arithmetic
+#   the report warns against, so the API sends a share of the row's own absolute total and
+#   keeps the log-odds for the info reveal.
+#
+# 60,000 rows: 4 targets x 5,000 companies x 3 reasons, unique on
+# (CompanyNumber, target, rank_within_reason), every pair carrying exactly three reasons,
+# and every company matching the spine on the raw 8-character key with none left over.
+REASONS = DATA / "processed" / "shortlist_reasons_2026-07.parquet"
+REASONS_LOCAL = HERE / "post_build_change" / "shortlist_reasons_2026-07.parquet"
+
+# The features carry their engineering names in the file. A relationship manager reads this
+# panel, so each is given the phrase a person would use. Anything unlisted falls back to the
+# raw name with its underscores opened out: ugly, but never wrong.
+FEATURE_LABELS = {
+    "Mortgages.NumMortCharges": "Charges ever registered",
+    "Mortgages.NumMortOutstanding": "Charges outstanding",
+    "Mortgages.NumMortSatisfied": "Charges satisfied",
+    "segment": "Size segment",
+    "sector": "Sector",
+    "tier_rank": "Size tier",
+    "company_age_years": "Company age",
+    "months_since_last_accounts_filing": "Months since last accounts filed",
+    "months_since_last_confstmt": "Months since last confirmation statement",
+    "confstmt_late": "Confirmation statement late",
+    "accounts_stale_streak_months": "Months of stale accounts",
+    "accounts_overdue_streak_months": "Months accounts overdue",
+    "days_to_next_accounts_due": "Days to next accounts due",
+    "months_in_current_status": "Months in current status",
+    "months_since_segment_change": "Months since size tier changed",
+    "months_since_last_new_charge": "Months since last new charge",
+    "months_since_last_award": "Months since last contract award",
+    "new_charge_events_12m": "New charges in 12 months",
+    "total_value_won_12m": "Contract value won in 12 months",
+    "debt_ratio": "Debt ratio",
+    "debt_ratio_trend_12m": "Debt ratio trend over 12 months",
+    "d_charges_12m": "Change in charges over 12 months",
+    "d_outstanding_3m": "Change in outstanding charges over 3 months",
+    "d_outstanding_6m": "Change in outstanding charges over 6 months",
+    "d_outstanding_12m": "Change in outstanding charges over 12 months",
+    "d_satisfied_12m": "Change in satisfied charges over 12 months",
+    "ever_distressed_before": "Previously distressed",
+    "sic_changed_12m": "Industry changed in 12 months",
+    "name_changed_12m": "Name changed in 12 months",
+    "postcode_changed_12m": "Relocated in 12 months",
+}
+
+# Features whose stored 1.0 / 0.0 is a flag rather than a quantity.
+FEATURE_FLAGS = {"confstmt_late", "ever_distressed_before", "sic_changed_12m",
+                 "name_changed_12m", "postcode_changed_12m"}
+
+# 10.15% of the rows carry the literal string "nan" where the feature had no value at the
+# scoring frame: `months_since_last_confstmt` 4,681 rows, `tier_rank` 1,357,
+# `months_since_last_accounts_filing` 52. Printing "nan" beside a driver would be worse
+# than printing nothing, so the value is dropped and the driver still shown: the model did
+# use that feature, we simply cannot state the figure it used.
+FEATURE_MISSING = {"nan", "none", "null", "", "na", "n/a"}
+
+# One row of `months_since_last_accounts_filing` carries -95669, which is a sentinel and not
+# a measurement. Anything beyond a century of months is treated the same way.
+SENTINEL_ABS = 1200
+
+
+def feature_value(feature, raw):
+    """The value as a person would read it, or None where the file cannot support one."""
+    if raw is None:
+        return None
+    t = str(raw).strip()
+    if t.lower() in FEATURE_MISSING:
+        return None
+    try:
+        v = float(t)
+    except ValueError:
+        return t                                   # categorical: "Large", "Manufacturing"
+    if v != v or abs(v) > SENTINEL_ABS:            # NaN, or the -95669 sentinel
+        return None
+    if feature in FEATURE_FLAGS:
+        return "Yes" if v else "No"
+    if feature == "total_value_won_12m":
+        return f"GBP {v:,.0f}"
+    if v == int(v):
+        return f"{int(v):,}"
+    return f"{v:,.2f}"
+
+
 MAX_PROPERTY_EVENTS = 8
 
 # Holdings are wildly skewed: median 1 title, 90th percentile 4, 99th 29, maximum 65,556.
@@ -877,6 +988,31 @@ def full_record(cn):
             "score": round(float(r[c]), 6),
             "pct": round(100.0 * int(pct[c][0]) / n, 2)} for c in SCORE_COLS}
 
+        # Per-company SHAP drivers, joined on company number AND target so a model never
+        # borrows another model's reasons. Absence is normal and is not a finding: the
+        # extract covers the top 5,000 per target, 0.35% of the scored population, so most
+        # companies carry none. `share` is each contribution as a proportion of the row's
+        # own absolute total, which is a readable weight; the signed log-odds travels with
+        # it for the info reveal but is never added up on screen.
+        dv = q("""SELECT target, rank_within_reason AS rk, feature, contribution, value
+                  FROM reasons WHERE cn = ? ORDER BY target, rank_within_reason""", [cn])
+        by_target = {}
+        for row in records(dv):
+            by_target.setdefault(_txt(row["target"]), []).append(row)
+        for tgt, rows in by_target.items():
+            if tgt not in rec["scores"]:
+                continue
+            total = sum(abs(float(x["contribution"])) for x in rows) or 1.0
+            rec["scores"][tgt]["drivers"] = [{
+                "feature": _txt(x["feature"]),
+                "label": FEATURE_LABELS.get(_txt(x["feature"]),
+                                            _txt(x["feature"]).replace("_", " ")),
+                "value": feature_value(_txt(x["feature"]), x["value"]),
+                "share": round(100.0 * abs(float(x["contribution"])) / total, 1),
+                "direction": "up" if float(x["contribution"]) > 0 else "down",
+                "logodds": round(float(x["contribution"]), 4),
+            } for x in rows]
+
     news = q("SELECT * FROM news WHERE cn = ?", [cn])
     if not news.empty:
         n = news.iloc[0]
@@ -1179,8 +1315,11 @@ CHOICE_LABELS = {
                 "early_warning": "Severity: early warning"},
     "repayment": {"fully_repaid": "Fully repaid", "partial": "Partly repaid",
                   "all_outstanding": "All outstanding"},
-    "lbg": {"current": "Current client", "former": "Former client",
-            "never": "Never a client"},
+    "lbg": {"current": "Current client (Maintenance)",
+            "former": "Former client (Attrition)",
+            "elsewhere": "Borrowing elsewhere (Growth)",
+            "unclassified": "Charge held, lender unclassified",
+            "no_charge": "No charge ever"},
     "size_move": {"up": "Moved up a tier", "down": "Moved down a tier",
                   "none": "No tier change"},
     "lending": {"top1": "Top 1%", "top10": "Top 10%"},
@@ -1487,6 +1626,121 @@ def browse():
                    offset=offset, rows=[list_record(r) for r in records(df)])
 
 
+# The three models a ranking can be built on. Voluntary exit is excluded and the reason is
+# measurable rather than editorial: 138 companies share the rank-100 score, so positions 100
+# through 237 are one arbitrary tie-break away from each other and a numbered list would be
+# inventing an order the data does not have. For the other three exactly one company holds
+# the rank-100 score, so every rank from 1 to 100 is earned.
+RANK_MODELS = {
+    "lending":    dict(col="score_lending",    label="Lending readiness"),
+    "insolvency": dict(col="score_insolvency", label="Credit risk"),
+    "growth":     dict(col="score_growth",     label="Growth"),
+}
+RANK_N = 100
+
+
+@app.route("/api/ranking")
+def ranking():
+    """The top 100 companies on one model, with the shape of that hundred stated first.
+
+    This is deliberately not a member of VIEWS. A view there is a WHERE clause, and it is
+    consumed by the facet endpoint, the presets and the watchlist as well as by browse; a
+    ranking is an ORDER and a cut, which is a different thing. Adding it to VIEWS would have
+    changed facet counts that are verified elsewhere, so it lives on its own route and the
+    interface presents it alongside the views.
+
+    Rank is computed by the same window that orders the rows, so the number beside a company
+    and its position in the list cannot disagree. The tie-break is CompanyNumber, matching
+    TIE_BREAK everywhere else, and the population is `is_active`: no active company has a
+    null score, so active and scored are the same 1,409,284 and the denominator is honest.
+    """
+    key = request.args.get("model", "lending")
+    if key not in RANK_MODELS:
+        raise FilterError(f"model: {key!r} is not one of {list(RANK_MODELS)}")
+    col = RANK_MODELS[key]["col"]
+
+    df = q(f"""
+        SELECT * FROM (
+          SELECT {LIST_SELECT}, {LIFECYCLE_SQL} AS lifecycle,
+                 is_lbg_client, ever_lbg_client, n_competitor_lenders, n_charges_outstanding,
+                 "{col}" AS rank_score,
+                 row_number() OVER (ORDER BY "{col}" DESC, CompanyNumber ASC) AS rank
+          FROM read_parquet(?) WHERE is_active
+        ) WHERE rank <= {RANK_N} ORDER BY rank""", [PARQUET])
+
+    # The counterparty bucket travels with the row, from the same five predicates the summary
+    # and the LBG relationship filter use. Deriving it a second time in the browser is how the
+    # chart's tooltip and the composition bar would come to disagree.
+    def bucket(r):
+        if _flag(r.get("is_lbg_client")):
+            return "Current client"
+        if _flag(r.get("ever_lbg_client")):
+            return "Former client"
+        if _num(r.get("n_competitor_lenders")) > 0:
+            return "Borrowing elsewhere"
+        if _num(r.get("n_charges_outstanding")) > 0:
+            return "Lender unclassified"
+        return "No charge ever"
+
+    rows = []
+    for r in records(df):
+        rec = list_record(r)
+        rec["rank"] = int(r["rank"])
+        rec["rank_score"] = round(float(r["rank_score"]), 6)
+        rec["counterparty"] = bucket(r)
+        rows.append(rec)
+
+    # The shape of the hundred, in one scan each. Counterparty uses the same five predicates
+    # as the LBG relationship filter, so the two can never tell different stories.
+    comp = q(f"""
+        WITH t AS (SELECT * FROM (
+              SELECT *, row_number() OVER (ORDER BY "{col}" DESC, CompanyNumber ASC) AS rk
+              FROM read_parquet(?) WHERE is_active) WHERE rk <= {RANK_N})
+        SELECT count(*) FILTER (WHERE is_lbg_client) AS current,
+               count(*) FILTER (WHERE ever_lbg_client AND NOT is_lbg_client) AS former,
+               count(*) FILTER (WHERE NOT ever_lbg_client AND n_competitor_lenders > 0) AS elsewhere,
+               count(*) FILTER (WHERE NOT ever_lbg_client AND n_competitor_lenders = 0
+                                AND n_charges_outstanding > 0) AS unclassified,
+               count(*) FILTER (WHERE NOT ever_lbg_client AND n_competitor_lenders = 0
+                                AND n_charges_outstanding = 0) AS no_charge,
+               count(*) FILTER (WHERE gaz_matched = 1) AS gazette
+        FROM t""", [PARQUET])
+    c0 = records(comp)[0]
+
+    # ORDER BY the count alone is not a total order: on lending, Dormant and No Filings both
+    # hold 4 and swapped places between calls, which is defect B1 in a smaller costume. The
+    # name breaks the tie, so the strip cannot reorder itself under the reader.
+    seg = q(f"""
+        WITH t AS (SELECT * FROM (
+              SELECT *, row_number() OVER (ORDER BY "{col}" DESC, CompanyNumber ASC) AS rk
+              FROM read_parquet(?) WHERE is_active) WHERE rk <= {RANK_N})
+        SELECT coalesce(segment, 'Not stated') AS k, count(*) AS n
+        FROM t GROUP BY 1 ORDER BY 2 DESC, 1 ASC""", [PARQUET])
+
+    curve = [r["rank_score"] for r in rows]
+    top, bottom = (curve[0], curve[-1]) if curve else (0.0, 0.0)
+    scored = int(q("SELECT count(*) AS n FROM read_parquet(?) WHERE is_active",
+                   [PARQUET]).n[0])
+
+    return jsonify(
+        model=key, label=RANK_MODELS[key]["label"], n=len(rows), scored=scored,
+        rows=rows,
+        summary=dict(
+            curve=curve, top=top, bottom=bottom,
+            median=round(curve[len(curve) // 2], 6) if curve else 0.0,
+            drop_pct=round(100.0 * (1 - bottom / top), 1) if top else 0.0,
+            counterparty=[
+                dict(k="Current client", n=_num(c0["current"]), tone="mint"),
+                dict(k="Former client", n=_num(c0["former"]), tone="amber"),
+                dict(k="Borrowing elsewhere", n=_num(c0["elsewhere"]), tone="jade"),
+                dict(k="Lender unclassified", n=_num(c0["unclassified"]), tone="grey"),
+                dict(k="No charge ever", n=_num(c0["no_charge"]), tone="dim"),
+            ],
+            segment=[dict(k=_txt(r["k"]), n=_num(r["n"])) for r in records(seg)],
+            gazette=_num(c0["gazette"]),
+        ))
+
+
 @app.route("/api/filter")
 def filter_():
     """Any combination of the allow-listed filters, across the whole universe.
@@ -1585,15 +1839,37 @@ def load_aux(con):
         SELECT *, {CLEAN_CN.format(col='"CompanyNumber"')} AS cn
         FROM read_csv('{(SAM / "land_registry_events.csv").as_posix()}',
                       all_varchar=true, ignore_errors=true)""")
-    con.execute(f"""CREATE TABLE ident AS
-        SELECT {CLEAN_CN.format(col='"CompanyNumber"')} AS cn,
-               "IncorporationDate", "RegAddress.AddressLine1", "RegAddress.PostTown",
-               "RegAddress.PostCode"
-        FROM read_csv('{(P / "filtered_bb_sme_sectors_all_status_2026-08-01.csv").as_posix()}',
-                      all_varchar=true, ignore_errors=true)
-        QUALIFY row_number() OVER (PARTITION BY cn) = 1""")
+    src = REASONS if REASONS.exists() else REASONS_LOCAL
+    if src.exists():
+        con.execute(f"""CREATE TABLE reasons AS
+            SELECT {CLEAN_CN.format(col='"CompanyNumber"')} AS cn,
+                   target, rank_within_reason, feature, contribution, value
+            FROM read_parquet('{src.as_posix()}')""")
+    else:
+        con.execute("""CREATE TABLE reasons (cn VARCHAR, target VARCHAR,
+                       rank_within_reason BIGINT, feature VARCHAR,
+                       contribution DOUBLE, value VARCHAR)""")
+
+    # Identity: incorporation date and the three address lines, and nothing else. The source is
+    # a 639 MB, 58 column, untyped CSV of which four columns are wanted, so every restart was
+    # parsing and discarding the other 54. `build_identity_parquet.py` writes the same table,
+    # already cleaned and deduplicated, as a 27 MB parquet: verified identical row for row in
+    # both directions, and 21 times faster to load. The CSV stays as the fallback so a checkout
+    # without the parquet still works.
+    ident_pq = P / "identity_2026-08-01.parquet"
+    if ident_pq.exists():
+        con.execute(f"""CREATE TABLE ident AS
+            SELECT * FROM read_parquet('{ident_pq.as_posix()}')""")
+    else:
+        con.execute(f"""CREATE TABLE ident AS
+            SELECT {CLEAN_CN.format(col='"CompanyNumber"')} AS cn,
+                   "IncorporationDate", "RegAddress.AddressLine1", "RegAddress.PostTown",
+                   "RegAddress.PostCode"
+            FROM read_csv('{(P / "filtered_bb_sme_sectors_all_status_2026-08-01.csv").as_posix()}',
+                          all_varchar=true, ignore_errors=true)
+            QUALIFY row_number() OVER (PARTITION BY cn) = 1""")
     for t in ("notices", "news", "news398", "grants", "tm_f", "tm_e",
-              "prop_f", "prop_e", "ident"):
+              "prop_f", "prop_e", "ident", "reasons"):
         n = con.execute(f"SELECT count(*) FROM {t}").fetchone()[0]
         print(f"  {t:<8} {n:>9,} rows")
 

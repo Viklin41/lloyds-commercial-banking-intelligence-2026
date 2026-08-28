@@ -70,17 +70,22 @@ Everything on Home reads top to bottom in the order you would use it.
 The **four numbers** across the top are the scale you are working at. 1,531,094 companies in the file,
 19,525 carrying a Gazette signal, 14,416 former Lloyds clients, six of six sources connected.
 
-**Views** are the three starting populations. They are not filters, they are three different questions,
-and each one sorts on something different:
+**Views** are the four starting points. The first three are populations, not filters: three different
+questions, each sorted on something different. The fourth is a ranking rather than a population, and it
+behaves differently, which is why it has its own section further down.
 
 | View | What it is | Sorted by |
 |---|---|---|
 | All companies | Everything, 1,531,094 | Company name |
 | Gazette signal | The 19,525 with an insolvency notice against them | Furthest through the distress ladder, most recent first |
 | Former LBG client | The 14,416 who held secured lending with us and no longer do | Most recently lapsed first |
+| Model rankings | The top 100 on one model | That model's score, highest first |
 
 Pick a view first, then narrow it. Filters always apply *inside* whichever view is selected, so
 "Gazette signal" plus a Manufacturing filter gives you distressed manufacturers, not all manufacturers.
+Model rankings is the exception: it is a fixed hundred, so the filters and presets are hidden while you
+are in it. Narrowing a ranking would leave you with a list that is no longer the top hundred of
+anything.
 
 **Tools** holds the two ways of narrowing: Preset queries and Advanced filters. Both are drawers, both
 start closed, and both stay where you left them.
@@ -162,9 +167,31 @@ Companies House status. It collapses that status into four states you can act on
 *Outstanding mortgages* is how many are live now. *Repayment state* splits into fully repaid, partly
 repaid and all outstanding. *New charge in 12m* is recent borrowing activity.
 
-**Lender** is who they bank with. *LBG relationship* is the big one: current client, former client, or
-never a client. *Main lender* is whoever holds most of their outstanding borrowing. *Number of lenders*,
-*competitor lender present*, and two timing filters for when a competitor took a charge.
+![The five-way LBG relationship filter](handbook_img/16-lbg-five-way.png)
+
+**Lender** is who they bank with. *LBG relationship* is the big one, and it now has **five** options
+rather than three, because "never a client" was hiding three quite different populations inside one
+number:
+
+| Option | Companies | What it means |
+|---|---|---|
+| Current client (Maintenance) | 11,733 | We hold a live charge |
+| Former client (Attrition) | 14,416 | We held one and no longer do |
+| Borrowing elsewhere (Growth) | 68,861 | They borrow, from someone else, never from us |
+| Charge held, lender unclassified | 16,257 | A live charge whose lender we cannot name |
+| No charge ever | 1,419,827 | No charge has ever been registered |
+
+The first three carry the client's own team names. The split matters commercially: the old "never a
+client" bucket held 1.5 million companies, but the ones who **demonstrably borrow, just not from us**
+number 68,861. Treating those as the same thing overstates the approachable population by more than
+twenty times. The fourth option exists so that companies whose lender the charge register does not
+name are visibly separate rather than sitting in a bucket that reads as "no bank".
+
+It is multi-select, so picking the bottom three together gives you the old "never a client" population
+if that is what you want.
+
+*Main lender* is whoever holds most of their outstanding borrowing. *Number of lenders*, *competitor
+lender present*, and two timing filters for when a competitor took a charge.
 
 **Filing** is administrative health, and it is the most underrated group here. Accounts overdue,
 overdue by six months or more, confirmation statement late, no filing at all for 24 months. These are
@@ -266,29 +293,65 @@ am I looking at this one?".
 
 ### The model scores
 
-![The model scores panel](handbook_img/10-model-scores.png)
+![The model scores panel](handbook_img/14-model-scores-panel.png)
 
-Four models, each predicting a different event over a different window. They are shown as a **band**
-rather than a raw number, and with the measured hit rate underneath.
+Four models, each predicting a different event over a different window, each in its own tile.
 
-| Score | Window | What it predicts | Hit rate at the top |
-|---|---|---|---|
-| Lending readiness | 3 months | Takes on new secured borrowing | 43 in 100 |
-| Credit risk | 6 months | Hits a genuine insolvency event | 16 in 100 |
-| Voluntary exit | 6 months | Has a strike-off proposal filed | not ranked |
-| Growth | 12 months | Moves up a size tier | 22 in 100 |
+| Score | Window | What it predicts | Of the top 100 | Base rate | Lift |
+|---|---|---|---|---|---|
+| Lending readiness | 3 months | Takes on new secured borrowing | 41 to 43 | 0.26 to 0.28% | ~150x |
+| Credit risk | 6 months | Hits a genuine insolvency event | 14 to 16 | 0.33% | ~45x |
+| Voluntary exit | 6 months | Has a strike-off proposal filed | 78 to 85 | 7.22 to 8.24% | ~10x |
+| Growth | 12 months | Moves up a size tier | 22 | 2.12 to 2.15% | ~10x |
 
-Read the band and the hit rate, not the raw score. The panel says so itself, and the reason is that the
-raw value bunches hard at the top of the list, so the difference between 0.577 and 0.412 is not the
-difference it looks like.
+**Read those three figures together.** Precision alone flatters voluntary exit: 78 to 85 in 100 sounds
+extraordinary until you see that its base rate is already about 8%, so the lift is 10x, the same as
+growth. Lending's 41 to 43 in 100 against a base rate of a quarter of a percent is the one that is
+genuinely remarkable.
 
-**Voluntary exit is deliberately not ranked**, and the panel explains why on the company: 998 of the
-top 1,000 scores are exact ties, and the top-100 cutoff value alone is shared by 139 companies. A
-ranking built on that would be arbitrary, so it is not offered.
+**All three describe the top 100 companies on that model, not the company you are looking at.** The
+label says `@100` for that reason. A company sitting in the lower half of the lending list is nowhere
+near 41 in 100; its true figure is close to the base rate.
 
-**Scores only exist for companies whose status is exactly Active.** That is 1,409,284 of the 1,531,094.
-For the other 121,810 the panel does not show zeros, it disappears and says why: "Not scored, status is
-Liquidation". A forecast for a company already in liquidation would be a number with nothing behind it.
+They are given as a **range across two held-out months**, not the better of the two. Quoting the
+flattering month is easy to do and hard to defend.
+
+**The score itself is a percentage.** It is the model's estimated chance of the event inside its
+window, corrected back to the true base rate after training. No calibration curve was fitted, so it
+tracks well through the middle of the range and cannot be checked at the very top, where too few past
+cases exist. Read the band rather than the digits when you are near the top of a list. The **Read
+more** button under the panel carries the evidence.
+
+**Band colour means position, and nothing else.** Mint for the top 5%, neutral for the top 10 to 25%,
+amber below that. Amber is not a warning: it means this model does not single the company out, which
+for credit risk and voluntary exit is good news.
+
+**Voluntary exit is deliberately not ranked.** 998 of the top 1,000 scores are exact ties and the
+top-100 cutoff alone is shared by 139 companies, so a ranking built on it would be arbitrary.
+
+**Scores only exist for companies whose status is exactly Active**, 1,409,284 of the 1,531,094. For the
+other 121,810 the panel does not show zeros, it disappears and says why.
+
+#### SHAP analysis: what drives this score
+
+Each tile can show the three features that moved that company's score, with the **value the model
+actually saw** and a bar for each one's weight.
+
+The value leads rather than the feature name, and that is deliberate. On lending the top feature is
+"charges ever registered" for **every single one** of the 5,000 companies in the extract, so the name
+tells you nothing; "578 charges" against "3 charges" is the whole of the difference between two
+companies. An arrow shows whether the feature pushed the score up or pulled it down.
+
+Weights are each contribution as a share of **that company's own three**, not a share of the score. The
+raw log-odds sit behind the tile's `(i)` for anyone who wants them, and they must never be added up
+against the score.
+
+![The information behind a score](handbook_img/15-score-info-reveal.png)
+
+**Where a tile says "No SHAP analysis available"**, that is a gap in our coverage and not a statement
+about the company. Reasons were computed for the top 5,000 companies **per model**, about 0.35% of
+those scored, so most company pages will show it on most tiles. A company can be in one model's extract
+and not another's.
 
 ### The six sources
 
@@ -338,6 +401,54 @@ satisfied, the debt ratio, and how long since the last new charge.
 **Filing health** and **Change in the last 12 months** are the administrative signals. The change panel
 is careful about blanks: it tells you how many of its checks have no twelve-month history to compare
 against, because a blank there means "we cannot say", never "nothing changed".
+
+---
+
+## Model rankings
+
+![The Model rankings view](handbook_img/11-model-rankings.png)
+
+The fourth view answers a different question from the other three: not "which companies match these
+conditions" but "who is at the top of this model". Selecting it reveals a second row of choices,
+**Lending, Insolvency, Growth**, and the list becomes the top 100 companies on whichever you pick,
+numbered #1 to #100.
+
+**Voluntary exit is not offered here**, for the same reason it is not ranked on a company page: 138
+companies share the rank-100 score, so positions 100 to 237 would be separated by nothing but an
+arbitrary tie-break. On the other three, exactly one company holds the rank-100 score, so every
+position from 1 to 100 is earned.
+
+Above the list sit two cards that tell you what kind of hundred you are about to read.
+
+**Score across the ranked hundred** is the shape of the fall from #1 to #100. It answers whether
+position matters here: lending falls 38%, insolvency 64%, growth 45%, so in every case working the
+list top-down is worth doing. A flat line would have told you the hundredth company was much like the
+first. The chart is drawn against zero rather than against the range between #1 and #100, so the shape
+you see is the real fall and not a stretched one, and the shaded band is the first ten.
+
+It also carries the reason the ranking exists at all: **all 100 sit inside the top 1% of the 1,409,284
+scored companies**, so the band on a company page says "Top 1%" for every one of them. Only a position
+can separate them.
+
+![Hovering the ranking curve](handbook_img/12-ranking-hover.png)
+
+**Hover anywhere on the curve** and it names the company at that position: rank, score, size and who
+already lends to them. Click and it opens that company's profile.
+
+**Quick look at the hundred** is the composition, and it is the card that tells you which team the list
+belongs to. Lending's hundred is 70% companies borrowing from someone else, which makes it a Growth
+list. Insolvency's is 93% companies that have never registered a charge at all, which makes it not a
+lending conversation. Underneath sits the size mix, and a line reporting how many of the hundred also
+carry a Gazette notice.
+
+![The ranked companies](handbook_img/13-ranked-companies.png)
+
+The cards below are the same cards as everywhere else, with the position in front of them, so clicking
+one opens the profile exactly as it does from any other list.
+
+One useful property: **every company in every top 100 has SHAP drivers on its profile**, because the
+hundred sits inside the 5,000 for which reasons were computed. This is the one place in the dashboard
+where you will never meet the empty driver state.
 
 ---
 

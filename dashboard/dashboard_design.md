@@ -115,9 +115,10 @@ measurable at runtime rather than baked at build time."* The dashboard cannot di
 because there is no second copy to disagree with. And the universe went from 105,078 to 1,531,094,
 because a company with no signals stopped being something you had to precompute a row for.
 
-The residue is still visible. `data.js` is 27 MB on disk that the browser no longer loads at all; the
-server keeps it only to lift a 20-key metadata block at startup. It is recorded as open item 6, and the
-fix is to move that block to a small config file.
+The residue was still visible for a while: `data.js` sat at 27 MB on disk that the browser no longer
+loaded, kept only so the server could lift a metadata block at startup. **That has since been closed.**
+The block moved to `store_meta.json`, 2.5 KB, and `data.js` was deleted. The loader still accepts the
+old file as a fallback so an older checkout keeps working, but nothing requires it.
 
 ### Choosing the engine: DuckDB against PyArrow
 
@@ -815,7 +816,6 @@ area, and the news search on cleaned name. Trade marks are the weakest at confid
 **News coverage is effectively nil.** 467 searched, zero verified. That is a finding rather than a
 defect, but it means the news source contributes almost nothing to the dashboard today.
 
-**`data.js` is still 27 MB on disk** purely so the server can lift a 20-key metadata block at startup.
 
 **The `gaz_new_in_july_flag` exclusion has not been applied anywhere**, correctly, because the
 dashboard describes rather than predicts. It must be honoured before any `gaz_*` field is used as a
@@ -833,6 +833,172 @@ the one it was built on.
 
 ---
 
+## 19. What changed after this document was first written
+
+Everything above describes the dashboard as it was specified and built. What follows is the substance
+of what has happened to it since. The change record with the full reasoning, the verification output
+and the defects found along the way is `POST_BUILD_CHANGES.md`; this section is the summary a reader of
+this document needs so that it does not quietly go out of date.
+
+### 19.1 The LBG relationship filter went from three options to five
+
+The filter offered current, former and never. The report's routing section, drafted earlier, routes the
+shortlist on a five-way partition, and "never" was silently merging three of those five.
+
+| Bucket | Active companies |
+|---|---|
+| Current LBG client | 11,007 |
+| Lapsed | 13,412 |
+| Borrowing elsewhere, never ours | 64,517 |
+| Charge held, lender unclassified | 14,651 |
+| No charge ever | 1,305,697 |
+
+Two things were wrong with the old shape. The Growth population read as 1.5 million when the companies
+that **demonstrably borrow, from someone else** number 64,517, an overstatement of more than twenty
+times. And the 14,651 whose lender the charge register does not name were sitting inside a label a
+reader would take as "no bank", which is the taxonomy gap becoming a client-facing error.
+
+Verified as a genuine partition: every one of the 1,409,284 active rows satisfies exactly one bucket,
+no pair overlaps across all ten pairwise tests, the five sum to the population with no remainder, and
+none of the four driving columns contains a null that could silently drop a row.
+
+`lbg=never` is now rejected rather than silently accepted, so a saved link using it fails loudly.
+
+### 19.2 The model scores panel was rebuilt, and one of its sentences was wrong
+
+The panel now shows the score as a percentage, with precision, base rate and lift beside it and the
+three SHAP drivers underneath. The reason for the rebuild was a defect rather than a preference.
+
+**The precision sentence was a global statistic narrated as a local one.** Every row carried "43 in 100
+at this level went on to take on new secured borrowing", built from a per-model constant that never
+read the company's own percentile. A company in the **Lower half** on lending was shown that sentence
+directly beneath a band saying Lower half. `hit_rate` is precision@100: a property of the top hundred
+and of nothing else. For a company at the median lending score the true figure is near the base rate,
+about 1 in 400. **The card overstated it by a factor of roughly 170.**
+
+It now reads "of the **top 100** companies by this score, 41 to 43...", with the base rate and lift
+beside it, given as a **range across two held-out origins** rather than the better of the two. The
+previous figures were the flattering month in every case, and the lift constant of 160 matched no
+measurement at all: the per-origin lifts are 167 and 144.
+
+**A second claim was also false.** The footnote said the score should be read "as a ranking near the
+top, where it runs optimistic". Measured against realised outcomes, that is backwards for the model the
+panel leads with: on lending, observed over predicted is 1.21 in the 0.40 to 0.50 band and 1.12 above
+0.50, so at the very top lending runs low, not high. It holds for insolvency and growth and inverts for
+lending. The wording now claims no direction of error at the top, only that too few past cases exist
+there to check it. The inline label also stopped calling the number "raw", which it is not: the shipped
+column has been through `recalibrate`.
+
+### 19.3 SHAP drivers on the company page
+
+`shortlist_reasons_2026-07.parquet` is loaded as a side table alongside the Gazette, news, property,
+trade mark and grant packs. 60,000 rows: four targets, the top 5,000 companies each, three reasons per
+company.
+
+**The join key is `CompanyNumber` and `target`.** A company can sit in the lending top 5,000 and not
+the growth one, so joining on the number alone would attach one model's reasons to another model's
+score. Of the 18,644 distinct companies, 17,368 appear under one target only, 1,196 under two, 80 under
+three and none under all four.
+
+Two data problems were found before implementing, either of which would have shipped nonsense.
+**10.15% of rows carry the literal string `"nan"`** where the feature had no value at the scoring
+frame, concentrated in `months_since_last_confstmt` (4,681 rows) and `tier_rank` (1,357). By target,
+at least one unusable value affects **4,683 of voluntary exit's 5,000 companies**. The value is
+suppressed and the driver still shown: the model did use that feature, we simply cannot state the
+figure. A sentinel of `-95669` in `months_since_last_accounts_filing` is treated the same way.
+
+The panel is headed **"SHAP analysis: what drives this score"**, not "why this company is in your
+list". On lending the top feature is `Mortgages.NumMortCharges` for **100.00% of all 5,000 companies**
+in the extract, so a "why this company specifically" label would be answered identically thousands of
+times. Each driver therefore leads with the feature's **value**, not its name. Weights are each
+contribution as a share of that company's own three absolute contributions; the signed log-odds is kept
+behind the info reveal and never shown inline, because three contributions that visibly fail to sum to
+the score would invite exactly the arithmetic this document warns about elsewhere.
+
+Coverage is 0.35% of the scored population, so most company pages show no drivers. That state says
+**"No SHAP analysis available"** rather than nothing, because an empty panel would read as "nothing
+drives this score", which would be wrong on roughly 99.65% of pages.
+
+### 19.4 Model rankings, a fourth starting point on Home
+
+The ranked view that was in the original design and never built. It is an ORDER over the existing
+spine: no ranking pipeline, no extra file, no new scoring. Selecting it reveals a Lending, Insolvency,
+Growth selector and the list becomes the top 100 on that score, numbered #1 to #100.
+
+**Voluntary exit is excluded on a measurement, not a preference.** 138 companies share its rank-100
+score, so positions 100 to 237 would be one arbitrary tie-break apart. On the other three exactly one
+company holds the rank-100 score.
+
+It is served from `/api/ranking` rather than added to `VIEWS`. A member of `VIEWS` is a WHERE clause,
+consumed by the facet endpoint, the presets and the watchlist as well as by browse; a ranking is an
+ORDER and a cut. Adding it there would have changed facet counts that are verified elsewhere, and
+`total` would have read 1,409,284 under a heading saying Top 100. Rank is produced by the same window
+that orders the rows, `row_number() OVER (ORDER BY score DESC, CompanyNumber ASC)`, so the number
+beside a company and its position cannot disagree. Filters and presets are hidden in this view, because
+narrowing a fixed hundred leaves a list that is no longer the top hundred of anything.
+
+Two cards sit above the list. The **score curve** is drawn against zero rather than the range between
+#1 and #100, so a shallow fall cannot be stretched into a cliff; hovering it names the company at that
+position. The **composition** card says which team the list belongs to, on the same five predicates as
+the LBG relationship filter so the two cannot tell different stories.
+
+Two richer chart ideas were measured and rejected. **Overlaying the other model scores** is not honest
+at true scale: across the lending top 100 the medians are lending 0.402, growth 0.028, insolvency
+0.018, voluntary exit 0.0008, so the other three would be flat lines on the floor and making them
+visible would require the per-series normalisation this design already refuses. **Colouring the curve
+by counterparty** would carry nothing: by decile down the lending hundred, "borrowing elsewhere" runs
+9, 8, 7, 7, 5, 5, 8, 8, 6, 7, and on insolvency "no charge ever" runs 10, 10, 10, 10, 10, 9, 10, 7, 8,
+9. The variable does not vary with rank, so the colour would be ink rather than information.
+
+### 19.5 Defects found by verification rather than by eye
+
+Worth recording because in each case the measurement caught what looking did not.
+
+- **A non-deterministic sort, twice.** The segment strip ordered on `count(*)` alone, which is not a
+  total order: Dormant and No Filings both hold 4 on lending and swapped places between successive
+  calls to the same endpoint. This is defect B1 from `FILTER_SPEC` in a smaller costume, fixed the same
+  way, with a name tie-break.
+- **`display:flex` beating `[hidden]`, twice.** Setting the attribute did nothing, so the Tools block
+  and then the model selector both stayed visible where they should not have been.
+- **An SVG sizing itself by aspect ratio.** `height:100%` against an auto-height parent resolves to
+  auto, and an SVG with a `viewBox` and no height then takes its aspect ratio: a 100x40 box at 700px
+  wide was claiming 276px and setting the height of two cards, while the `min-height` written beside it
+  never bound at all.
+- **Height jumps between a skeleton and its content**, measured at 117px and then 149px, in both cases
+  invisible in a screenshot and obvious in a measurement.
+
+### 19.6 The identity source stopped being the biggest file for the smallest job
+
+`serve.py` read a **639 MB, 58 column, untyped CSV** at every startup for four fields: incorporation
+date and the three address lines. Fifty-four columns were parsed and discarded once per restart, and it
+was by some distance the largest thing the dashboard touched, for the least work.
+
+It is now a **26.8 MB parquet**, 24 times smaller and 21 times faster to load (2.9s to 0.14s), written
+by `post_build_change/build_identity_parquet.py` using character-for-character the SELECT that
+`load_aux()` ran. The CSV remains the fallback. Verified by materialising both paths and running a full
+`EXCEPT` in both directions: 1,496,693 rows each side, zero rows present in one and not the other.
+
+This is the same argument as section 2, one layer down. The parquet is the truth and the further a
+design moves work away from it, the more it pays for nothing.
+
+### 19.7 What is verified, and how to re-run it
+
+Three scripts, all of which write their ground truth from column semantics rather than lifting it from
+`serve.py`:
+
+| Script | Covers |
+|---|---|
+| `post_build_change/verify_model_rankings.py` | 55 checks: all 100 positions per model, the endpoints, the fall, the curve, the counterparty split, the segment mix and its ordering, the SHAP coverage, and the top-1% claim |
+| `post_build_change/audit_model_panel.py` | Every figure on the model scores panel traced to a source, on 175 companies |
+| The `FILTER_SPEC` regression set | Facet counts, presets, filter cases |
+
+One distinction that script two enforces and that matters: **precision, base rate and lift are not in
+either parquet and cannot be.** They are held-out evaluation metrics measured against realised outcomes
+on past origins, so they are checked against the source document instead. Everything else on the panel
+is checked against the data.
+
+---
+
 ## Sources used
 
 | Document | What it gave |
@@ -843,6 +1009,9 @@ the one it was built on.
 | `dashboard/data.js` | The evidence for the hiring source being dropped rather than completed, and the only surviving trace of the sharded build |
 | The working record | The three-stage architecture history, the sharding design, and the DuckDB-against-PyArrow benchmark in section 2, none of which is in a repository file |
 | The running dashboard | Confirmation that the described behaviour is the current behaviour |
+| `post_build_change/meeting-answers-2026-08-25.md` | The calibration evidence, the per-origin precision and lift figures, the SHAP coverage decision, and the two panel defects in section 19.2 |
+| `post_build_change/shortlist_reasons_2026-07.parquet` | The per-company SHAP reasons in section 19.3 |
+| `POST_BUILD_CHANGES.md` | The full change record behind section 19 |
 
 ## What could not be established from the records
 

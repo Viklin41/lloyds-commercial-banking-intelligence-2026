@@ -34,12 +34,20 @@
       "key": "score_lending",
       "label": "Lending readiness",
       "horizon": "3 months",
-      "window": "Aug to Oct 2026",
+      "window": "Aug 2026 to Oct 2026",
       "event": "take on new secured borrowing",
       "base_rate": 0.0027,
       "hit_rate": 0.43,
       "lift": 160,
-      "rankable": true
+      "rankable": true,
+      "p100_low": 0.41,
+      "p100_high": 0.43,
+      "base_rate_pct_low": 0.26,
+      "base_rate_pct_high": 0.28,
+      "lift_low": 144,
+      "lift_high": 167,
+      "lift_about": 150,
+      "superseded_note": "hit_rate and lift are the pre-2026-08-26 single figures, retained only so an older frontend still renders"
     },
     {
       "key": "score_insolvency",
@@ -50,7 +58,15 @@
       "base_rate": 0.0033,
       "hit_rate": 0.16,
       "lift": 45,
-      "rankable": true
+      "rankable": true,
+      "p100_low": 0.14,
+      "p100_high": 0.16,
+      "base_rate_pct_low": 0.33,
+      "base_rate_pct_high": 0.33,
+      "lift_low": 42,
+      "lift_high": 49,
+      "lift_about": 45,
+      "superseded_note": "hit_rate and lift are the pre-2026-08-26 single figures, retained only so an older frontend still renders"
     },
     {
       "key": "score_voluntary_exit",
@@ -62,7 +78,15 @@
       "hit_rate": 0.85,
       "lift": 10,
       "rankable": false,
-      "not_rankable_because": "998 of the top 1,000 scores are exact ties, and the top-100 cutoff value alone is shared by 139 companies"
+      "not_rankable_because": "998 of the top 1,000 scores are exact ties, and the top-100 cutoff value alone is shared by 139 companies",
+      "p100_low": 0.78,
+      "p100_high": 0.85,
+      "base_rate_pct_low": 7.22,
+      "base_rate_pct_high": 8.24,
+      "lift_low": 10,
+      "lift_high": 11,
+      "lift_about": 10,
+      "superseded_note": "hit_rate and lift are the pre-2026-08-26 single figures, retained only so an older frontend still renders"
     },
     {
       "key": "score_growth",
@@ -73,7 +97,15 @@
       "base_rate": 0.021,
       "hit_rate": 0.22,
       "lift": 10,
-      "rankable": true
+      "rankable": true,
+      "p100_low": 0.22,
+      "p100_high": 0.22,
+      "base_rate_pct_low": 2.12,
+      "base_rate_pct_high": 2.15,
+      "lift_low": 10,
+      "lift_high": 10,
+      "lift_about": 10,
+      "superseded_note": "hit_rate and lift are the pre-2026-08-26 single figures, retained only so an older frontend still renders"
     }
   ],
   "scored_companies": 1409284,
@@ -94,5 +126,18 @@
     "Distressed": 31,
     "Fading": 171
   },
-  "notice_url_stem": "https://www.thegazette.co.uk/id/notice/"
+  "notice_url_stem": "https://www.thegazette.co.uk/id/notice/",
+  "reasons": {
+    "file": "shortlist_reasons_2026-07.parquet",
+    "companies_per_target": 5000,
+    "targets": [
+      "lending",
+      "insolvency",
+      "growth",
+      "voluntary_exit"
+    ],
+    "distinct_companies": 18644,
+    "reasons_per_company": 3,
+    "coverage_note": "Top 5,000 companies per target, 0.35% of the 1,409,284 scored. Absence of reasons says nothing about a company's drivers."
+  }
 }

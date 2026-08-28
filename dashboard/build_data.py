@@ -88,7 +88,7 @@ SEED = 42
 # and is excluded from every ordered list.
 SCORE_MODELS = [
     {"key": "score_lending", "label": "Lending readiness", "horizon": "3 months",
-     "window": "Aug to Oct 2026", "event": "take on new secured borrowing",
+     "window": "Aug 2026 to Oct 2026", "event": "take on new secured borrowing",
      "base_rate": 0.0027, "hit_rate": 0.43, "lift": 160, "rankable": True},
     {"key": "score_insolvency", "label": "Credit risk", "horizon": "6 months",
      "window": "Aug 2026 to Jan 2027", "event": "hit a genuine insolvency event",

@@ -402,8 +402,12 @@ body{
 .tag.lbg-former{background:rgba(233,162,59,.16);border-color:rgba(233,162,59,.55);color:#F0C078}
 
 /* Model scores. The horizon sits with the number by design, never apart from it. */
-.scorerow{padding:12px 0;border-bottom:1px solid rgba(255,255,255,.06)}
-.scorerow:last-of-type{border-bottom:0}
+/* Each model is a container rather than a band between two rules. With a percentage, a
+   three-figure strip and three drivers in every one, an underline was no longer enough
+   separation to tell where one model ended and the next began. */
+.scorerow{padding:13px 12px 14px;margin-bottom:11px;border-radius:11px;
+  background:rgba(255,255,255,.022);border:1px solid rgba(255,255,255,.075)}
+.scorerow:last-of-type{margin-bottom:2px}
 /* Stacked rather than side by side. In the 330px column "Voluntary exit" and its
    window competed for the same line and both wrapped mid-phrase. */
 .scorehead b{display:block;font-size:13.5px;font-weight:600}
@@ -414,8 +418,260 @@ body{
   background:rgba(0,196,140,.14);border:1px solid rgba(0,196,140,.4);color:#7FE7C4}
 .scorerow.unranked .bandchip{background:rgba(255,255,255,.06);
   border-color:var(--edge);color:var(--text-dim)}
+
+/* The chip was mint whatever it said, so "Lower half" looked as affirmative as "Top 1%".
+   Colour now carries how far up the list the company sits, and nothing else: amber means
+   this model does not single the company out, which for credit risk and voluntary exit is
+   good news rather than bad. The panel says so beneath the tiles. */
+.bandchip.mid{background:rgba(255,255,255,.06);border-color:var(--edge);color:var(--text-dim)}
+.bandchip.weak,.scorerow.unranked .bandchip.weak{
+  background:rgba(233,162,59,.14);border-color:rgba(233,162,59,.45);color:#F0C078}
+.bandchip.mid,.scorerow.unranked .bandchip.mid{
+  background:rgba(255,255,255,.06);border-color:var(--edge);color:var(--text-dim)}
 .rawscore{font-family:var(--font-mono);font-size:10.5px;color:var(--text-faint)}
 .scorenote{margin:6px 0 0;font-size:11.5px;color:var(--text-dim);line-height:1.45}
+
+/* Each model is its own tile so its drivers and its performance sentence cannot be read
+   as belonging to the model above it. The (i) reveal is the Market Analytics mechanism:
+   hover on a pointer device, tap to pin, and the same `data-note` attribute drives both. */
+.scorerow{position:relative}
+.scorehead{display:flex;align-items:flex-start;gap:8px}
+.scorehead .htext{flex:1;min-width:0}
+.scoreinfo{flex:none;width:20px;height:20px;border-radius:50%;cursor:pointer;
+  border:1px solid var(--edge);background:transparent;color:var(--text-faint);
+  font:inherit;font-size:10px;font-weight:600;display:grid;place-items:center;
+  transition:color .18s,border-color .18s,background .18s}
+.scoreinfo:hover,.scorerow[data-note] .scoreinfo{color:var(--mint);
+  border-color:rgba(0,196,140,.5);background:rgba(0,196,140,.1)}
+
+/* Click only, never hover. The Market Analytics cards open on hover because their reveal
+   covers a card wide enough to move into; here the trigger is a 20px circle and the reveal
+   sits directly under the pointer, so a hover trigger flickered on every small movement and
+   could not be held open. The button is a toggle and nothing else opens it. */
+.scorerow[data-note] .screveal{opacity:1;visibility:visible;transform:none}
+/* The toggle has to sit above its own reveal, or the control that closes the panel is
+   the one thing the panel covers. */
+.scoreinfo{position:relative;z-index:7}
+
+/* The explicit performance strip: the three figures that qualify the score, stated beside
+   it rather than buried behind the reveal. They describe the top 100 of this model, which
+   the labels say and the reveal repeats. */
+.scorestats{display:flex;margin-top:10px;padding-top:9px;
+  border-top:1px solid rgba(255,255,255,.14)}
+.scorestats > div{flex:1;min-width:0;padding-right:7px}
+.scorestats > div + div{padding-left:7px;border-left:1px solid rgba(255,255,255,.14)}
+.ss-k{margin:0;font-family:var(--font-mono);font-size:8px;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--text-faint);white-space:nowrap}
+/* Precision carries the longest label of the three, so it gets the slack. */
+.scorestats > div:nth-child(2){flex:1.25}
+.ss-v{margin:2px 0 0;font-size:11px;font-weight:600;color:var(--text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.screveal{position:absolute;left:-6px;right:-6px;top:0;bottom:0;z-index:6;
+  padding:12px 14px;overflow:auto;border-radius:10px;
+  background:rgba(6,11,9,.985);border:1px solid rgba(0,196,140,.24);
+  opacity:0;visibility:hidden;transform:translateY(5px);
+  transition:opacity .2s ease,transform .2s ease,visibility .2s ease}
+.screveal .rt{margin:0 0 7px;font-family:var(--font-mono);font-size:9px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--text-faint)}
+.screveal p:not(.rt){margin:0 0 7px;font-size:11.5px;color:var(--text-dim);line-height:1.55}
+.screveal p:last-child{margin-bottom:0}
+.screveal b{color:var(--mint);font-weight:600}
+.screveal .mono{font-family:var(--font-mono);font-size:10px;color:var(--text-faint)}
+
+/* The score as a percentage. It is the largest thing in the tile because it is what the
+   panel is for; the raw value follows it in mono so the two can be reconciled. */
+.scorepct{font-size:19px;font-weight:600;letter-spacing:-.01em;color:var(--text)}
+.scorerow.unranked .scorepct{color:var(--text-dim)}
+
+/* Drivers. The bar is the share of this company's own three contributions, never a share
+   of the score: three log-odds that visibly fail to sum to the score would invite exactly
+   the arithmetic the report warns against. */
+.drivers{margin-top:10px;padding-top:9px;border-top:1px solid rgba(255,255,255,.14)}
+.drv-h{margin:0 0 7px;font-family:var(--font-mono);font-size:9px;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--text-faint)}
+.drv{margin-bottom:7px}
+.drv:last-child{margin-bottom:0}
+.drv-top{display:flex;align-items:baseline;gap:6px}
+.drv-l{flex:1;min-width:0;font-size:11.5px;color:var(--text-dim);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.drv-v{font-family:var(--font-mono);font-size:11px;color:var(--text);font-weight:600}
+.drv-v.none{color:var(--text-faint);font-weight:400;font-style:italic}
+.drv-a{font-family:var(--font-mono);font-size:11px;width:9px;text-align:center}
+.drv-a.up{color:#7FE7C4}
+.drv-a.down{color:#E9A23B}
+.drv-bar{height:3px;border-radius:99px;background:rgba(255,255,255,.07);margin-top:3px}
+.drv-bar span{display:block;height:100%;border-radius:99px;background:rgba(0,196,140,.55)}
+.drv-bar.down span{background:rgba(233,162,59,.55)}
+
+/* The absent state. It must not read as "nothing drives this score", so it names the
+   extract and its size rather than saying "none". */
+/* Absence, stated in one line. Amber rather than red: this is a gap in our coverage, not
+   a fault and not a finding about the company. The reason it is absent stays one click away
+   in the reveal, because a bare "none" would read as "nothing drives this score". */
+.drv-none{margin:0;display:inline-flex;align-items:center;gap:6px;
+  font-size:11.5px;font-weight:600;color:#E9A23B;
+  padding:4px 10px;border-radius:99px;
+  background:rgba(233,162,59,.12);border:1px solid rgba(233,162,59,.4)}
+.drv-none::before{content:"";width:5px;height:5px;border-radius:50%;
+  background:#E9A23B;flex:none}
+/* The panel footnote. Four sentences by default; the rest is one click away, because a
+   reader who wants the calibration evidence is not the same reader deciding whether to make
+   a call. */
+.panelnote{margin-top:10px}
+.morebtn{margin-top:7px;padding:4px 11px;border-radius:99px;cursor:pointer;
+  border:1px solid var(--edge);background:transparent;color:var(--text-dim);
+  font:inherit;font-size:11px;font-weight:600;
+  transition:color .18s,border-color .18s,background .18s}
+.morebtn:hover{color:var(--mint);border-color:rgba(0,196,140,.5);
+  background:rgba(0,196,140,.1)}
+.moretext{margin-top:9px;padding-top:9px;border-top:1px solid rgba(255,255,255,.1)}
+.moretext p{margin:0 0 8px;font-size:11.5px;color:var(--text-dim);line-height:1.6}
+.moretext p:last-child{margin-bottom:0}
+
+/* ---- Model rankings ---------------------------------------------------------
+   An extension of Home, not a second analytics page: the same card, the same row, the
+   same click. Everything new here is the strip that sits between the view switch and
+   the list, and it is kept to one band so the first company is still on screen. */
+/* The model choices belong to the Model rankings chip, so they are indented under it and
+   hung off a rule rather than sitting in the panel as a fourth control of their own. They
+   appear on selection and not before: a chevron would have implied they could be opened
+   without choosing the view, which is not a state that means anything.
+
+   `display:flex` beats the user-agent [hidden] rule, so hiding has to be said explicitly.
+   The same omission had left the Tools block visible in this view. */
+.rankseg{display:flex;align-items:center;gap:7px;margin:10px 0 0 18px;flex-wrap:wrap;
+  padding-left:15px;border-left:1px solid rgba(0,196,140,.28);
+  animation:rankseg .28s cubic-bezier(.2,.7,.3,1) backwards}
+.rankseg[hidden]{display:none}
+@keyframes rankseg{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.rankseg .rs-eyebrow{font-family:var(--font-mono);font-size:8.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--text-faint);margin-right:2px}
+.rankseg button{padding:5px 14px;border-radius:99px;cursor:pointer;font:inherit;
+  font-size:12px;font-weight:600;color:var(--text-dim);
+  border:1px solid var(--edge);background:rgba(255,255,255,.03);
+  transition:color .18s,border-color .18s,background .18s}
+.rankseg button:hover{color:var(--text)}
+.rankseg button[aria-pressed="true"]{color:var(--mint);border-color:rgba(0,196,140,.5);
+  background:rgba(0,196,140,.12)}
+
+/* The ranking summary is built from `maCard`, so the surface, the light, the hover and the
+   info reveal are the Market Analytics ones rather than a second set that merely resembles
+   them. `.rs-card` used to be a hand-rolled box: it sat outside the shared card block at the
+   foot of this stylesheet, so it had no specular catch, no ambient glow and no lift, and it
+   read as a panel from a different product parked next to the rest.
+
+   Only the row proportion is new. It follows `.ma-row--lead`'s precedent of a named variant
+   rather than an inline style. */
+/* 398 is the natural height of the tallest model (growth, five counterparty rows); lending
+   and insolvency sit at 377 and are held to the same box so switching model does not resize
+   the section. The skeleton uses the same number. */
+.ma-row--rank{grid-template-columns:minmax(0,1.85fr) minmax(0,1fr);min-height:398px}
+@media (max-width:900px){ .ma-row--rank{grid-template-columns:1fr;min-height:0} }
+/* Tighter than a full analytics card. These two sit above a hundred rows on Home rather than
+   in a page of charts, so they carry the same anatomy at a smaller gauge. */
+.ma-row--rank .ma-card{padding:14px 17px 13px}
+/* No header icon on these two. `maCard` always draws one, and changing that signature would
+   reach every analytics card; hiding it here is scoped to the ranking row. The title carries
+   the card on its own at this gauge. */
+.ma-row--rank .ma-ico{display:none}
+.ma-row--rank .ma-head{padding-bottom:11px;margin-bottom:12px;gap:0}
+.ma-row--rank .ma-metrics{margin-bottom:12px}
+.ma-row--rank .ma-v{font-size:17px}
+.ma-row--rank .ma-plot{min-height:0}
+
+/* The closing line, set as plain text inside the card. It was a bordered aside with its own
+   icon, which gave a one-sentence remark the weight of a section. */
+.rs-note{margin:11px 0 0;font-size:11.5px;color:var(--text-faint);line-height:1.55}
+.rs-note b{color:var(--mint);font-weight:600}
+
+.rs-plot{position:relative}
+/* An explicit height, not 100%. A percentage against an auto-height parent resolves to auto,
+   and an SVG with a viewBox and no height then takes its aspect ratio: the 100x40 box at 700px
+   wide was claiming 276px and setting the height of both cards. */
+.rs-curve{display:block;width:100%;height:126px}
+.rs-axis{display:flex;justify-content:space-between;margin-top:7px}
+.rs-axis span{font-family:var(--font-mono);font-size:9px;color:var(--text-faint)}
+/* The two endpoints marked on the plot itself, so #1 and #100 are read off the curve and
+   not only from the metric strip above it. */
+.rs-ends span{position:absolute;font-family:var(--font-mono);font-size:8.5px;
+  color:var(--mint);transform:translateY(-130%);pointer-events:none}
+.rs-ends span:first-child{left:0}
+.rs-ends span:last-child{right:0}
+
+/* Reading the curve. Every point on it is a company, so hovering names it and clicking opens
+   it. The marker and the guide are DOM rather than SVG: the plot is drawn with
+   preserveAspectRatio="none", which would stretch a circle into an ellipse and thicken a
+   vertical rule by the same factor. */
+.rs-hit{position:absolute;inset:0;cursor:crosshair}
+.rs-guide{position:absolute;top:0;bottom:0;width:1px;background:rgba(0,196,140,.45);
+  pointer-events:none;opacity:0;transition:opacity .12s}
+.rs-dot{position:absolute;width:7px;height:7px;border-radius:50%;background:var(--mint);
+  box-shadow:0 0 0 3px rgba(0,196,140,.22);pointer-events:none;opacity:0;
+  transform:translate(-50%,-50%);transition:opacity .12s}
+.rs-plot.on .rs-guide,.rs-plot.on .rs-dot{opacity:1}
+
+.rs-tip{position:absolute;z-index:8;min-width:172px;max-width:250px;padding:8px 10px;
+  border-radius:9px;pointer-events:none;opacity:0;transition:opacity .12s;
+  background:rgba(6,11,9,.97);border:1px solid rgba(0,196,140,.3);
+  box-shadow:0 8px 22px rgba(0,0,0,.45)}
+.rs-plot.on .rs-tip{opacity:1}
+.rs-tip .t-r{font-family:var(--font-mono);font-size:9.5px;color:var(--mint);
+  letter-spacing:.06em}
+.rs-tip .t-n{margin:2px 0 0;font-size:12px;font-weight:600;color:var(--text);
+  line-height:1.3;overflow-wrap:anywhere}
+.rs-tip .t-m{margin:4px 0 0;font-family:var(--font-mono);font-size:9.5px;
+  color:var(--text-faint);line-height:1.5}
+.rs-tip .t-s{color:var(--text)}
+
+/* The composition plot. Bar, key, then size, inside the standard `.ma-plot` slot. */
+.rs-bar{display:flex;height:12px;border-radius:99px;overflow:hidden;margin:0 0 11px;
+  background:rgba(255,255,255,.05)}
+.rs-bar i{display:block;height:100%}
+.rs-key{display:flex;flex-direction:column;gap:4px}
+.rs-key div{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--text-dim)}
+.rs-key i{width:7px;height:7px;border-radius:2px;flex:none}
+.rs-key b{margin-left:auto;font-family:var(--font-mono);font-size:11.5px;color:var(--text)}
+.rs-seg{margin-top:10px;padding-top:9px;border-top:1px solid var(--edge)}
+.rs-seg .rs-sh{margin:0 0 8px;font-size:10.5px;color:var(--text-faint)}
+
+/* Size as bars rather than a column of counts: the shape of the mix is the point, and on
+   insolvency (76 Micro of 100) the shape is itself the finding. */
+.rs-sbar{display:flex;flex-direction:column;gap:5px}
+.rs-sbar > div{display:grid;grid-template-columns:66px 1fr 26px;align-items:center;gap:9px;
+  font-size:11.5px;color:var(--text-dim)}
+.rs-sbar u{text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rs-sbar em{display:block;height:6px;border-radius:99px;background:rgba(255,255,255,.06)}
+.rs-sbar em i{display:block;height:100%;border-radius:99px;background:rgba(0,196,140,.55)}
+.rs-sbar b{font-family:var(--font-mono);font-size:11.5px;color:var(--text);text-align:right}
+
+/* The skeleton takes the card's own shape, so the section does not resize when data lands. */
+.ma-card.is-skel{min-height:398px}
+.ma-card.is-skel::after{content:"";position:absolute;inset:0;border-radius:inherit;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.045),transparent);
+  transform:translateX(-100%);animation:skel 1.25s ease-in-out infinite;pointer-events:none}
+.rowskel{height:74px;border-radius:12px;margin-bottom:8px;
+  background:rgba(255,255,255,.022);border:1px solid rgba(255,255,255,.06);
+  position:relative;overflow:hidden}
+.rowskel::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.04),transparent);
+  transform:translateX(-100%);animation:skel 1.25s ease-in-out infinite}
+@keyframes skel{to{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){
+  .ma-card.is-skel::after,.rowskel::after{animation:none}
+  .rankseg{animation:none}
+}
+
+.rankhead{display:flex;align-items:baseline;gap:9px;margin:0 0 4px}
+.rankhead h3{margin:0;font-size:15px;font-weight:600;color:var(--text)}
+.rankhead span{font-family:var(--font-mono);font-size:10.5px;color:var(--text-faint)}
+/* The ranked card is the same card with one column in front of it, so the position sits
+   against the name rather than adrift in the middle of the row. The base grid is
+   1fr 200px 158px; here it is rank, name, score. */
+.wl-row.ranked{grid-template-columns:46px 1fr 158px;gap:14px}
+.wl-rank{font-family:var(--font-mono);font-size:13px;font-weight:600;color:var(--mint);
+  text-align:right}
+@media (max-width:900px){ .wl-row.ranked{grid-template-columns:40px 1fr 110px;gap:10px} }
+
 .notscored{margin:0 0 10px;font-size:13.5px;color:var(--text)}
 .lbgline{margin:0 0 12px;font-size:12.5px;color:var(--text-dim);line-height:1.5}
 .panel.lbgformer{border-color:rgba(233,162,59,.34)}
@@ -547,6 +803,7 @@ body{
    stays legible on the closed button, because a collapsed panel must never
    be the only place a live setting is visible. */
 .tools{display:flex;flex-direction:column;gap:10px}
+.tools[hidden],.section-label[hidden]{display:none}
 .toolbtn{font:inherit;font-size:13px;width:100%;padding:12px 16px;border-radius:13px;
   cursor:pointer;background:var(--glass);border:1px solid var(--edge);color:var(--text);
   display:flex;align-items:center;gap:11px;text-align:left;
@@ -2264,6 +2521,7 @@ const API = {
   filters:   p           => API.get("/api/filters?" + p),
   options:   (key, q, p) => API.get(`/api/options?key=${key}&q=${encodeURIComponent(q)}&` + p),
   browse:    p           => API.get("/api/browse?" + p),
+  ranking:   m           => API.get("/api/ranking?model=" + encodeURIComponent(m)),
 };
 
 /* ---------------------------------------------------------------------------
@@ -2279,8 +2537,15 @@ const API = {
    both. `beforePreset` is the panel as it stood before the preset was applied, so removing
    one puts back what the user had rather than emptying the panel. */
 const FSTATE = {view: "all", preset: null, fromPreset: null, beforePreset: null,
-                values: {}, shown: 25, lastApplied: null,
+                values: {}, shown: 25, lastApplied: null, rankModel: "lending",
                 open: {presets: false, filters: false}};
+
+/* The ranking is a fourth starting point rather than a fourth population: the other three
+   are WHERE clauses, this is an ORDER and a cut at 100. It is kept out of FSTATE.view's
+   filter plumbing for that reason and carried as its own flag. */
+const RANK_VIEW = "rank";
+const RANK_MODELS = [["lending", "Lending"], ["insolvency", "Insolvency"], ["growth", "Growth"]];
+const inRankView = () => FSTATE.view === RANK_VIEW;
 
 /* The preset in force, whichever way it was applied. */
 const activePreset = () => PRESET_BY_KEY[FSTATE.fromPreset || FSTATE.preset] || null;
@@ -3072,8 +3337,9 @@ function renderLanding(){
     <section class="watchlist rise" style="animation-delay:.08s">
       <p class="section-label">Views</p>
       <div class="vseg" id="viewswitch" role="group" aria-label="Company population"></div>
+      <div class="rankseg" id="rankswitch" role="group" aria-label="Model" hidden></div>
 
-      <p class="section-label">Tools</p>
+      <p class="section-label" id="toolslabel">Tools</p>
       <div class="tools">
         <div>
           <button class="toolbtn" id="btn-presets" aria-expanded="false" aria-controls="dw-presets">
@@ -3115,13 +3381,30 @@ function renderLanding(){
      and ranks on something different. Filters narrow whichever view is selected. */
   const vhost = wl.querySelector("#viewswitch");
   vhost.append(el(`<span class="thumb" aria-hidden="true" hidden></span>`));
+  const rankHost = wl.querySelector("#rankswitch");
+  rankHost.append(el(`<span class="rs-eyebrow">Model</span>`));
+  RANK_MODELS.forEach(([key, label]) => {
+    const b = el(`<button data-rank="${key}"
+      aria-pressed="${FSTATE.rankModel === key}">${label}</button>`);
+    b.addEventListener("click", () => {
+      FSTATE.rankModel = key; FSTATE.shown = 25;
+      rankHost.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", "false"));
+      b.setAttribute("aria-pressed", "true");
+      refresh();
+    });
+    rankHost.append(b);
+  });
+
   [["All companies", "all", META.universe],
    ["Gazette signal", "gazette", META.companies_with_signal],
-   ["Former LBG client", "lbg", META.former_lbg]].forEach(([label, key, n]) => {
+   ["Former LBG client", "lbg", META.former_lbg],
+   ["Model rankings", RANK_VIEW, null]].forEach(([label, key, n]) => {
     const b = el(`<button aria-pressed="${FSTATE.view === key}">
-      <span>${label}</span><span class="n">${nf(n)}</span></button>`);
+      <span>${label}</span>${n == null ? `<span class="n">Top 100</span>`
+                                       : `<span class="n">${nf(n)}</span>`}</button>`);
     b.addEventListener("click", () => {
       FSTATE.view = key; FSTATE.shown = 25;
+      rankHost.hidden = key !== RANK_VIEW;
       vhost.querySelectorAll("button").forEach(x => x.setAttribute("aria-pressed", "false"));
       b.setAttribute("aria-pressed", "true");
       moveThumb(vhost, b);
@@ -3305,7 +3588,16 @@ async function refresh(){
   if(!body || !rows) return;
   paintToolBadges();
   paintActivePreset();
-  paintPanel(body);
+  /* Filters and presets narrow a population. A ranking is a fixed hundred, so leaving them
+     live against it would quietly produce a list that is no longer the top hundred of
+     anything. The tools are hidden for the duration and restored on the way out, and the
+     facet endpoint is not called at all: `rank` is not a member of VIEWS, so asking it to
+     count facets for one is a 400 by design rather than an oversight. */
+  const tools = document.querySelector(".watchlist .tools");
+  const toolsLabel = document.getElementById("toolslabel");
+  if(tools) tools.hidden = inRankView();
+  if(toolsLabel) toolsLabel.hidden = inRankView();
+  if(!inRankView()) paintPanel(body);
   await paintRows(rows);
 }
 
@@ -3338,7 +3630,8 @@ function paintToolBadges(){
 let FILTER_META = [];
 let MATCH_CONTEXT = null;
 
-const VIEW_LABEL = {all: "All companies", gazette: "Gazette signal", lbg: "Former LBG client"};
+const VIEW_LABEL = {all: "All companies", gazette: "Gazette signal",
+                    lbg: "Former LBG client", rank: "Model rankings"};
 
 /* One reader for "what is switched on", used by the preset bar, the company page and the
    adjusted/pristine comparison. It reads the live filter metadata, so a condition is
@@ -3450,7 +3743,11 @@ function filterControl(f){
     return wrap;
   }
 
-  const multi = ["in", "in_expr"].includes(f.kind) || f.key === "gazette";
+  /* `lbg` joins `gazette` as a choice facet that is genuinely multi-select. Its five options
+     partition the universe, so picking two or more is a real question ("everyone we do not
+     lend to" is buckets 3, 4 and 5), and the preset "Best prospects we do not bank" loads
+     exactly that combination. A single-select could not represent it. */
+  const multi = ["in", "in_expr"].includes(f.kind) || ["gazette", "lbg"].includes(f.key);
   const sel = el(`<select id="f-${f.key}" ${multi ? "multiple" : ""}></select>`);
   if(!multi) sel.append(el(`<option value="">Any</option>`));
   f.options.forEach(o => {
@@ -3512,7 +3809,258 @@ async function paintPanel(host){
   });
 }
 
+const RANK_TONE = {mint: "#00C48C", jade: "#3FBF9A", amber: "#E9A23B",
+                   grey: "rgba(255,255,255,.28)", dim: "rgba(255,255,255,.14)"};
+
+/* The score across the hundred, drawn as one area. It answers the question a banker has
+   before reading any name: does rank matter here, or is the hundredth company much like the
+   first? A 38% fall says work it top down; a flat line would say treat it as a pool. */
+function rankCurve(curve){
+  if(!curve.length) return "";
+  /* The floor is zero, not the hundredth score. Scaling to the visible range would turn a
+     shallow fall into a cliff, which is the one thing this chart must not do: the shape has
+     to be the shape. Everything added here is information, not amplification. */
+  const W = 100, H = 40, hi = curve[0] || 1, n = curve.length;
+  const y = v => H - (v / hi) * (H - 4) - 2;
+  const x = i => (i / (n - 1)) * W;
+  const pts = curve.map((v, i) => [x(i), y(v)]);
+  const line = pts.map(([px, py], i) =>
+    (i ? "L" : "M") + px.toFixed(2) + " " + py.toFixed(2)).join("");
+  const grid = [0.25, 0.5, 0.75, 1].map(f =>
+    `<line x1="0" x2="${W}" y1="${y(hi * f).toFixed(2)}" y2="${y(hi * f).toFixed(2)}"
+       stroke="rgba(255,255,255,.06)" stroke-width=".5" vector-effect="non-scaling-stroke"/>`
+    ).join("");
+  /* The first ten, marked. A call list is worked from the top, so where the strongest scores
+     sit is a fact about how to use the list rather than decoration. */
+  const tenth = Math.min(9, n - 1);
+  const topBand = pts.slice(0, tenth + 1);
+  const topArea = topBand.map(([px, py], i) =>
+      (i ? "L" : "M") + px.toFixed(2) + " " + py.toFixed(2)).join("") +
+    `L${x(tenth).toFixed(2)} ${H}L0 ${H}Z`;
+  /* The geometry the hover handler needs, so the marker sits on the line rather than near
+     it: the same y() this path was drawn with, expressed as a fraction of the plot height. */
+  window.__rankGeom = {n, ys: curve.map(v => y(v) / H)};
+  return `<svg class="rs-curve" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none"
+     aria-hidden="true">
+    <defs>
+      <linearGradient id="rsg" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="rgba(0,196,140,.40)"/>
+        <stop offset="1" stop-color="rgba(0,196,140,.02)"/>
+      </linearGradient>
+      <linearGradient id="rsg10" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0" stop-color="rgba(0,196,140,.34)"/>
+        <stop offset="1" stop-color="rgba(0,196,140,.02)"/>
+      </linearGradient>
+    </defs>
+    ${grid}
+    <path d="${line}L${W} ${H}L0 ${H}Z" fill="url(#rsg)"/>
+    <path d="${topArea}" fill="url(#rsg10)"/>
+    <line x1="${x(tenth).toFixed(2)}" x2="${x(tenth).toFixed(2)}"
+      y1="${y(curve[tenth]).toFixed(2)}" y2="${H}"
+      stroke="rgba(0,196,140,.45)" stroke-width=".7" stroke-dasharray="2 2"
+      vector-effect="non-scaling-stroke"/>
+    <path d="${line}" fill="none" stroke="var(--mint)" stroke-width="1.7"
+      stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+  </svg>
+  <div class="rs-ends">
+    <span style="top:${(y(curve[0]) / H * 100).toFixed(1)}%">#1</span>
+    <span style="top:${(y(curve[n - 1]) / H * 100).toFixed(1)}%">#${n}</span>
+  </div>
+  <div class="rs-guide"></div><div class="rs-dot"></div>
+  <div class="rs-tip" role="status" aria-live="polite"></div>
+  <div class="rs-hit"></div>`;
+}
+
+/* Both summary cards are `maCard`s. That is the whole point of this pass: the surface, the
+   header anatomy, the metric strip, the plot slot, the takeaway aside and the info reveal are
+   the ones every Market Analytics card uses, so this section cannot drift away from them. */
+function rankSummary(d){
+  const s = d.summary, n = d.n || 1;
+  const parts = s.counterparty.filter(x => x.n > 0);
+  const lead = parts.slice().sort((a, b) => b.n - a.n)[0];
+  const seg = s.segment.slice(0, 3);
+  const segMax = seg.length ? seg[0].n : 1;
+
+  const chart = maCard({
+    icon: "bars",
+    title: "Score across the ranked hundred",
+    meta: `${d.label} · #1 to #${d.n}`,
+    size: "compact",
+    metrics: [
+      {k: "At #1", v: (s.top * 100).toFixed(1) + "%"},
+      {k: `At #${d.n}`, v: (s.bottom * 100).toFixed(1) + "%"},
+      {k: "Fall", v: s.drop_pct + "%", accent: true},
+    ],
+    plot: `<div class="rs-plot">${rankCurve(s.curve)}</div>
+           <div class="rs-axis">${[1, 25, 50, 75, d.n].map(i =>
+             `<span>#${i}</span>`).join("")}</div>
+           <p class="rs-note">The score falls <b>${s.drop_pct}%</b> between #1 and #${d.n}, so
+           position in this list carries information. The shaded band is the first ten.</p>`,
+    note: `<p>Drawn against <b>zero</b>, not against the range between #1 and #${d.n}:
+      scaling to the visible range would turn a shallow fall into a cliff, so the shape here
+      is the fall itself.</p>
+      <p>All ${d.n} sit inside the <b>top 1%</b> of the ${nf(d.scored)} scored companies,
+      which is why the band on a company page cannot separate them and only a position can.</p>`,
+  });
+
+  const quick = maCard({
+    icon: "shield",
+    title: "Quick look at the hundred",
+    meta: `${d.label} · top ${d.n}`,
+    size: "compact",
+    metrics: [
+      {k: esc(lead.k), v: String(lead.n), s: `of ${d.n}`, accent: true},
+      {k: "Gazette notice", v: String(s.gazette), s: `of ${d.n}`},
+    ],
+    plot: `<div class="rs-bar">${parts.map(x =>
+        `<i style="width:${(100 * x.n / n).toFixed(2)}%;background:${RANK_TONE[x.tone]}"
+            title="${esc(x.k)}: ${x.n}"></i>`).join("")}</div>
+      <div class="rs-key">${parts.map(x =>
+        `<div><i style="background:${RANK_TONE[x.tone]}"></i>${esc(x.k)}<b>${x.n}</b></div>`
+        ).join("")}</div>
+      <div class="rs-seg">
+        <p class="rs-sh">By size</p>
+        <div class="rs-sbar">${seg.map(x => `
+          <div><u>${esc(x.k)}</u>
+            <em><i style="width:${(100 * x.n / segMax).toFixed(1)}%"></i></em>
+            <b>${x.n}</b></div>`).join("")}</div>
+      </div>
+      <p class="rs-note">${s.gazette
+        ? `<b>${s.gazette}</b> of the ${d.n} also carry a Gazette notice.`
+        : `None of the ${d.n} carries a Gazette notice.`}</p>`,
+    note: `<p>Who already lends to them, on the same five predicates as the LBG relationship
+      filter, so the two cannot tell different stories. The five partition the hundred and
+      sum to ${d.n}.</p>
+      <p>It is the read that says which team the list belongs to: a hundred that is mostly
+      <b>borrowing elsewhere</b> is a Growth list, while one that is mostly <b>no charge
+      ever</b> is not a lending conversation at all.</p>`,
+  });
+
+  const row = el(`<div class="ma-row ma-row--rank ranksum"></div>`);
+  row.append(chart, quick);
+  wireCurveHover(row, d);
+  return row;
+}
+
+/* Hovering the curve reads the company at that position out of the same rows the list below
+   renders, so the two cannot disagree. The chart itself stays aria-hidden: the ranked cards
+   under it are the accessible path to every one of these hundred companies, and duplicating
+   them into a hundred focus stops would make the page worse for a keyboard user, not better. */
+function wireCurveHover(root, d){
+  const plot = root.querySelector(".rs-plot");
+  const hit  = root.querySelector(".rs-hit");
+  const geom = window.__rankGeom;
+  if(!plot || !hit || !geom) return;
+  const guide = plot.querySelector(".rs-guide");
+  const dot   = plot.querySelector(".rs-dot");
+  const tip   = plot.querySelector(".rs-tip");
+  let at = -1;
+
+  const place = ev => {
+    const box = plot.getBoundingClientRect();
+    const px  = Math.min(Math.max(ev.clientX - box.left, 0), box.width);
+    const i   = Math.min(geom.n - 1, Math.max(0, Math.round((px / box.width) * (geom.n - 1))));
+    if(i !== at){
+      at = i;
+      const c = d.rows[i];
+      tip.innerHTML = `<p class="t-r">#${c.rank}</p>
+        <p class="t-n">${esc(asFiled(c.name))}</p>
+        <p class="t-m"><span class="t-s">${(c.rank_score * 100).toFixed(2)}%</span> ·
+        ${esc(c.segment || "size not stated")}<br>${esc(c.counterparty || "")}</p>`;
+    }
+    const x = (at / (geom.n - 1)) * box.width;
+    guide.style.left = x + "px";
+    dot.style.left = x + "px";
+    dot.style.top  = (geom.ys[at] * box.height) + "px";
+    /* The tip flips side near the right edge rather than being clipped by the card. */
+    const w = tip.offsetWidth || 190;
+    tip.style.left = (x + w + 14 > box.width ? x - w - 12 : x + 12) + "px";
+    tip.style.top  = Math.max(0, geom.ys[at] * box.height - 46) + "px";
+    plot.classList.add("on");
+  };
+
+  hit.addEventListener("pointermove", place);
+  hit.addEventListener("pointerenter", place);
+  hit.addEventListener("pointerleave", () => { plot.classList.remove("on"); at = -1; });
+  hit.addEventListener("click", () => {
+    if(at < 0) return;
+    MATCH_CONTEXT = {view: RANK_VIEW, preset: null,
+                     filters: [{label: d.label + " ranking", value: "#" + d.rows[at].rank}]};
+    openCompany(d.rows[at].number);
+  });
+}
+
+/* The placeholder. Same boxes at the same heights, so the section does not resize when the
+   data lands: the content fades in where the skeleton was rather than shunting the list. */
+function rankSkeleton(){
+  return el(`
+    <div>
+      <div class="ma-row ma-row--rank ranksum">
+        <section class="ma-card ma-card--compact is-skel"></section>
+        <section class="ma-card ma-card--compact is-skel"></section>
+      </div>
+      <div class="rankhead"><h3>Top 100 companies</h3><span>loading</span></div>
+      ${Array.from({length: 6}, () => `<div class="rowskel"></div>`).join("")}
+    </div>`);
+}
+
+async function paintRanking(host){
+  /* The skeleton goes up first and at the finished height. The ranking does more work than
+     a page of browse, and the previous behaviour was to clear the list, sit empty, then drop
+     a full section in at once, which read as a stall followed by a jump. */
+  host.setAttribute("aria-busy", "true");
+  host.innerHTML = "";
+  host.append(rankSkeleton());
+  let d;
+  try { d = await API.ranking(FSTATE.rankModel); }
+  catch (e) {
+    host.innerHTML = "";
+    host.append(el(`<div class="nofilter">Could not reach the query server.</div>`));
+    return;
+  }
+  host.removeAttribute("aria-busy");
+  host.innerHTML = "";
+
+  const fc = document.getElementById("fcount");
+  if(fc) fc.innerHTML = `Top <b>${nf(d.n)}</b> of ${nf(d.scored)} scored companies`;
+  const clear = document.getElementById("fclear");
+  if(clear) clear.hidden = true;
+  const sub = document.getElementById("wl-sub");
+  if(sub) sub.textContent = `${d.label}, highest score first`;
+
+  const sum = rankSummary(d);
+  sum.classList.add("rise");
+  host.append(sum);
+  const head = el(`<div class="rankhead rise" style="animation-delay:.05s">
+    <h3>Top ${d.n} companies</h3><span>${esc(d.label)}</span></div>`);
+  host.append(head);
+
+  d.rows.forEach(c => {
+    const life = lifeOf(c.lifecycle);
+    const row = el(`
+      <button class="wl-row ranked">
+        <div class="wl-rank">#${c.rank}</div>
+        <div>
+          <div class="wl-name">${esc(asFiled(c.name))}
+            <span class="lifechip" style="color:${life.colour}">${life.label}</span></div>
+          <div class="wl-meta">${esc(c.number)} · ${esc(c.sector||"?")} · ${esc(c.segment||"?")}</div>
+        </div>
+        <div class="wl-right">
+          <div class="wl-stage" style="color:var(--mint)">${(c.rank_score * 100).toFixed(2)}%</div>
+          <div class="wl-when">${esc(d.label)}</div>
+        </div>
+      </button>`);
+    row.addEventListener("click", () => {
+      MATCH_CONTEXT = {view: RANK_VIEW, preset: null,
+                       filters: [{label: d.label + " ranking", value: "#" + c.rank}]};
+      openCompany(c.number);
+    });
+    host.append(row);
+  });
+}
+
 async function paintRows(host){
+  if(inRankView()) return paintRanking(host);
   /* Every filter, the view and any preset are resolved by DuckDB across the full
      universe; this asks for one page and renders it. */
   host.setAttribute("aria-busy", "true");
@@ -3805,10 +4353,14 @@ function leftColumn(c){
    Three rules from the handover are enforced here rather than left to whoever
    writes the copy:
 
-   1. Never the word "probability". The raw number runs optimistic exactly at the
-      top of the list where this screen looks, so it is labelled "model score",
-      used to sort, and described with the hit rate measured on months where the
-      outcome was already known.
+   1. The score is shown as a percentage and described as an estimated probability,
+      because measured against realised outcomes it behaves like one through the bulk
+      of the range: mean 0.00301 against an observed 0.00271 for lending. What is NOT
+      claimed is a direction of error at the top. It was previously described as
+      running optimistic there; on lending that is backwards, with observed over
+      predicted at 1.21 in the 0.40 to 0.50 band and 1.12 above 0.50. Only ten
+      held-out lending rows ever landed above 0.5, so the honest statement is that the
+      extreme top cannot be checked, and the band is the safer read than the digits.
    2. The horizon always travels with the number. A growth score is about the next
       year and a lending score about the next quarter; side by side without their
       windows they invite a comparison that means nothing.
@@ -3836,6 +4388,35 @@ function exitBand(pct){
   return "Low";
 }
 
+/* A range across the two held-out origins, never the better of the two and never pooled:
+   pooled precision falls outside the range of its own months for 5 of the 8 target-metric
+   pairs, and it flatters lending worst of all (0.55 against months of 0.43 and 0.41). */
+function rangeTxt(lo, hi, f){
+  return lo === hi ? f(lo) : f(lo) + " to " + f(hi);
+}
+
+/* One driver: the label, the value the model actually saw, an arrow for the direction, and
+   a bar for its weight. The value leads, because on lending the top feature is identical
+   for all 5,000 companies in the extract and "578 charges" against "3 charges" is the
+   whole of the difference between them. */
+function driverRow(d){
+  const val = (d.value === null || d.value === undefined)
+    ? '<span class="drv-v none">not recorded</span>'
+    : '<span class="drv-v">' + esc(String(d.value)) + '</span>';
+  const arrow = d.direction === "up" ? "&uarr;" : "&darr;";
+  const tip = d.direction === "up" ? "pushes the score up" : "pulls the score down";
+  return '' +
+    '<div class="drv">' +
+      '<div class="drv-top">' +
+        '<span class="drv-l">' + esc(d.label) + '</span>' + val +
+        '<span class="drv-a ' + d.direction + '" title="' + tip + '">' + arrow + '</span>' +
+      '</div>' +
+      '<div class="drv-bar' + (d.direction === "down" ? " down" : "") + '">' +
+        '<span style="width:' + Math.max(2, d.share) + '%"></span>' +
+      '</div>' +
+    '</div>';
+}
+
 function scorePanel(c){
   if(!c.active || !c.scores){
     /* Name the actual status rather than saying "no longer Active".
@@ -3861,35 +4442,133 @@ function scorePanel(c){
       </section>`);
   }
 
+  const nPer = (META.reasons && META.reasons.companies_per_target) || 5000;
+
   const rows = MODELS.map(m => {
     const s = c.scores[m.key.replace("score_", "")];
     if(!s) return "";
     const band = m.rankable ? pctLabel(s.pct) : exitBand(s.pct) + " band";
-    const note = m.rankable
-      ? `${Math.round(m.hit_rate * 100)} in 100 at this level went on to ${esc(m.event)} when tested on past months`
-      : `not ranked: ${esc(m.not_rankable_because)}`;
+    /* Top 1% and Top 5% keep the mint. Top 10% and Top 25% go quiet. Anything below that
+       is amber: the company is not near the front of this model's list. */
+    const bandCls = s.pct <= 5 ? "" : (s.pct <= 25 ? " mid" : " weak");
+    const drv  = (s.drivers && s.drivers.length) ? s.drivers : null;
+
+    /* The performance sentence, scoped to the top 100. It previously read "N in 100 at this
+       level", which depended only on a per-model constant and so printed identically under
+       every band: a company in the Lower half was told 43 in 100 when its true figure is
+       near the base rate, an overstatement of about 170 times. Precision@100 is a property
+       of the top hundred and of nothing else, and it now says so. */
+    const asPct = x => Math.round(x * 100);
+    const stats = (m.p100_low === undefined) ? "" : `
+      <div class="scorestats">
+        <div><p class="ss-k">Base rate</p><p class="ss-v">${
+          m.base_rate_pct_low === m.base_rate_pct_high
+            ? m.base_rate_pct_low + "%"
+            : m.base_rate_pct_low + " to " + m.base_rate_pct_high + "%"}</p></div>
+        <div><p class="ss-k">Precision @100</p><p class="ss-v">${
+          rangeTxt(m.p100_low, m.p100_high, asPct)}</p></div>
+        <div><p class="ss-k">Lift</p><p class="ss-v">~${m.lift_about}x</p></div>
+      </div>`;
+
+    /* Two sentences, and both are caveats. Everything factual moved onto the tile above:
+       a reveal a reader must open to learn what a number means is a number badly placed. */
+    const perf = (m.p100_low === undefined) ? "" : `
+      <p>Base rate, precision and lift describe the <b>top 100 companies by this score</b>,
+      not this company. Measured across two held-out origins and given as a range rather
+      than the better of the two.</p>`;
+
+    const drvNote = drv
+      ? `<p>SHAP weights are each driver's share of <b>this company's own three
+         contributions</b>, not a share of the score. Raw log-odds:
+         <span class="mono">${drv.map(d => (d.logodds > 0 ? "+" : "") + d.logodds)
+           .join(", ")}</span>, which are additive in log-odds and must not be summed
+         against the score.</p>`
+      : `<p>SHAP reasons were computed for the top ${nf(nPer)} companies on each model
+         separately. A company can be in one model's extract and not another's.</p>`;
+
+    const driversBlock = drv
+      ? `<div class="drivers">
+           <p class="drv-h">SHAP analysis &middot; what drives this score</p>
+           ${drv.map(driverRow).join("")}
+         </div>`
+      : `<div class="drivers">
+           <p class="drv-none">No SHAP analysis available</p>
+         </div>`;
+
     return `
-      <div class="scorerow${m.rankable ? "" : " unranked"}">
+      <div class="scorerow${m.rankable ? "" : " unranked"}" data-model="${esc(m.key)}">
         <div class="scorehead">
-          <b>${esc(m.label)}</b>
-          <span class="horizon">${esc(m.horizon)} · ${esc(m.window)}</span>
+          <div class="htext">
+            <b>${esc(m.label)}</b>
+            <span class="horizon">${esc(m.horizon)} · ${esc(m.window)}</span>
+          </div>
+          <button class="scoreinfo" aria-expanded="false"
+            title="How to read ${esc(m.label)}"
+            aria-label="How to read ${esc(m.label)}">i</button>
         </div>
         <div class="scoreband">
-          <span class="bandchip">${esc(band)}</span>
-          <span class="rawscore">model score ${s.score.toFixed(4)}</span>
+          <span class="bandchip${bandCls}" title="${bandCls.trim() === "weak"
+            ? "This model does not place the company near the front of its list"
+            : "Position on this model's list"}">${esc(band)}</span>
+          <span class="scorepct">${(s.score * 100).toFixed(2)}%</span>
+          <span class="rawscore">score ${s.score.toFixed(4)}</span>
         </div>
-        <p class="scorenote">${note}</p>
+        ${stats}
+        ${m.rankable ? "" : `<p class="scorenote">not ranked:
+          ${esc(m.not_rankable_because)}</p>`}
+        ${driversBlock}
+        <div class="screveal">
+          <p class="rt">How to read this</p>
+          ${perf}
+          ${drvNote}
+        </div>
       </div>`;
   }).join("");
 
-  return el(`
+  const panel = el(`
     <section class="panel">
       <div class="phead"><span class="ma-ico">${maIcon("target")}</span><p class="eyebrow">Model scores</p></div>
       ${rows}
-      <p class="disclaimer">Forecasts about the windows shown, not descriptions of July.
-      These are model scores used to rank, not probabilities: the raw value runs high at the
-      top of the list, so the band and the measured hit rate are the honest read.</p>
+      <div class="panelnote">
+        <button class="morebtn" aria-expanded="false">Read more</button>
+        <div class="moretext" hidden>
+          <p class="disclaimer">Forecasts about the windows shown, not descriptions of July.
+          The score is an estimated probability corrected back to the true base rate, and it
+          tracks well through the middle of the range. Near the top of the list there are too
+          few past cases to check it, so read the band rather than the digits.</p>
+        </div>
+      </div>
     </section>`);
+
+  /* Same mechanism as the Market Analytics cards: CSS opens the reveal on hover, and this
+     pins it for a tap or a keypress. */
+  /* A plain toggle. The glyph carries the state, so the control says whether it is open
+     rather than leaving the reader to infer it from a panel that may be scrolled out of
+     view. Clicking the reveal closes it too, which is the fastest way out. */
+  const more = panel.querySelector(".morebtn");
+  if(more){
+    const box = panel.querySelector(".moretext");
+    more.addEventListener("click", () => {
+      const open = box.hidden;
+      box.hidden = !open;
+      more.textContent = open ? "Show less" : "Read more";
+      more.setAttribute("aria-expanded", String(open));
+    });
+  }
+
+  panel.querySelectorAll(".scorerow").forEach(row => {
+    const btn = row.querySelector(".scoreinfo");
+    if(!btn) return;
+    const set = on => {
+      row.toggleAttribute("data-note", on);
+      btn.setAttribute("aria-expanded", String(on));
+      btn.textContent = on ? "\u00d7" : "i";
+      btn.title = on ? "Close" : "How to read this";
+    };
+    btn.addEventListener("click", () => set(!row.hasAttribute("data-note")));
+    row.querySelector(".screveal").addEventListener("click", () => set(false));
+  });
+  return panel;
 }
 
 function lenderPanel(c){

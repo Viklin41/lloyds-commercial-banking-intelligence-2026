@@ -1,0 +1,721 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<title>Companies House Data Store handbook</title>
+<style>
+@page { size: A4; margin: 18mm 16mm; }
+:root{ --ink:#0d1512; --rule:#d8e0dc; --green:#046A38; --mint:#0f8f6a; }
+*{ box-sizing:border-box; }
+body{
+  font-family:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+  font-size:10.6pt; line-height:1.62; color:var(--ink);
+  max-width:190mm; margin:0 auto; padding:14mm 6mm 20mm;
+  -webkit-font-smoothing:antialiased;
+}
+h1{ font-size:23pt; line-height:1.2; margin:0 0 4mm; color:var(--green);
+    letter-spacing:-.01em; border-bottom:2.5px solid var(--green); padding-bottom:4mm; }
+h2{ font-size:15pt; margin:11mm 0 3mm; color:var(--green); letter-spacing:-.005em;
+    page-break-after:avoid; break-after:avoid; }
+h3{ font-size:12pt; margin:7mm 0 2mm; color:var(--mint);
+    page-break-after:avoid; break-after:avoid; }
+p{ margin:0 0 3.4mm; }
+strong{ color:#08120f; font-weight:650; }
+em{ color:#33443e; }
+a{ color:var(--mint); }
+hr{ border:0; border-top:1px solid var(--rule); margin:9mm 0; }
+
+/* A table split across a page boundary is unreadable, hence the break rules. */
+table{ border-collapse:collapse; width:100%; margin:4mm 0 6mm; font-size:9.3pt;
+       page-break-inside:avoid; break-inside:avoid; }
+th{ text-align:left; background:#eef4f1; color:#08251c; font-weight:650;
+    padding:2.2mm 3mm; border-bottom:1.5px solid var(--green); }
+td{ padding:2.2mm 3mm; border-bottom:1px solid var(--rule); vertical-align:top; }
+tr:nth-child(even) td{ background:#fafcfb; }
+
+code{ font-family:"Cascadia Mono",Consolas,ui-monospace,monospace; font-size:9pt;
+      background:#eef4f1; padding:.4mm 1.4mm; border-radius:2px; color:#0a3c2c; }
+pre{ background:#f4f8f6; border:1px solid var(--rule); border-left:3px solid var(--green);
+     padding:3.5mm 4mm; border-radius:3px; overflow-x:auto;
+     page-break-inside:avoid; break-inside:avoid; }
+pre code{ background:none; padding:0; font-size:8.8pt; line-height:1.5; }
+
+/* The screenshots are dark, so they get a light rule to sit against the page. */
+img{ max-width:100%; height:auto; display:block; margin:4mm auto 6mm;
+     border:1px solid var(--rule); border-radius:4px;
+     page-break-inside:avoid; break-inside:avoid; }
+
+ul{ margin:0 0 3.4mm; padding-left:6mm; }
+li{ margin-bottom:1.6mm; }
+
+@media print{
+  body{ padding:0; max-width:none; }
+  a{ color:var(--ink); text-decoration:none; }   /* a blue underline on paper is noise */
+}
+@media screen{ html{ background:#e9eeec; } body{ background:#fff; } }
+</style>
+</head><body>
+<h1>Companies House Data Store handbook</h1>
+<p>This is the walkthrough I would give you if we were sitting at the same screen. It covers what the
+dashboard is for, what every control does, and what the numbers on it actually mean. It is not about
+how the thing is built.</p>
+<p>The short version of what it does  is: it holds <strong>1,531,094 active UK companies</strong> from the July 2026
+Companies House snapshot, joins six external sources onto them, and gives you two ways in. You either
+<strong>start from a question</strong> ("who has borrowed before, cleared it, and has nobody holding security
+today?") and get a list, or you <strong>start from a company</strong> and get everything we know about it on one
+page. There is also an Analytics page that steps back and describes the whole market rather than any
+one company.</p>
+<p>One thing to be clear about from the start, because it changes how you should read everything below.
+This tells you what companies are <em>doing</em>: taking on secured borrowing, falling behind on filings,
+losing a lender, winning public work. It does <strong>not</strong> tell you which Lloyds product to sell them. That
+step is yours. Nothing in here maps a company to a facility, and where I use words like "prospect" I
+mean a company worth a conversation, not a company the model says will buy something.</p>
+<hr />
+<h2>Getting it running</h2>
+<p>The dashboard is a single page served by a small local query server. From the repository root:</p>
+<pre><code>python dashboard/serve.py
+</code></pre>
+<p>It opens a browser at <code>http://127.0.0.1:8000</code> on its own. Add <code>--no-browser</code> if you would rather open
+it yourself.</p>
+<p><strong>If you are working inside Claude Code</strong>, prefix the command with <code>!</code> so it runs in your own shell
+rather than the assistant's, and give the full paths:</p>
+<pre><code>! &lt;path-to-python&gt;\python.exe &lt;path-to-repo&gt;\dashboard\serve.py --no-browser
+</code></pre>
+<p>Use the Python that has <code>duckdb</code>, <code>flask</code> and <code>pandas</code> installed, which on most of our machines is the
+Anaconda one rather than the default. Then open <code>http://127.0.0.1:8000</code> yourself.</p>
+<p>Either way it takes fifteen seconds or so to start, because it loads the company file and six side
+tables into memory before it answers anything, and it prints what it found while it does:</p>
+<pre><code>data    : &lt;your data folder&gt;
+parquet : ...\dashboard_bulk_gazette_2026-07.parquet
+universe: 1,531,094 companies queryable
+loading side tables ...
+serving : http://127.0.0.1:8000   (Ctrl+C to stop)
+</code></pre>
+<p>If the data lives somewhere else on your machine, point it there with <code>--data &lt;folder&gt;</code> or by setting
+<code>LLOYDS_DATA</code>. If it cannot find the file it will tell you exactly what it was looking for rather than
+failing with a stack trace.</p>
+<p>A short branded clip plays while the page loads. It lifts on its own after about four seconds, or you
+can click anywhere or press Escape to skip it. You will see it again on a refresh but not when moving
+between Home and Analytics.</p>
+<hr />
+<h2>The shape of the thing</h2>
+<p><img alt="The Home page" src="handbook_img/01-home.png" /></p>
+<p>Everything on Home reads top to bottom in the order you would use it.</p>
+<p>The <strong>four numbers</strong> across the top are the scale you are working at. 1,531,094 companies in the file,
+19,525 carrying a Gazette signal, 14,416 former Lloyds clients, six of six sources connected.</p>
+<p><strong>Views</strong> are the four starting points. The first three are populations, not filters: three different
+questions, each sorted on something different. The fourth is a ranking rather than a population, and it
+behaves differently, which is why it has its own section further down.</p>
+<table>
+<thead>
+<tr>
+<th>View</th>
+<th>What it is</th>
+<th>Sorted by</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All companies</td>
+<td>Everything, 1,531,094</td>
+<td>Company name</td>
+</tr>
+<tr>
+<td>Gazette signal</td>
+<td>The 19,525 with an insolvency notice against them</td>
+<td>Furthest through the distress ladder, most recent first</td>
+</tr>
+<tr>
+<td>Former LBG client</td>
+<td>The 14,416 who held secured lending with us and no longer do</td>
+<td>Most recently lapsed first</td>
+</tr>
+<tr>
+<td>Model rankings</td>
+<td>The top 100 on one model</td>
+<td>That model's score, highest first</td>
+</tr>
+</tbody>
+</table>
+<p>Pick a view first, then narrow it. Filters always apply <em>inside</em> whichever view is selected, so
+"Gazette signal" plus a Manufacturing filter gives you distressed manufacturers, not all manufacturers.
+Model rankings is the exception: it is a fixed hundred, so the filters and presets are hidden while you
+are in it. Narrowing a ranking would leave you with a list that is no longer the top hundred of
+anything.</p>
+<p><strong>Tools</strong> holds the two ways of narrowing: Preset queries and Advanced filters. Both are drawers, both
+start closed, and both stay where you left them.</p>
+<p>Underneath is the count line, which always tells you two numbers once you have filtered anything:
+<code>Showing 2,303 of 1,531,094 companies</code>. The <strong>Clear all</strong> button next to it puts you back to the full
+population.</p>
+<hr />
+<h2>Looking up one company</h2>
+<p>The search box takes a <strong>name or a company number</strong> and matches on both. Type <code>TESCO</code> and you get the
+Tesco companies. Type <code>12723324</code> and you get that exact company. Partial names work, so <code>PRINTER
+SPECIAL</code> will find the printer specialists.</p>
+<p>This is the right way in when you already have a company in mind: a name from a call, a number off a
+credit paper, a business you drove past. For everything else, start from a question instead.</p>
+<hr />
+<h2>Quick queries: the nine presets</h2>
+<p><img alt="The preset queries drawer" src="handbook_img/02-presets.png" /></p>
+<p>These are the fastest thing in the dashboard and the place I would start. Each one is a combination
+that has been checked to return a population worth looking at, and each answers a commercial question
+you would recognise.</p>
+<table>
+<thead>
+<tr>
+<th>Preset</th>
+<th>Companies</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Proven borrower, no incumbent</td>
+<td>31,002</td>
+<td>Borrowed before and cleared it. No incumbent to displace.</td>
+</tr>
+<tr>
+<td>Established, unlevered, high growth</td>
+<td>31,012</td>
+<td>Five years trading, never borrowed, top 10% growth.</td>
+</tr>
+<tr>
+<td>Best prospects we don't bank</td>
+<td>8,992</td>
+<td>Top 1% for new borrowing, never an LBG client.</td>
+</tr>
+<tr>
+<td>Secured exposure deteriorating</td>
+<td>5,916</td>
+<td>Security is held and the company has stopped filing on time.</td>
+</tr>
+<tr>
+<td>Growing and borrowing</td>
+<td>3,609</td>
+<td>Expanding and actively taking on secured debt.</td>
+</tr>
+<tr>
+<td>Silent distress, no Gazette yet</td>
+<td>2,520</td>
+<td>Both filing signals failed, nothing has reached the Gazette.</td>
+</tr>
+<tr>
+<td>Contract winner with no borrowing</td>
+<td>2,303</td>
+<td>Just won public work, never borrowed. Delivery needs working capital.</td>
+</tr>
+<tr>
+<td>Lapsed client, rival moved in</td>
+<td>467</td>
+<td>Left us, and a competitor took a charge within 6 months.</td>
+</tr>
+<tr>
+<td>High credit risk on our security</td>
+<td>401</td>
+<td>Top 1% insolvency risk where LBG holds an outstanding charge.</td>
+</tr>
+</tbody>
+</table>
+<p>Click one and the list rebuilds. Click the same one again and it comes off. Only one preset is active
+at a time, so picking a second replaces the first rather than stacking.</p>
+<p><strong>The part worth knowing:</strong> picking a preset does not just filter the list, it <strong>loads its conditions
+into Advanced filters</strong>. Open the filter drawer after applying one and you will see exactly which boxes
+it ticked. That means you can take a preset as a starting point and then loosen or tighten any part of
+it, which is usually more useful than either the preset or a blank filter panel on its own.</p>
+<p>Eight of the nine work that way. <strong>Contract winner with no borrowing</strong> is the exception: one of its
+conditions, "won a public contract in the last 12 months", has no matching control in the filter panel,
+so that preset cannot be unpacked and edited. The dashboard says so rather than pretending, and lists
+its four conditions in plain text instead.</p>
+<hr />
+<h2>Advanced filters</h2>
+<p><img alt="The Advanced filters drawer" src="handbook_img/03-advanced-filters.png" /></p>
+<p>Twenty-seven filters in six groups. Every option carries its own count, so you can see how much a
+choice will cost you before you make it. Groups start collapsed apart from Core.</p>
+<p><strong>Core</strong> is who the company is. Segment (Micro 563,377, Small 406,255, No Filings 338,047, Dormant
+181,186, Large 30,726, and so on), Sector, Company age, Region by postcode area, and Industry by SIC
+code with a search box because there are hundreds of them.</p>
+<p><strong>Lifecycle</strong> sits in Core and is worth understanding properly, because it is not the same as the raw
+Companies House status. It collapses that status into four states you can act on:</p>
+<table>
+<thead>
+<tr>
+<th>Lifecycle</th>
+<th>Companies</th>
+<th>Underlying status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Trading</td>
+<td>1,409,284</td>
+<td>Active</td>
+</tr>
+<tr>
+<td>Fading</td>
+<td>97,721</td>
+<td>Active, proposal to strike off</td>
+</tr>
+<tr>
+<td>Distressed</td>
+<td>174</td>
+<td>Receiver on a charge, or a voluntary arrangement</td>
+</tr>
+<tr>
+<td>Insolvent</td>
+<td>23,915</td>
+<td>Administration, receivership or liquidation</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Borrowing</strong> is the charge register. <em>Ever borrowed</em> is whether a charge was ever registered.
+<em>Outstanding mortgages</em> is how many are live now. <em>Repayment state</em> splits into fully repaid, partly
+repaid and all outstanding. <em>New charge in 12m</em> is recent borrowing activity.</p>
+<p><img alt="The five-way LBG relationship filter" src="handbook_img/16-lbg-five-way.png" /></p>
+<p><strong>Lender</strong> is who they bank with. <em>LBG relationship</em> is the big one, and it now has <strong>five</strong> options
+rather than three, because "never a client" was hiding three quite different populations inside one
+number:</p>
+<table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Companies</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Current client (Maintenance)</td>
+<td>11,733</td>
+<td>We hold a live charge</td>
+</tr>
+<tr>
+<td>Former client (Attrition)</td>
+<td>14,416</td>
+<td>We held one and no longer do</td>
+</tr>
+<tr>
+<td>Borrowing elsewhere (Growth)</td>
+<td>68,861</td>
+<td>They borrow, from someone else, never from us</td>
+</tr>
+<tr>
+<td>Charge held, lender unclassified</td>
+<td>16,257</td>
+<td>A live charge whose lender we cannot name</td>
+</tr>
+<tr>
+<td>No charge ever</td>
+<td>1,419,827</td>
+<td>No charge has ever been registered</td>
+</tr>
+</tbody>
+</table>
+<p>The first three carry the client's own team names. The split matters commercially: the old "never a
+client" bucket held 1.5 million companies, but the ones who <strong>demonstrably borrow, just not from us</strong>
+number 68,861. Treating those as the same thing overstates the approachable population by more than
+twenty times. The fourth option exists so that companies whose lender the charge register does not
+name are visibly separate rather than sitting in a bucket that reads as "no bank".</p>
+<p>It is multi-select, so picking the bottom three together gives you the old "never a client" population
+if that is what you want.</p>
+<p><em>Main lender</em> is whoever holds most of their outstanding borrowing. <em>Number of lenders</em>, <em>competitor
+lender present</em>, and two timing filters for when a competitor took a charge.</p>
+<p><strong>Filing</strong> is administrative health, and it is the most underrated group here. Accounts overdue,
+overdue by six months or more, confirmation statement late, no filing at all for 24 months. These are
+the signals that move before anything reaches the Gazette.</p>
+<p><strong>Momentum</strong> is what changed in the last twelve months: size tier moved up or down, relocated, industry
+changed. These are three-state rather than yes/no, because a company with no history to compare against
+is genuinely different from one that did not move, and the dashboard will not pretend otherwise.</p>
+<p><strong>Signals</strong> is where the model scores live, as Top 1% or Top 10% bands for lending readiness, growth
+and credit risk, plus the Gazette filters (any notice, severity, court involved, winding-up petition,
+notice in the last 90 or 365 days).</p>
+<h3>Combining them</h3>
+<p>Everything ANDs together, and everything sits inside the view you picked. Taking Manufacturing as an
+example, the same filter means three different things depending on where you start:</p>
+<table>
+<thead>
+<tr>
+<th>Starting view</th>
+<th>Add Manufacturing</th>
+<th>You are looking at</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>All companies</td>
+<td>239,957</td>
+<td>Every manufacturer</td>
+</tr>
+<tr>
+<td>Gazette signal</td>
+<td>5,188</td>
+<td>Manufacturers already in insolvency proceedings</td>
+</tr>
+<tr>
+<td>Former LBG client</td>
+<td>6,190</td>
+<td>Manufacturers who used to borrow from us</td>
+</tr>
+</tbody>
+</table>
+<p>Because each option shows its own count, you can usually see a dead end coming before you commit to it.
+And if you do land on nothing, the dashboard names the filter that emptied the list and offers to undo
+just that one, instead of showing you a blank box.</p>
+<p><strong>A zero can be the answer rather than a mistake.</strong> Apply <em>Silent distress</em> inside the Gazette signal
+view and you get exactly <strong>0</strong> companies. That is correct and it is worth understanding, because it
+tells you the two things are opposites by construction: silent distress means the filing signals have
+failed and <strong>nothing has reached the Gazette yet</strong>, so intersecting it with companies that have a
+Gazette notice can only ever be empty. Same preset in the Former LBG view returns 59, which is a
+genuinely interesting list.</p>
+<hr />
+<h2>Reading the results</h2>
+<p><img alt="A filtered result list" src="handbook_img/04-results.png" /></p>
+<p>Each row gives you four things: the company name with its lifecycle chip, the company number and sector
+and size underneath, the sector again in the middle column, and on the right whatever the current view
+cares about.</p>
+<p>That right-hand column changes with the view, which catches people out. In All companies it shows the
+Gazette signal state. In Gazette signal it shows the distress stage and the date of the last notice. In
+Former LBG client it shows how many competitor lenders they have now and when our charge was satisfied.
+The list is showing you the thing you asked about.</p>
+<p>You get 25 rows at a time, and there is a <strong>Show more</strong> button at the foot of the list that tells you
+how many are left behind it: <code>Show more · 1,531,069 remaining</code>. It does not load on scroll, so a long
+list will not run away with you. Clicking anywhere on a row opens that company.</p>
+<hr />
+<h2>Inside a company profile</h2>
+<p><img alt="A full company profile" src="handbook_img/05-company-profile.png" /></p>
+<p>The header gives you identity: name, company number, lifecycle chip, registered status, incorporation
+date, address, SIC code, and chips for sector and size.</p>
+<h3>The chips, and what each one is telling you</h3>
+<p>Small labels turn up all over the profile and they are not decoration. There are three families and
+they mean quite different things.</p>
+<p><strong>On the header.</strong> The first chip is lifecycle (<em>Still trading</em>, <em>Insolvent</em>, <em>Fading</em>, <em>Distressed</em>),
+then sector and size. The last one is easy to misread: <strong>News not searched</strong> is a statement about our
+coverage, not about the company. It means this company was not one of the 467 we searched. It is never
+a claim that the company has had no press.</p>
+<p><strong>On the Gazette panel.</strong> These describe the <em>pattern</em> of notices rather than any single one, and they
+are the ones worth acting on:</p>
+<table>
+<thead>
+<tr>
+<th>Chip</th>
+<th>What it is saying</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Escalated a stage</td>
+<td>They have moved further down the distress ladder, not just repeated a step</td>
+</tr>
+<tr>
+<td>Recurring distress</td>
+<td>More than one episode, rather than a single event</td>
+</tr>
+<tr>
+<td>Notice in last 90 days</td>
+<td>This is live, not history</td>
+</tr>
+</tbody>
+</table>
+<p><strong>On the Evidence panel.</strong> Every Gazette notice is listed with a <strong>certain match</strong> chip and a link
+straight to the notice on the Gazette. That panel is the audit trail: it exists so that nothing on the
+page has to be taken on trust. If a profile claims five notices, the Evidence panel is where you go to
+read all five. "Certain match" means the notice was matched on company number rather than by name.</p>
+<p>A related label appears on Grants, which is matched on <strong>name and postcode area</strong> rather than company
+number, so it carries a confidence and says "name match only" on the tile. Treat those as strong hints
+rather than facts, which is exactly how the dashboard presents them.</p>
+<h3>Why this company is in your list</h3>
+<p><img alt="The match explanation bar" src="handbook_img/07-why-matched.png" /></p>
+<p>If you arrived from a filtered list, this bar tells you which view, preset and filters put the company
+in front of you. It is easy to lose track after a few clicks, and this is the answer to "hang on, why
+am I looking at this one?".</p>
+<h3>The model scores</h3>
+<p><img alt="The model scores panel" src="handbook_img/14-model-scores-panel.png" /></p>
+<p>Four models, each predicting a different event over a different window, each in its own tile.</p>
+<table>
+<thead>
+<tr>
+<th>Score</th>
+<th>Window</th>
+<th>What it predicts</th>
+<th>Of the top 100</th>
+<th>Base rate</th>
+<th>Lift</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Lending readiness</td>
+<td>3 months</td>
+<td>Takes on new secured borrowing</td>
+<td>41 to 43</td>
+<td>0.26 to 0.28%</td>
+<td>~150x</td>
+</tr>
+<tr>
+<td>Credit risk</td>
+<td>6 months</td>
+<td>Hits a genuine insolvency event</td>
+<td>14 to 16</td>
+<td>0.33%</td>
+<td>~45x</td>
+</tr>
+<tr>
+<td>Voluntary exit</td>
+<td>6 months</td>
+<td>Has a strike-off proposal filed</td>
+<td>78 to 85</td>
+<td>7.22 to 8.24%</td>
+<td>~10x</td>
+</tr>
+<tr>
+<td>Growth</td>
+<td>12 months</td>
+<td>Moves up a size tier</td>
+<td>22</td>
+<td>2.12 to 2.15%</td>
+<td>~10x</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Read those three figures together.</strong> Precision alone flatters voluntary exit: 78 to 85 in 100 sounds
+extraordinary until you see that its base rate is already about 8%, so the lift is 10x, the same as
+growth. Lending's 41 to 43 in 100 against a base rate of a quarter of a percent is the one that is
+genuinely remarkable.</p>
+<p><strong>All three describe the top 100 companies on that model, not the company you are looking at.</strong> The
+label says <code>@100</code> for that reason. A company sitting in the lower half of the lending list is nowhere
+near 41 in 100; its true figure is close to the base rate.</p>
+<p>They are given as a <strong>range across two held-out months</strong>, not the better of the two. Quoting the
+flattering month is easy to do and hard to defend.</p>
+<p><strong>The score itself is a percentage.</strong> It is the model's estimated chance of the event inside its
+window, corrected back to the true base rate after training. No calibration curve was fitted, so it
+tracks well through the middle of the range and cannot be checked at the very top, where too few past
+cases exist. Read the band rather than the digits when you are near the top of a list. The <strong>Read
+more</strong> button under the panel carries the evidence.</p>
+<p><strong>Band colour means position, and nothing else.</strong> Mint for the top 5%, neutral for the top 10 to 25%,
+amber below that. Amber is not a warning: it means this model does not single the company out, which
+for credit risk and voluntary exit is good news.</p>
+<p><strong>Voluntary exit is deliberately not ranked.</strong> 998 of the top 1,000 scores are exact ties and the
+top-100 cutoff alone is shared by 139 companies, so a ranking built on it would be arbitrary.</p>
+<p><strong>Scores only exist for companies whose status is exactly Active</strong>, 1,409,284 of the 1,531,094. For the
+other 121,810 the panel does not show zeros, it disappears and says why.</p>
+<h4>SHAP analysis: what drives this score</h4>
+<p>Each tile can show the three features that moved that company's score, with the <strong>value the model
+actually saw</strong> and a bar for each one's weight.</p>
+<p>The value leads rather than the feature name, and that is deliberate. On lending the top feature is
+"charges ever registered" for <strong>every single one</strong> of the 5,000 companies in the extract, so the name
+tells you nothing; "578 charges" against "3 charges" is the whole of the difference between two
+companies. An arrow shows whether the feature pushed the score up or pulled it down.</p>
+<p>Weights are each contribution as a share of <strong>that company's own three</strong>, not a share of the score. The
+raw log-odds sit behind the tile's <code>(i)</code> for anyone who wants them, and they must never be added up
+against the score.</p>
+<p><img alt="The information behind a score" src="handbook_img/15-score-info-reveal.png" /></p>
+<p><strong>Where a tile says "No SHAP analysis available"</strong>, that is a gap in our coverage and not a statement
+about the company. Reasons were computed for the top 5,000 companies <strong>per model</strong>, about 0.35% of
+those scored, so most company pages will show it on most tiles. A company can be in one model's extract
+and not another's.</p>
+<h3>The six sources</h3>
+<p><img alt="The six source tiles" src="handbook_img/06-source-tiles.png" /></p>
+<p>Six tiles, one per source, and the state of each tile is information in itself. There are three states
+and the difference between the second and third matters:</p>
+<ul>
+<li><strong>Green with a figure.</strong> We looked and found something. Click it to open the detail.</li>
+<li><strong>Plain, "none found" with a date.</strong> We looked, on that date, and there was nothing. This is a
+  finding, not a gap.</li>
+<li><strong>Dashed and dimmed, "not searched".</strong> We did not look at this company. Absence here means nothing
+  at all.</li>
+</ul>
+<p>The dates on the tiles are not decoration. Contracts is as at 31 May 2026, Property as at 29 Jun 2026,
+the Trade marks register runs to 28 Jan 2018, Grants as at 11 Aug 2026. A source can only tell you
+about the period it covers.</p>
+<p><strong>Gazette</strong> is insolvency notices, matched on company number, so a hit is certain rather than probable.
+Where a company has notices you get a severity tier, a stage on a five-step distress ladder, the notice
+count, first and last dates, and flags like escalated a stage, recurring distress, notice in the last
+90 days.</p>
+<p><strong>Contracts</strong> is public sector awards. <strong>Property</strong> is Land Registry titles, matched on company number.
+<strong>Trade marks</strong> is the IPO register, live and lapsed. <strong>Grants</strong> is UKRI research funding, matched on
+name and postcode area rather than number, so it carries a confidence and says so.</p>
+<p><strong>News deserves its own paragraph</strong>, because the result looks like a bug and is not. Only <strong>467</strong> of the
+1,531,094 companies were searched at all, and of those, <strong>zero</strong> produced coverage that survived
+verification. Fifteen produced raw hits that were rejected on review, mostly common-word company names
+matching unrelated stories. That is the finding: UK SMEs are essentially invisible in national news, and
+a pipeline that refused to count unverified matches is the pipeline working. Do not read "not searched"
+on a news tile as "no coverage".</p>
+<h3>Timeline, lender and borrowing</h3>
+<p>The <strong>timeline</strong> puts every dated event from every source into one column in date order, so you can see
+a contract win and a Gazette notice in relation to each other rather than in separate panels.</p>
+<p><strong>Lender relationship</strong> is the competitive picture: whether they are a current, former or never client,
+how many charges we hold, how many distinct lenders they have, who the main lender is, and how many
+months since our charge was created or satisfied.</p>
+<p><strong>Borrowing profile</strong> is the charge register itself: charges ever registered, currently outstanding,
+satisfied, the debt ratio, and how long since the last new charge.</p>
+<p><strong>Filing health</strong> and <strong>Change in the last 12 months</strong> are the administrative signals. The change panel
+is careful about blanks: it tells you how many of its checks have no twelve-month history to compare
+against, because a blank there means "we cannot say", never "nothing changed".</p>
+<hr />
+<h2>Model rankings</h2>
+<p><img alt="The Model rankings view" src="handbook_img/11-model-rankings.png" /></p>
+<p>The fourth view answers a different question from the other three: not "which companies match these
+conditions" but "who is at the top of this model". Selecting it reveals a second row of choices,
+<strong>Lending, Insolvency, Growth</strong>, and the list becomes the top 100 companies on whichever you pick,
+numbered #1 to #100.</p>
+<p><strong>Voluntary exit is not offered here</strong>, for the same reason it is not ranked on a company page: 138
+companies share the rank-100 score, so positions 100 to 237 would be separated by nothing but an
+arbitrary tie-break. On the other three, exactly one company holds the rank-100 score, so every
+position from 1 to 100 is earned.</p>
+<p>Above the list sit two cards that tell you what kind of hundred you are about to read.</p>
+<p><strong>Score across the ranked hundred</strong> is the shape of the fall from #1 to #100. It answers whether
+position matters here: lending falls 38%, insolvency 64%, growth 45%, so in every case working the
+list top-down is worth doing. A flat line would have told you the hundredth company was much like the
+first. The chart is drawn against zero rather than against the range between #1 and #100, so the shape
+you see is the real fall and not a stretched one, and the shaded band is the first ten.</p>
+<p>It also carries the reason the ranking exists at all: <strong>all 100 sit inside the top 1% of the 1,409,284
+scored companies</strong>, so the band on a company page says "Top 1%" for every one of them. Only a position
+can separate them.</p>
+<p><img alt="Hovering the ranking curve" src="handbook_img/12-ranking-hover.png" /></p>
+<p><strong>Hover anywhere on the curve</strong> and it names the company at that position: rank, score, size and who
+already lends to them. Click and it opens that company's profile.</p>
+<p><strong>Quick look at the hundred</strong> is the composition, and it is the card that tells you which team the list
+belongs to. Lending's hundred is 70% companies borrowing from someone else, which makes it a Growth
+list. Insolvency's is 93% companies that have never registered a charge at all, which makes it not a
+lending conversation. Underneath sits the size mix, and a line reporting how many of the hundred also
+carry a Gazette notice.</p>
+<p><img alt="The ranked companies" src="handbook_img/13-ranked-companies.png" /></p>
+<p>The cards below are the same cards as everywhere else, with the position in front of them, so clicking
+one opens the profile exactly as it does from any other list.</p>
+<p>One useful property: <strong>every company in every top 100 has SHAP drivers on its profile</strong>, because the
+hundred sits inside the 5,000 for which reasons were computed. This is the one place in the dashboard
+where you will never meet the empty driver state.</p>
+<hr />
+<h2>The Analytics page</h2>
+<p><img alt="The top of Market Analytics" src="handbook_img/08-analytics-top.png" /></p>
+<p>Home is about companies. Analytics is about the market, and it answers a different question: where does
+Lloyds actually stand in UK secured lending?</p>
+<p>The band at the top is the headline. <strong>Lloyds is fourth with 12.3%</strong> of the companies whose lender can
+be named from the charge register. That universe is 86,468 companies, not the full 1.5 million, and the
+page says so, because only a small share of companies have a charge with an identifiable lender behind
+it.</p>
+<p><img alt="Who lends to these companies" src="handbook_img/09-analytics-lenders.png" /></p>
+<p>The league table and the concentration curve are the same finding read two ways. NatWest leads on
+18,235 companies, then HSBC, then Barclays, then us on 10,604. The curve shows how fast the market adds
+up: the <strong>top four hold 65.6%</strong>, with an HHI of 0.133. Clear leaders, no monopoly.</p>
+<p>Below that, eleven figures in five movements. Knowing what is there saves you scrolling for it:</p>
+<table>
+<thead>
+<tr>
+<th>Movement</th>
+<th>Figures</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The primary view</td>
+<td>Main lender league table; how concentrated the market is</td>
+</tr>
+<tr>
+<td>The market at a glance</td>
+<td>Companies by sector; by size band; how old they are</td>
+</tr>
+<tr>
+<td>Detail, by bank</td>
+<td>Share of each sector's borrowers, as a heatmap</td>
+</tr>
+<tr>
+<td>Our book</td>
+<td>Share of a client's borrowing that is ours; how contested the book is; clients under pressure</td>
+</tr>
+<tr>
+<td>Where clients went</td>
+<td>Destination of lapsed clients now borrowing elsewhere; borrowing by sector and our share of it</td>
+</tr>
+</tbody>
+</table>
+<p>Two numbers from our book worth carrying around. Of 11,733 current clients, <strong>73.3% borrow only from
+us</strong>. And of the 14,416 who have lapsed, <strong>5,860 now borrow elsewhere while 8,556 have no live borrowing
+at all</strong>, which means most of them stopped rather than switched. That distinction changes what you would
+do about it.</p>
+<p>Every card has a small <strong>i</strong> button that opens a plain-English note on how to read that chart, and the
+three KPI cards at the top flip over when you click them to show the same thing. Charts with more than
+five rows show the top five and keep the rest behind a <strong>Show all</strong> button. The age histogram tags each
+bar on hover, so you can ask what a spike is.</p>
+<p>Two things to know about this page. Nothing on it is recalculated in the browser, and <strong>none of it
+responds to the filters on Home</strong>. It always describes the whole market, so you cannot filter Analytics
+down to a segment. If you want to know about a slice, that is a Home question.</p>
+<hr />
+<h2>Some things to actually try</h2>
+<p>Work down this table and you will have used every part of the dashboard at least once.</p>
+<table>
+<thead>
+<tr>
+<th>Try this</th>
+<th>Where to go</th>
+<th>What it shows you</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Loosen a preset</strong></td>
+<td><em>Best prospects we don't bank</em>, then open Advanced filters and change Lending readiness from Top 1% to Top 10%</td>
+<td>The list goes from <strong>8,992 to 102,820</strong>. Teaches you how presets and filters relate, and how much one band was holding back</td>
+</tr>
+<tr>
+<td><strong>Find distress before it is public</strong></td>
+<td>Compare the <em>Gazette signal</em> view against the <em>Silent distress</em> preset</td>
+<td>19,525 already in trouble, against 2,520 still trading with both filing signals failed and nothing filed yet</td>
+</tr>
+<tr>
+<td><strong>See a zero that is an answer</strong></td>
+<td>Apply <em>Silent distress</em> while the <em>Gazette signal</em> view is selected</td>
+<td>Returns <strong>0</strong>, correctly. The two are opposites by construction</td>
+</tr>
+<tr>
+<td><strong>Watch several sources fire at once</strong></td>
+<td><code>01088345</code> ANTALIS LIMITED</td>
+<td>Property, trade marks and contracts all lit on one profile</td>
+</tr>
+<tr>
+<td><strong>Read the working capital story</strong></td>
+<td><code>08664789</code> CONSTELLIA PUBLIC LTD</td>
+<td>64 public contracts in twelve months, never registered a charge</td>
+</tr>
+<tr>
+<td><strong>Look at a genuine prospect</strong></td>
+<td><code>12723324</code> MS LENDING GROUP LIMITED</td>
+<td>Top 1% lending readiness, never an LBG client</td>
+</tr>
+<tr>
+<td><strong>Reach the end of the distress ladder</strong></td>
+<td><code>06624900</code> BNN TECHNOLOGY PLC</td>
+<td>Terminal severity, five notices, and we hold security</td>
+</tr>
+<tr>
+<td><strong>Check the audit trail</strong></td>
+<td>Any Gazette company, then the Evidence panel</td>
+<td>Every notice listed with a certain-match chip and a link to the notice itself</td>
+</tr>
+<tr>
+<td><strong>Build a question the presets miss</strong></td>
+<td>Former LBG client view, add <em>Competitor charge created (6m)</em>, add Manufacturing</td>
+<td><strong>230 companies</strong>: manufacturers who left us and whom a rival has just lent to</td>
+</tr>
+<tr>
+<td><strong>Step back from companies entirely</strong></td>
+<td>The Analytics page</td>
+<td>Where Lloyds actually sits: fourth, 12.3%, in a market where the top four hold 65.6%</td>
+</tr>
+</tbody>
+</table>
+<p>One to try last, because it is the one most likely to mislead you. Open <code>02634371</code>
+(<strong>UNION PENSION TRUSTEES LIMITED</strong>) and you will see ten rival lenders and 225 outstanding LBG charges.
+Before reading anything into that, it is a trustee company: the register is recording custody on behalf
+of clients, not a trading balance sheet. The same caveat applies at the extreme end of the property
+data. It is a useful reminder that the register sometimes describes a legal arrangement rather than a
+business, and that the dashboard reports what the register says rather than interpreting it for you.</p>
+<hr />
+<h2>A last word on reading it honestly</h2>
+<p>Three habits will keep you out of trouble when using the dashboard.</p>
+<p><strong>Check what the right-hand column is showing you</strong>, because it changes with the view and it is easy to
+read a distress stage as though it were a signal state.</p>
+<p><strong>Treat "not searched" and "none found" as different things.</strong> One is an absence of evidence, the other
+is evidence of absence, and the tiles are careful to distinguish them even when the distinction is
+inconvenient.</p>
+<p><strong>Take the band, not the score.</strong> Every model panel tells you the measured hit rate for companies at
+that level, and that number is the honest read. 43 in 100 is a good signal. It is not a certainty, and
+the panel would rather say so than round it up for you.</p>
+</body></html>
