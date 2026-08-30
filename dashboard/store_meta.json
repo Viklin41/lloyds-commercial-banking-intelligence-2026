@@ -78,7 +78,7 @@
       "hit_rate": 0.85,
       "lift": 10,
       "rankable": false,
-      "not_rankable_because": "998 of the top 1,000 scores are exact ties, and the top-100 cutoff value alone is shared by 139 companies",
+      "not_rankable_because": "998 of the top 1,000 scores are exact ties, and the top-100 cutoff value alone is shared by 138 companies",
       "p100_low": 0.78,
       "p100_high": 0.85,
       "base_rate_pct_low": 7.22,

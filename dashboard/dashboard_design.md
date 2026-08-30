@@ -663,7 +663,7 @@ for the rest the panel disappears with a reason rather than showing zeros.
 
 **Voluntary exit is deliberately not offered as a filter at all:**
 
-> 998 of its top 1,000 values are exact ties and the top-100 cutoff is shared by 139 companies. It
+> 998 of its top 1,000 values are exact ties and the top-100 cutoff is shared by 138 companies. It
 > cannot support a ranked or banded filter.
 
 It still appears on the company page, where a band is a fact about one company rather than an

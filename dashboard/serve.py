@@ -388,9 +388,26 @@ FEATURE_FLAGS = {"confstmt_late", "ever_distressed_before", "sic_changed_12m",
 # use that feature, we simply cannot state the figure it used.
 FEATURE_MISSING = {"nan", "none", "null", "", "na", "n/a"}
 
-# One row of `months_since_last_accounts_filing` carries -95669, which is a sentinel and not
-# a measurement. Anything beyond a century of months is treated the same way.
-SENTINEL_ABS = 1200
+# `months_since_last_accounts_filing` carries -95669, which is a sentinel and not a
+# measurement. Rejecting it by magnitude is right, but the ceiling has to be expressed in
+# the unit the feature is actually measured in. A single global ceiling of 1,200 also threw
+# away 158 genuine contract values (£212k to £8bn), a 1,448-charge count, and ten accounts
+# that were honestly 3 to 5 years overdue: all printed as "not recorded" beside a driver
+# whose whole job is to carry its value. A century, in each feature's own unit, separates
+# the sentinel from the merely extreme.
+#
+# Only months and days get a ceiling. Counts and money are large honestly, and company age
+# reaches 136.5 years in this file, so capping years would invent the same bug again.
+CENTURY_IN = {"months": 1200, "days": 36525}
+
+
+def sentinel_ceiling(feature):
+    """The largest value this feature could honestly hold, or None where any value is fair."""
+    if feature.startswith("months_") or feature.endswith("_months"):
+        return CENTURY_IN["months"]
+    if feature.startswith("days_") or feature.endswith("_days"):
+        return CENTURY_IN["days"]
+    return None
 
 
 def feature_value(feature, raw):
@@ -404,7 +421,8 @@ def feature_value(feature, raw):
         v = float(t)
     except ValueError:
         return t                                   # categorical: "Large", "Manufacturing"
-    if v != v or abs(v) > SENTINEL_ABS:            # NaN, or the -95669 sentinel
+    cap = sentinel_ceiling(feature)
+    if v != v or (cap is not None and abs(v) > cap):   # NaN, or the -95669 sentinel
         return None
     if feature in FEATURE_FLAGS:
         return "Yes" if v else "No"
@@ -848,7 +866,7 @@ def full_record(cn):
     df = q("SELECT * FROM read_parquet(?) WHERE CompanyNumber = ?", [PARQUET, cn])
     if df.empty:
         return None
-    r = df.where(df.notna(), None).to_dict("records")[0]
+    r = nulled(df).to_dict("records")[0]
     r["lifecycle"] = q(f"SELECT {LIFECYCLE_SQL} AS v FROM read_parquet(?) "
                        f"WHERE CompanyNumber = ?", [PARQUET, cn]).v[0]
     rec = list_record(r)
@@ -1056,6 +1074,14 @@ def full_record(cn):
             "outstanding": _num(r.get("n_charges_outstanding")),
             "lbg_outstanding": _num(r.get("n_lbg_charges_outstanding")),
             "lenders": _num(r.get("n_distinct_lenders")),
+            # These two also live in list_record, but only on the branch that fires for a
+            # company with an LBG history. The panel renders for anyone holding a charge, so
+            # without them here a company that never banked with us reported "0 competitor
+            # lenders" and "not identified" while the parquet named both. That was 64,517
+            # companies, and it hit hardest exactly where it mattered: 77% of the "Best
+            # prospects we don't bank" list, where the incumbent is the whole question.
+            "competitors": _num(r.get("n_competitor_lenders")),
+            "primary": _txt(r.get("primary_lender_group")) or None,
             "competitor_6m": _flag(r.get("competitor_charge_created_6m")),
             "competitor_12m": _flag(r.get("competitor_entered_12m")),
             "lbg_satisfied_6m": _flag(r.get("lbg_charge_satisfied_6m")),
@@ -1224,7 +1250,7 @@ def company_raw(number):
     df = q("SELECT * FROM read_parquet(?) WHERE CompanyNumber = ?", [PARQUET, cn])
     if df.empty:
         return jsonify(error="not found", CompanyNumber=cn), 404
-    rec = df.where(df.notna(), None).to_dict("records")[0]
+    rec = nulled(df).to_dict("records")[0]
     return jsonify({k: (v.isoformat() if hasattr(v, "isoformat") else v)
                     for k, v in rec.items()})
 
@@ -1294,8 +1320,21 @@ def watchlist():
                    rows=[list_record(r) for r in records(df)])
 
 
+def nulled(df):
+    """Every pandas null in the frame as a real None.
+
+    `df.where(df.notna(), None)` alone stopped doing this at pandas 3.0, which made str the
+    default dtype for text columns: the null survives as float nan, so `value is None` reads
+    False and `str(value)` reads "nan". The display helpers below all test for the string
+    "nan" as well, which is why nothing visibly broke, but the facet builder tested `is None`
+    and offered its null bucket as an option labelled "nan" that then matched no rows.
+    Casting to object first restores the promise this function's name makes.
+    """
+    return df.astype(object).where(df.notna(), None)
+
+
 def records(df):
-    return df.where(df.notna(), None).to_dict("records")
+    return nulled(df).to_dict("records")
 
 
 # Facets counted eagerly. Region (175) and Industry (727) are excluded: too many options
@@ -1357,10 +1396,16 @@ def filters_meta():
             target = f'"{spec["col"]}"' if spec["kind"] == "in" else sql_of(spec["expr"])
             df = q(f"SELECT {target} AS v, count(*) AS n FROM read_parquet(?) "
                    f"WHERE {scope} GROUP BY 1 ORDER BY 2 DESC LIMIT 40", [PARQUET] + params)
-            for r in df.itertuples():
-                options.append({"value": "__notstated__" if r.v is None else str(r.v),
-                                "label": "Not stated" if r.v is None else str(r.v),
-                                "count": int(r.n)})
+            # records() rather than itertuples(): a SQL NULL arrives from pandas as float
+            # nan, not None, so `is None` never fired and the null bucket was offered as an
+            # option literally labelled "nan" which then selected nothing. On main_lender
+            # that was the first and largest option in the list, 1,444,626 companies. The
+            # WHERE builder has always understood __notstated__; only this side was wrong.
+            for r in records(df):
+                v = r["v"]
+                options.append({"value": "__notstated__" if v is None else str(v),
+                                "label": "Not stated" if v is None else str(v),
+                                "count": int(r["n"])})
         elif spec["kind"] == "choice":
             for cv, expr in spec["choices"].items():
                 n = int(q(f"SELECT count(*) AS n FROM read_parquet(?) WHERE {scope} "
@@ -1785,7 +1830,7 @@ def aggregate():
 
 
 def rows_out(df):
-    df = df.where(df.notna(), None)
+    df = nulled(df)
     return [{k: (v.isoformat() if hasattr(v, "isoformat") else v) for k, v in rec.items()}
             for rec in df.to_dict("records")]
 

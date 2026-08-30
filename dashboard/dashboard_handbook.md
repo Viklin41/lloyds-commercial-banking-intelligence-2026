@@ -327,7 +327,7 @@ amber below that. Amber is not a warning: it means this model does not single th
 for credit risk and voluntary exit is good news.
 
 **Voluntary exit is deliberately not ranked.** 998 of the top 1,000 scores are exact ties and the
-top-100 cutoff alone is shared by 139 companies, so a ranking built on it would be arbitrary.
+top-100 cutoff alone is shared by 138 companies, so a ranking built on it would be arbitrary.
 
 **Scores only exist for companies whose status is exactly Active**, 1,409,284 of the 1,531,094. For the
 other 121,810 the panel does not show zeros, it disappears and says why.

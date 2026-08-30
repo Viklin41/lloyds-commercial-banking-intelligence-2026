@@ -3264,8 +3264,13 @@ async function renderMarket(){
         display: s.loan_pct + "% / " + s.lbg_pct + "%"})), {series: 2, narrow: true})
       + `<div class="ma-legend"><span><i class="n"></i>have a loan</span>
         <span><i class="g"></i>borrow from Lloyds</span></div>`,
+    /* Both figures are shares of the SECTOR, so "of them" was wrong: it reads as a share of
+       the borrowers, which is a different and much larger number (13.9% for manufacturing,
+       and it is already on the heatmap one section above). Naming the denominator twice is
+       clumsier and correct. */
     takeaway: `<b>${esc(widest.sector)}</b> borrows the most and leaves the widest gap:
-      ${widest.loan_pct}% have a loan, ${widest.lbg_pct}% of them with us.`,
+      ${widest.loan_pct}% of the sector has a loan, and ${widest.lbg_pct}% of the sector
+      borrows from us.`,
     note: `<p>Per sector: how many companies there are, what share has a live loan at all,
       and what share banks with Lloyds.</p>
       <p>Both bars share a 0 to 20% scale so the sectors compare directly. Manufacturing
@@ -3698,9 +3703,16 @@ function matchPanel(){
 const GROUP_ORDER = ["Core", "Borrowing", "Lender", "Filing", "Momentum", "Signals"];
 const OPEN_BY_DEFAULT = new Set(["Core"]);
 
-function optLabel(o){
+/* Some facets store a key rather than a name. The lender dictionary is the only one so
+   far, and it already has a spelling everywhere else on the screen, so the drawer should
+   not be the one place that says "asset_invoice_finance". */
+const OPT_LABEL = {main_lender: prettyLender};
+
+function optLabel(o, key){
   const n = o.count === 0 ? "0" : nf(o.count);
-  return `${o.label} (${n})`;
+  const fmt = OPT_LABEL[key];
+  const label = (fmt && o.value !== "__notstated__") ? fmt(o.value) : o.label;
+  return `${label} (${n})`;
 }
 
 function filterControl(f){
@@ -3730,7 +3742,7 @@ function filterControl(f){
       if(my !== seq) return;
       list.innerHTML = "";
       d.options.forEach(o => {
-        const s = el(`<option value="${esc(o.value)}">${esc(optLabel(o))}</option>`);
+        const s = el(`<option value="${esc(o.value)}">${esc(optLabel(o, f.key))}</option>`);
         if(Array.isArray(val) && val.includes(o.value)) s.selected = true;
         list.append(s);
       });
@@ -3752,7 +3764,7 @@ function filterControl(f){
   if(!multi) sel.append(el(`<option value="">Any</option>`));
   f.options.forEach(o => {
     const opt = el(`<option value="${esc(o.value)}" ${o.count === 0 ? 'class="zero"' : ""}>
-      ${esc(optLabel(o))}</option>`);
+      ${esc(optLabel(o, f.key))}</option>`);
     const cur = Array.isArray(val) ? val : (val == null ? [] : [val]);
     if(cur.includes(o.value)) opt.selected = true;
     sel.append(opt);

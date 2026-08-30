@@ -125,7 +125,7 @@ virgin_money 2,224
 | Gazette | see §4 | Named Gazette states | categorical | see §4 | 0 | no | never a bare "Gazette" toggle |
 
 **Voluntary exit score is deliberately absent.** 998 of its top 1,000 values are exact ties and the
-top-100 cutoff is shared by 139 companies. It cannot support a ranked or banded filter.
+top-100 cutoff is shared by 138 companies. It cannot support a ranked or banded filter.
 
 ### 2.7 NULL handling rule
 

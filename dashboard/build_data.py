@@ -83,7 +83,7 @@ SEED = 42
 #   score_insolvency     961 distinct                            -> rankable
 #   score_growth         994 distinct                            -> rankable
 #   score_voluntary_exit  14 distinct, 998 of 1,000 rows tied    -> NOT rankable
-# For voluntary exit the top-100 cutoff value alone is shared by 139 companies, so a "top 100"
+# For voluntary exit the top-100 cutoff value alone is shared by 138 companies, so a "top 100"
 # cannot even be formed without cutting a tie arbitrarily. It ships as a band, never a rank,
 # and is excluded from every ordered list.
 SCORE_MODELS = [
@@ -97,7 +97,7 @@ SCORE_MODELS = [
      "window": "Aug 2026 to Jan 2027", "event": "have a strike-off proposal filed",
      "base_rate": 0.077, "hit_rate": 0.85, "lift": 10, "rankable": False,
      "not_rankable_because": "998 of the top 1,000 scores are exact ties, and the top-100 "
-                             "cutoff value alone is shared by 139 companies"},
+                             "cutoff value alone is shared by 138 companies"},
     {"key": "score_growth", "label": "Growth", "horizon": "12 months",
      "window": "Aug 2026 to Jul 2027", "event": "move up a size tier",
      "base_rate": 0.021, "hit_rate": 0.22, "lift": 10, "rankable": True},
