@@ -41,8 +41,8 @@
 
 % Command to hide all tables
 \usepackage{comment}
-% \excludecomment{mytable}
-\includecomment{mytable}
+% \excludecomment{collapsable}
+\includecomment{collapsable}
 
 % Blank page removals
 \let\cleardoublepage\clearpage
@@ -366,7 +366,7 @@ The second split was by data type, one strand handling structured data from CH a
 
 That measurement drove the third and final arrangement, which split the team by task rather than by data type. One pair moved into modelling, building the feature matrix, the prediction targets, the classifiers and SHAP explanantions on top of the structured core. The other pair kept working on the unstructured side to engineer the harmonization needed to establish how much signal, if any, could be recovered from previous work. This is the shape the project held to the end.
 
-\begin{mytable}
+\begin{collapsable}
 \begin{table}[h]
 \centering\small
 \begin{tabular}{@{}lll@{}}
@@ -389,7 +389,7 @@ That measurement drove the third and final arrangement, which split the team by 
     \caption{Feature branches and owners, by organisational phase}
     \label{tab:branches}
 \end{table}
-\end{mytable}
+\end{collapsable}
 
 \section{Data acquisition and the base dataset}
 
@@ -409,12 +409,8 @@ briefly done twice in parallel and consolidated (Appendix~\ref{appx:chronology})
 (October 2023 to July 2026) against a verified manifest. The two-pass design,
 universe union then per-month extract, and why a naive per-month build mistakes
 sector re-coding for dissolution. 49,556,152 rows over about 2.04M companies.
-The verification that matters: the panel reproduces the single-vintage build
-exactly at June 2026, same row count and same sector counts.
-\textbf{Keep the June 2025 footnote}: that month is genuinely absent from the
-CH server, and rather than interpolating we carry an honest NULL
-row through a dense calendar spine. It dictated calendar-aware windows
-everywhere downstream and it comes back as a real limitation in
+The verification that matters: the panel reproduces the single-vintage build exactly at June 2026, same row count and same sector counts.
+\textbf{Keep the June 2025 footnote}: that month is genuinely absent from the CH server, and rather than interpolating we carry an honest NULL row through a dense calendar spine. It dictated calendar-aware windows everywhere downstream, and it comes back as a real limitation in
 \S\ref{sec:limits}.}
 
 \subsection{The initial June 2026 snapshot}
@@ -448,7 +444,7 @@ The team explored a wide range of public signals, and not all of them were kept 
 \paragraph{Base fields from CH bulk dataset}
 The first group describes each company as the register currently shows it, and it is pulled straight from the CH bulk file \cite{companieshouse_api}. We list here only those that matter for the modelling or for filtering in the dashboard.
 
-\begin{mytable}
+\begin{collapsable}
 \begin{table}[htbp]
 \centering
 \small
@@ -495,7 +491,7 @@ Location
 \bottomrule
 \end{tabular}
 \end{table}
-\end{mytable}
+\end{collapsable}
 
 % \noindent Everything else in the project is built on top of these fields: the month-over-month deltas of \S\ref{sec:features} are movements in the charge and filing columns above, and the external sources of \S\ref{sec:public-sources} are joined to companies through \texttt{CompanyNumber} and, failing that, name and postcode.
 
@@ -503,7 +499,7 @@ Location
 To capture change, we measure against the 33-month spine the change in the base charge and filing fields over a trailing 3, 6 and 12-month window. We also compute a set of streak and recency counters that track how a company's filing discipline
 is decaying. Every delta is computed on a dense calendar spine rather than by counting rows, so the missing June 2025 snapshot yields an honest NULL rather than a silently mis-dated change (\S\ref{sec:features}). We list the fields that carry model weight or drive a dashboard filter.
 
-\begin{mytable}
+\begin{collapsable}
 \begin{table}[htbp]
 \centering
 \small
@@ -558,12 +554,12 @@ Status \& identity change
 \bottomrule
 \end{tabular}
 \end{table}
-\end{mytable}
+\end{collapsable}
 
 \paragraph{Contract Finders \& Find a Tender}
 So far, the register shows how a company files and borrows, but not whether it's winning business. From the Contracts Finder and Find a Tender \cite{contractsfinder, findatender, ocds}, each company's public-sector contract wins were aggregated, including the count, their total and average value, and whether it has just won its very first. Partway through the window, the rules changed. When the Procurement Act 2023 came into force on 24 February 2025, new public contracts stopped being published on Contracts Finder and began appearing on Find a Tender \cite{findatender}, while Contracts Finder kept only older notices. So information from both was combined to avoid a false drop in wins that has nothing to do with companies themselves. Every win is counted only up to the month in question, so 2026 award never lands on the 2024 row.
 
-\begin{mytable}
+\begin{collapsable}
 \begin{table}[htbp]
 \centering
 \small
@@ -591,12 +587,12 @@ unioned Contracts Finder and Find a Tender feeds.}
 \bottomrule
 \end{tabular}
 \end{table}
-\end{mytable}
+\end{collapsable}
 
 \paragraph{Lender relationship: who the company banks with}
 For companies that have secured loans, lender names attached to each charge were read using Charges API \cite{companieshouse_api}; every name was sorted using a clear ordered rule list into either "a Lloyds brand" (Lloyds Bank, Bank of Scotland, Halifax, HBOS and related names \cite{lbg_brands} or "a rival". This turns a raw public record into necessary information of who the company banks with, the very axis the client's growth and attrition questions are asked on. Two more relationship signals from Officers and Filing History records were added: recent director appointments and resignations, and new-share (SH01) filings as a sign that the company is raising money.
 
-\begin{mytable}
+\begin{collapsable}
 \begin{table}[htbp]
 \centering
 \small
@@ -636,7 +632,7 @@ Descriptive only: none fed the model scores (\S\ref{sec:leak}).}
 \bottomrule
 \end{tabular}
 \end{table}
-\end{mytable}
+\end{collapsable}
 
 \subsection{Signals we tried but left out}
 Several signals were built and measured, then deliberately left out. The financial data route failed on coverage; the market data feeds only carry companies listed on the stock exchange, and almost none of the private small businesses were listed, so the data simply did not describe the population. The news route failed the same way for a different reason: when how many of the targeted companies had any matching news was measured, the answer was almost none, so there was no signal to add. Both were honest dead ends found by measurement. Furthermore, the unstructured data for companies based on signals were added as an enrichment layer.
@@ -689,7 +685,7 @@ Everything before this section covered features; here we will go more into detai
 
 The four targets are set out in Table~\ref{tab:targets}. All four are conditioned on the company being active at the origin, because a company already in liquidation is not a prospect and asking whether it will become insolvent is not a meaningful question to put to it.
 
-\begin{mytable}
+\begin{collapsable}
 \begin{table}[htbp]
     \centering
     \caption{The four targets}
@@ -717,44 +713,43 @@ The four targets are set out in Table~\ref{tab:targets}. All four are conditione
         \hline
     \end{tabular}
 \end{table}
-\end{mytable}
+\end{collapsable}
 
 \footnotetext{Here, voluntary strike-off refers to the process by which a company applies to CH to be removed from the register and dissolved. This is distinct from formal insolvency: a company may apply for voluntary strike-off when it is no longer needed or has ceased trading. See CH~\cite{companieshouse_strikingoff_2025}.}
 
-\subsection{Distress logic evolution \& Growth signal segments  }
-The original plan defined the distress label as "Active at \texttt{t} and non-Active by \texttt{t+H}"; this meant that if a company disappeared from the "Active" category for any reason, it was labelled as a general distress. That runs at roughly 4\%, and about 90\% of it is "Voluntary Strike-off". That is not a credit event, and we assumed no bank wants it in a risk model. We therefore narrowed the definition to genuine insolvency status, explicitly listing the ten relevant statuses rather than relying on text matching. This ensures that any new, unexpected status is flagged rather than silently missed. This dropped the rate to about 0.34\%. We model both outcomes, separately, as Credit Risk Exposure and Voluntary Exit, because they are different questions with different audiences and blending them lets the loud label drown the important one.
+\subsection{How the distress and growth labels were defined}
+The original plan defined the distress label as "Active at $t$ and non-Active by $t+H$", but this ran at roughly 4\%, of which about 90\% was voluntary strike-off rather than a credit event. We therefore narrowed the definition to genuine insolvency by explicitly listing the 10 relevant statuses, which dropped the rate to about 0.34\%. We then modelled the two outcomes separately as Credit Risk Exposure and Voluntary Exit.
 
-We compared the two outcomes to determine if this was the right approach. Restricted to rows where both labels are defined, a company that proposes a strike-off is less likely than average to enter genuine insolvency, at a lift of 0.59. The two also separate cleanly and in
-opposite directions on company age: voluntary exit runs at 14.6\% for companies under two years old and falls to 3.1\% past twenty, while genuine insolvency runs at 0.05\% under two years and rises with age. Those are two different phenomena, a dormant shell being abandoned and an established trading business failing, and merging them would have produced a risk model predominantly about the former.
+For Voluntary Exit, measuring whether a company still sits in proposal to strike off at exactly $t+6$ gives 3.4-3.8\%, whereas measuring whether a proposal appeared at any month in the window gives 6.7-8.5\%. This gap is represented by those proposals raised and then withdrawn, about half of the proposals at every origin. We keep the event definition because a withdrawn proposal is still an event we think a RM wants to know about, as there is still room for intervention. The honest cost of this is that Voluntary Exit means a strike-off process started, but not that the company died; we flag this here for interpretation.
 
-Delving deeper into this distinction, we measured whether a company was still sitting in "Proposal to Strike off" at exactly \texttt{t+6} and reported 3.4 to 3.8\%. The shipped label measures whether a proposal appeared at any month in the window and reports 6.7 to 8.5\%. Both numbers are correct about what they measure, and the entire gap is proposals raised and then withdrawn, which happens routinely once a company files its overdue accounts and accounts for about half of all proposals at every origin. We keep the event definition for two reasons. A proposal raised and withdrawn is still the moment a RM wanted to know about, and it is specifically the half where intervention was still possible; defining it away because the company recovered would discard exactly those cases. And a state read off a single month is hostage to that month existing, which, given that June 2025 does not, is not a property we want any label to depend on. The honest cost is that Voluntary Exit means a strike-off process started, not that the company died. We flag this in the report as it requires caution when interpreting.
+Finally, the \texttt{segment} Field mixes real-size tiers with filing states, such as dormant and no filings. So a naive segment change test runs at about 13\% over 12 months, and it is mostly filing churn. We therefore engineered the Growth Signal to rank only the four genuine tiers (Micro, Small, Medium and Large), excluding companies with no rank rather than assigning them one.
 
-One further definitional care: the \texttt{segment} field mixes real size tiers with filing states such as Dormant and No Filings, so a naive "segment changed" test runs at about thirteen per cent over twelve months and is mostly filing churn rather than growth. The growth label therefore ranks only the four genuine tiers, and companies with no rank are excluded from the label rather than assigned to one.
-
-\subsection{Quarterly Origins \& Train/Test Split design choices}
+\subsection{Quarterly Origins \& Train/Test Split Design Choices}
 \label{sec:train-test-split-logic}
-We decided to keep the the label origins quarterly rather than creating a training example for every month. This is done so each company contributes one observation every three months rather than a sequence of near-identical monthly observations, and the three-month lending windows do not overlap. This causes the six- and twelve-month targets to overlap by factors of two (6/3) and four (12/3) respectively. This is particularly dangerous for leakage as the same company can appear multiple times in training and validation if the split is performed randomly. For this reason we apply a grouped cross-validation in \S\ref{sec:pipeline}, splitting between training and validation by keeping the same company's observation across one or the other. Moreover, label windows are expressed as calendar range frames rather than positional offsets, for the same reason the delta features are: a positional frame would silently reach an extra month past the June 2025 hole. Finally, where a window contains no observed month at all the label is NULL and never zero, to separate unkown from unhappened.
+We decided to keep the label origins quarterly rather than creating a training example for every month for a more distributed result. However, this causes the six- and twelve-month targets to overlap by factors of two (6/3) and four (12/3) respectively. This is particularly dangerous for leakage, as the same company can appear multiple times in training and validation if the split is performed randomly. For this reason, we applied a grouped cross-validation in \S\ref{sec:pipeline}, splitting between training and validation by keeping the same company's observations across one or the other. Moreover, label windows are expressed as calendar range frames rather than positional offsets, for the same reason the delta features are: a positional frame would silently reach an extra month past the June 2025 hole. Finally, where a window contains no observed month at all, the label is NULL and never zero, to separate unknown from unhappened.
 
-The split we created follows \S\ref{sec:leakage-bg} directly: train on early origins, test on late ones, with an embargo of at least $H$ months between them so that training labels do not extend into test period. The quarterly grid pays off here. Lending has a three-month horizon and quarterly origins, so consecutive origins are already exactly $H$ apart and it loses nothing to the embargo, which is why it gets five training origins where the six-month targets get three. The twelve-month growth label pays the full price, losing three origins. 
+The split we created follows this logic: train on early origins, test on late ones, with an embargo of at least $H$ months between them so that training labels do not extend into the test period. The quarterly grid pays off here. Lending has a three-month horizon and quarterly origins, so consecutive origins are already exactly $H$ apart and it loses nothing to the embargo, which is why it gets 5 training origins where the six-month targets get 3. The twelve-month growth label pays the full price, losing 3 origins. 
 
-To make things more robust, we implemented a guard, \texttt{FIRST\_FULL\_ORIGIN} (October 2024), that marks the first month when every feature has enough historical data to be properly formed rather than NULL for calendar reasons. However, if enforcing that rule would leave us with fewer than three training origins, we relax it rather than train on an unusably small sample. For the twelve-month target, this fallback always fires, which means that that target has less ideal training history than the other targets and the pipeline has to relax the guard to get enough training origins. This turns out to matter and is treated as a limitation in \S\ref{sec:limits} rather than as a design choice here.
+To make things more robust, we implemented a guard, \texttt{FIRST\_FULL\_ORIGIN} (October 2024), that marks the first month when every feature has enough historical data to be properly formed. However, if enforcing that rule would leave us with fewer than 3 training origins, we relax it rather than train on an unusably small sample. For the twelve-month target, this fallback always fires, which means that that target has less ideal training history than the other targets and the pipeline has to relax the guard to get enough training origins. This turns out to matter and is treated as a limitation in \S\ref{sec:limits} rather than as a design choice here.
 
-\subsection{Negatives downsampling}
-We faced a significant problem due to the targets scarcity. At a base rate near three in a thousand, most of 1.4 mln rows per origin are negatives that teach a model nothing, and carrying them costs real computational time. For this reason, we kept every positive but downsampled the negative observations. Sampling is done per origin months so the origin mix is preserved for the out-of-time split described in \S\ref{sec:train-test-split-logic}, and negatives are selected by a hash of the company number rather than a random draw, which makes the sample reproducible without threading a seed through the query engine and more importantly keeps the choice consistent for a company across origins. The sampled positive rate lands at 1:10 for all four targets, which confirms it correctly downnsampled to the desired rate. We recorded the fraction of negative observations that we retained under the keep rate, which we carried as a column on every row. This is crucial as downsampling negatives at rate $r$ multiplies the odds by $1/r$ and inflates every predicted probability by roughly thirtyfold. While the probability ranking survives that, being a monotone transform; the numbers do not, and a statement that a company has a x\% chance of insolvency is false until we correct it by
+\subsection{Negative downsampling}
+We faced a significant problem due to the scarcity of targets. At a base rate near $3:1000$, most of the 1.4 mln rows per origin are negatives that teach a model nothing, and carrying them costs real computational time. For this reason, we kept every positive but downsampled the negative observations. Sampling was done per origin month so the origin mix is preserved for the out-of-time split described in \S\ref{sec:train-test-split-logic}, and negatives are selected by a hash of the company number rather than a random draw, which makes the sample reproducible without threading a seed through the query engine and, more importantly, keeps the choice consistent for a company across origins. We verified that the scaled sampled positive rate lands at 1:10 for all four targets, confirming it was correctly downsampled to our desired rate. We recorded the fraction of negative observations that we retained under the \textit{keep rate}, which we carried as a column on every row. This is crucial as downsampling negatives at rate $r$ multiplies the odds by $1/r$ and inflates every predicted probability by roughly thirtyfold. While the probability ranking survives that, being a monotone transform, the numbers do not, and a statement that a company has a x\% chance of insolvency is false until we correct it by:
 $\text{odds}_{\text{true}} = r \cdot \text{odds}_{\text{sampled}}$.
 
 \subsection{Verification}
-Finally, we performed three checks to determine if our design choiches where corrected:
-\begin{itemize}
-    \item First, we tested leakage. Structurally the boundary holds by construction, but structure is an argument rather than evidence, so we measured the correlation of every feature with every label. The strongest is 0.37, and the ordering is economically sensible, with larger companies, companies already carrying debt and companies that have recently taken on charges being the most likely to take on another. A near-unit correlation would have meant a feature was secretly the answer, but this is not the case for our setup.
-    \item Second, we stress-tested the June 2025 hole on the label side to determine if the pipeline correctly calculated the April label using the months that actaully exists, withouth accidentally pulling August or declaring the label mission. The April 2025 origin has a three-month window
-covering May, June and July, and it must still produce a normal label built from May and July rather than being silently NULL or silently reaching into August. It does.
-\item Finally, we tested for base-rate stability. All four rates are flat across all eleven origins and fall inside the plausibility ranges written down before measuring. That is what licenses the out-of-time split, because with no drift in the underlying rate, if the model performs better on the test set than expected, we have more reason to believe that the improvement comes from the model's ability to predict the event, rather than simply because the test period happens to have a very different event rate.
-\end{itemize}
+Finally, we performed three checks to determine if our design choiches where correct. First, we tested leakage: we measured the correlation of every feature with every label (Figure~\ref{fig:feature-label-corr}), and the strongest is only 0.37, with an economically sensible explanation, where larger companies, those already carrying debt, and those that recently took on charges are the most likely to borrow again. No near-unit correlation undermines the result. Second, we stress-tested the June 2025 hole. On the label side, the April 2025 origin has a three-month window over May, June, and July, and it correctly builds a normal label from May and July rather than reaching into August or going silently null. Third, we measured if the downsampling produced base-rates that remained stable across the eleven origins. The frequencies remained stable and well within the base-rate ranges showed in Table~\ref{tab:targets}, meaning that the model scores are more likely to come from the model genuinely predicting the event, rather than test months just happening to have way more (or fewer) events than the training months. Third, we tested base rate stability. All four rates are flat across T11 origins and fall inside the plausibility ranges written down before measuring, which is what licenses the out-of-time split. Since we see no drift in the underlying rate, any test set improvement is more credibly the model's predictive ability than an artifact of a different event rate.
 
-A fifth label, \texttt{switching}, was also built from the charge data described in \S\ref{sec:charges}, measuring if the company is changing which lender it uses. It is measured and deliberately not trained as it did not meet the pre-specified sample-size threshold for ML training. But in future work we would have attempted to develop this signal further.
+\begin{collapsable}
+    \begin{figure}[p]
+  \centering
+  \includegraphics[height=0.86\textheight]{images/15_feature_label_corr.pdf}
+  \caption[Feature-label correlation across all four targets]{}
+  \label{fig:feature-label-corr}
+\end{figure}
+\end{collapsable}
 
 \section{The modelling pipeline as software}
+\label{sec:pipeline}
 \note{Frame this as reproducibility engineering, not as plumbing.
 \texttt{RunConfig}, the three-family model registry, the recalibration step, and
 a \texttt{record\_run} that refuses to overwrite an existing tag. Staged
@@ -762,32 +757,28 @@ execution via a script rather than a notebook, and the honest reason: the
 machine kept rebooting under long jobs. The \texttt{src/} module map, one line
 each. Point at Appendix~\ref{appx:runs} for the run registry.}
 
-In this section we go through the machinery that made a run cost one line of code.
+In this section we go through the machinery that enabled us to run multiple models and features setups at scale and compare them consistently.
 
 \subsection{The three axes for a run, model families \& evaluation settings}
-Firstly, we need to establish what the three axes are that constitute a run: which matrix is read, which feature list is applied to it and which model families are fitted. In our previous design, each was a separate keyword argument threaded through six functions, which meant they had to agree else the run would have silently done the wrong thing. This design caused a silent failure, for instance pointing at the wider "lender matrix" (i.e. the one including additional variables on lender data) while passing the baseline feature list simply dropped the lender columns and raised nothing at all. To fix this crippled design, we tied the three azes into one frozen \texttt{RunConfig}, which makes the illegal combinations unpresentable and makes a run reproducible from a single value. 
-
-We applied these changes after a supervisor review on the 27th July 2026, after which we turned the two hard-coded fitting functions called by name inside the training loop into a registry in which each entry knows how to build a complete model architecture, whether it requires the dense preprocessing path (i.e. special preprocessing used for dense models), which SHAP explainer applies to it, and what its hyperparameter grid is. The training loop iterates the registry. This, in turns allows us to add a new model family by simply adding one dictionary entry, which is what made fitting a third family affordable at all.
+Firstly, we need to establish what the three axes are that constitute a run: which matrix is read (i.e. the precomputead feature table), which feature list (i.e. which columns from the matrix the model is told to use) and which model gets fitted. In our previous design, each was a separate keyword argument threaded through six functions, which meant they had to agree else the run would have silently done the wrong thing. To fix this crippled design, we tied the three axes into one frozen \texttt{RunConfig}, which makes the illegal combinations unpresentable and makes a run reproducible from a single value. We applied these changes after a supervisor review on the 27th July 2026, after which we turned the two hard-coded fitting functions called by name inside the training loop into a registry dictionary in which each entry knows how to build a complete model architecture, whether it requires the dense preprocessing path (i.e. special preprocessing used for dense models), which SHAP explainer applies to it, and what its hyperparameter grid is. The training loop iterates the registry. This, allowed us to later add a new model family (the NN) by simply adding one dictionary entry.
 
 We use the three model families according to this rationale:
 \begin{itemize}
-    \item \textbf{Gradient-boosted trees} \cite{ke2017lightgbm} are the real model.
-    \item \textbf{Regularised logistic regression} is the interpretable floor, meaning that if the boosting cannot clearly beat a linear model on the same features, then it is not earning its complexity and we should flag that. Moreover, its signed coefficients serve as an independent check on the SHAP directions, since a disagreement means one of the two its wrong.
-    \item The \textbf{multi-layer perceptron} occupies the complex end of the interpretability trade-off; its job is not to win. 
+    \item \textbf{Gradient-boosted trees} \cite{ke2017lightgbm} is the model we actually deploy and use in the final dashboard.
+    \item \textbf{Regularised logistic regression} is the interpretable floor, meaning that if the boosting cannot clearly beat a linear model on the same features, then it is not earning its complexity. Moreover, its signed coefficients serve as an independent check on the SHAP directions, since a disagreement means one of the two its wrong.
+    \item The \textbf{multi-layer perceptron} occupies the complex end of the interpretability trade-off.
 \end{itemize}
 
-Both dense families share a single preprocessing block of imputation, scaling and one-hot encoding\footnote{Imputation replaces missing feature values with estimated values based on the observed data; scaling transforms numerical features to a comparable scale, commonly by centring them at zero and dividing by their standard deviation; and one-hot encoding represents a categorical variable as a set of binary indicator variables, one for each category. These transformations are standard preprocessing steps for machine-learning estimators. \cite{scikit_learn_preprocessing}}. This is deliberate, because if the network and the linear floor saw differently prepared features, the comparison between them would be about the preprocessing rather than about the model.
+Both dense families share a single preprocessing block of imputation, scaling and one-hot encoding\footnote{From scikit documentation: IMPUTATION replaces missing feature values with estimated values based on the observed data; SCALING transforms numerical features to a comparable scale, commonly by centring them at zero and dividing by their standard deviation; and ONE-HOT encoding represents a categorical variable as a set of binary indicator variables, one for each category. These transformations are standard preprocessing steps for machine-learning estimators. \cite{scikit_learn_preprocessing}}. This is deliberate, because if the network and the linear floor saw differently prepared features, the comparison between them would be about the preprocessing rather than about the model.
 
 During imputation, missingness is flagged rather than filled, via an imputer configured to add an indicator column. A NULL delta means "cannot say", and that is information the boosted model expresses natively, and the dense models cannot express at all without the indicator. The behaviour of that same imputer on a column with no observed value in training turns out to matter a great deal, and is taken up in \S\ref{sec:limits}.
 
-Additionally, we implemented three smaller decisions to protect the evaluation:
-\begin{itemize}
-    \item Early stopping for performance validation runs on a company-grouped slice of the training rows and never on the test set, using the test set for early stopping would use the evaluation data to make a training decision, compromising the independence of the final performance estimate; scikit-learn's network does its own early stopping on a random slice \cite{scikit-learn_early_stopping_gradient_boosting} and offers no way to supply a grouped one, this may cause early-stopping to train somewhat longer than ideal, but the final out-of-time test set remains completely independent and is used only after training is finished.
-    \item The dense models are row-capped at 500,000 and 300,000 rows respectively; this means we are limiting how many observations are fed into the dense models, not how many features. We do this because backpropagation over a dense one-hot matrix is by far the slowest operation in the module, and what we want from it is a fair comparison rather than the best obtainable network. 
-    \item Finally, the evaluation matrices are rebuilt with no downsampling at all, because P@$N$ does not survive negative downsampling and it is the headline metric we use in the dashboard. We use the same matrix-building function for both purposes, with the negative keep rate set below 1 for training and to 1 for evaluation.
-\end{itemize} 
 
-To tune, we could not rely on the default $k$-fold split, because that would reintroduce inside the search exactly the two leaks the primary split exists to prevent: the reported validation score would rise while the out-of-time score did not move. We therefore built a splitter that applies the origin and embargo rule of \S\ref{sec:train-test-split-logic} recursively inside the training origins and never touches the test origins. The cost is that the number of folds becomes a maximum rather than a guarantee. That cost is larger than we expected, and it is measurable. Across the eleven recorded runs there are thirty-two completed tuning jobs on disk, on legal folds, recorded in each run's manifest; re-running the search across all four targets gives the amount of independent evidence each one actually holds:
+
+Additionally, we implemented three smaller decisions to protect the evaluation. First, early stopping validates on a company-grouped slice of the training rows and never on the test set, since using the test set to make a training decision would compromise the independence of the final estimate; Scikit-learn offers no way to supply a group slice \cite{scikit-learn_early_stopping_gradient_boosting}, so the network may train somewhat longer than ideal, but we ensured that the out-of-time test set stayed fully independent. Second, the dense models are row capped at 500,000 and 300,000 rows respectively, because backpropagation over a dense one-hot matrix is the slowest operation in the module, and we used it more for a comparison rather than looking to obtain the best neural network result. Third, the evaluation matrices are rebuilt with no downsampling, because P@$N$ does not survive negative downsampling.
+
+To tune, we could not rely on the default $k$-fold split, because that would reintroduce inside the search exactly the two leaks the primary split exists to prevent. We therefore built a splitter that applies the origin and embargo rule of \S\ref{sec:train-test-split-logic} recursively inside the training origins, never touching the test origins. The cost is that the number of folds becomes a maximum rather than a guarantee. The cost is that the number of folds becomes a maximum rather than a guarantee, and that cost is larger than expected:
+\begin{collapsable}
 \begin{center}
 \begin{tabular}{lrrrr}
 \toprule
@@ -800,6 +791,9 @@ growth & 12m & 3 & 0 & not tunable \\
 \bottomrule
 \end{tabular}
 \end{center}
+\end{collapsable}
+
+
 Growth cannot be tuned at all. A twelve-month embargo across three training origins leaves no validation origin with anything legal to train on, so the splitter returns nothing and the search refuses rather than returning a degenerate answer. A standard $k$-fold would have manufactured five folds for a target that holds no independent evidence whatsoever. Insolvency and voluntary exit return one fold each, where lending returns three. This is the splitter's honesty priced out: on one target of four, the price is total. We measured what adopting the search winner would do rather than assuming it. On lending, the target with the most folds, refitting LightGBM at the winning configuration and pairing it against the shipped default over 2,782,591 held-out rows moves ROC-AUC by $-0.0008$, with a paired interval of $[-0.0013, -0.0003]$ that excludes zero on the negative side. P@$500$ moves $+0.018$ with a lower bound of exactly $+0.000$, which \S\ref{sec:errors} disqualifies on its own rule. Adopting the tuned parameters would have made the shipped model very slightly worse. The reason is worth stating, because it is a property of the search rather than of the model. RandomizedSearchCV cannot be handed an evaluation set, so every configuration is scored at a fixed 1,500 boosting rounds. At 1,500 rounds a slow, narrow configuration is still improving while a fast, wide one overfitted long ago, so what the search ranks is how gracefully a configuration tolerates being run far past its useful length. The production path never goes there: under company-grouped early stopping the shipped default stops at 143 rounds and the tuned winner at 262. This is why the search picks the same corner of the grid on all three tunable targets, 31 leaves at learning rate 0.03 with a minimum of 100 child samples, and ranks the shipped default tenth of twelve every time. That consistency looks like a strong signal and is an artefact of the fixed round count. The search and the deployed model are not optimising the same object. The parameters were therefore never fed back into a fit. Every recorded run sits at the same fixed boosting parameters, and each tuning payload records this as applied: false.
 
 The pipeline also verifies the recalibration of the downsampling. As mentioned, downsampling negatives at rate $r$ multiplies the odds by $1/r$, so we implement a correction: one line applied to every predicted probability, using the keep rate that \S\ref{sec:targets} deliberately carried through on every row. The check is that the mean recalibrated prediction lands on the true base rate of the test population, which is the cheapest available test that the correction is the right way round and would be an easy thing to get backwards without noticing. 
@@ -972,7 +966,7 @@ The population is the July 2026 CH universe of 1,531,094 companies. Six sources 
 \subsection{A Bankers view}
 The dashboard is organised around the questions a commercial banker may need to answer. On the Home page, a user can search by company name or number, begin from one of three views, or select a preset query. The views provide different starting populations: the full company universe, companies carrying a Gazette signal, and former Lloyds clients. Filters then narrow the selected population rather than replacing it, so the same condition can answer different questions depending on the starting view. Twenty-seven filters are grouped into six areas:
 
-\begin{mytable}
+\begin{collapsable}
 \begin{table}[htbp]
 \centering
 \begin{tabular}{lp{8.8cm}}
@@ -990,7 +984,7 @@ Signals & Lending readiness, growth, credit risk and Gazette signals \\
 \caption{The six groups containing 27 Home filters.}
 \label{tab:dashboard_filters}
 \end{table}
-\end{mytable}
+\end{collapsable}
 
 Each option carries a live count, so the effect of adding a condition remains visible as the query is built. Missing information is also kept separate from a confirmed negative: filters can distinguish Yes, No and Not stated, because a missing lender value, for example, indicates no outstanding charge rather than necessarily no banking relationship.
 
@@ -1314,6 +1308,7 @@ After 25 hours of data harvesting, the boosted model is already extracting the u
 \subsubsection{Verdict by model family: Logistic}
 The linear model is different, and we measured all four of its deltas on a paired bootstrap, for the reason set out in \S\ref{sec:errors}. Refitting logistic under the control and under the tightest gate in a single process, aligning the evaluation rows on origin month and company number, and resampling both models on the same replicate gives:
 
+\begin{collapsable}
 \begin{center}
 \begin{tabular}{lrrr}
 \toprule
@@ -1326,6 +1321,8 @@ growth & 0.7290 & 0.7382 & $+0.0092$ $[+0.0081, +0.0103]$ \\
 \bottomrule
 \end{tabular}
 \end{center}
+\end{collapsable}
+
 Every interval excludes zero. The linear family therefore gains a small but real amount from the lender columns on three targets and loses a small but real amount on the fourth, and this is the opposite of the boosted verdict above, where the largest movement in either direction is 0.0007.
 
 \subsubsection{Verdict by model family: MLP}
@@ -1558,7 +1555,7 @@ We tested news coverage in two stages. In the first stage we made use of a balan
 
 A logical criticism is that the first sample was intentionally difficult, therefore we had to repeat the same process without any changes using the 398 companies that the models ranked in highest in July 2026. This group represents the practical output of the project , meaning these are the actual companies that would be found interesting if reviewed by a RM
 
-\begin{mytable}
+\begin{collapsable}
 \begin{table}[htbp]
 \centering
 \caption{Guardian coverage of the 398 companies the models flagged for July 2026.}
@@ -1574,7 +1571,7 @@ Any verified article  &   0 & 0.00\% \\
 \bottomrule
 \end{tabular}
 \end{table}
-\end{mytable}
+\end{collapsable}
 
 The 10 companies that produced results generated 139 raw articles in total , alongside a 112 we reviewed manually. Only one article passed the verification process and we found it to be incorrect. This example showed the type of problem that was created by name matching. Company 16392251, \textsc{Tiger Holdings Ltd}, is a London based company incorporated in April 2025 with no existing field accounts but this was incorrectly linked to an article about the acquisition of Flying Tiger Copenhagen by private equity. The name cleaning process reduces the company name to the word \textsc{Tiger}, which appears separately inside ``Flying Tiger''. The location check also failed because London appears frequently in Guardian business articles. We therefore removed the match rather than counting it as valid.
 
@@ -1611,7 +1608,7 @@ So first we need to define what the deliverable actually is: P@$N$ is not the sh
 
 Inspecting the per-held-out-month results (rather than pooled, for the reason established in \S\ref{sec:errors}), we can establish how often the model is correct:
 
-\begin{mytable}
+\begin{collapsable}
 \begin{table}[htbp]
 \centering
 \begin{tabular}{lcccc}
@@ -1625,7 +1622,7 @@ Voluntary Exit       & 0.85, 0.78 & $\sim$8\% & $\sim$10x \\
 \hline
 \end{tabular}
 \end{table}
-\end{mytable}
+\end{collapsable}
 
 \footnotetext{Lift represents how many times better the model's top 100 is than random picking. It's precision divided by base rate.}
 
@@ -1673,7 +1670,7 @@ months before distress against a 5.5\% baseline, so losing a bank describes
 attrition and does not predict it.}
 In \S\ref{sec:public-sources} we grouo public data into two categories: those that provide a CH Registration number and those that only provide a company name. The difference in between these two explains the results more clearly than the size of the dataset, the type of information it contains or the amount of effort required to collect it.
 
-\begin{mytable}
+\begin{collapsable}
 \begin{table}[htbp]
 \centering
 \caption{What each public source reached, as a share of the 1,493,972 company
@@ -1695,7 +1692,7 @@ Stock ticker          & ticker &        0 & 0.00\% & documented dead end \\
 \bottomrule
 \end{tabular}
 \end{table}
-\end{mytable}
+\end{collapsable}
 
 Looking at the "Keys on" column in Table~\ref{tab:source-coverage}, the pattern is clear. Three sources that produced no such useful results depend mainly on company names while teh other two sources with the largest coverage both use registration numbers as identifers. The main exception is the trade mark register, which also uses names but reaches around one company in every hundred. This is only possible becasue the IPO provides a postcode area alongside name and we only accepted matches when both fields agreed.
 
@@ -1703,7 +1700,7 @@ The sources that proved to be most useful in this project were mainly three, pro
 
 \subsection{Coverage is not evenly spread}
 
-\begin{mytable}
+\begin{collapsable}
 \begin{table}[htbp]
 \centering
 \caption{Coverage by sector. A manufacturer is roughly six times more likely to own
@@ -1719,7 +1716,7 @@ Fast growth and emerging        & 1.65\% & 0.78\% & 1.03\% \\
 \bottomrule
 \end{tabular}
 \end{table}
-\end{mytable}
+\end{collapsable}
 
 Manufacturing companies have the highest coverage across all three sources, which is expected. Manufacturers usually require physical locations, protect product names through trademarks and may apply for innovation funding. In contrast, a small four person consultancy operating remotley may not create any of these public records. Therefore, overall overage figures underestimate the value of these sources in sectors where asset backed lending decisions are most relevant.
 
@@ -1761,7 +1758,7 @@ The competitor analysis uses only the register and lender blocks. It does not us
 \paragraph{Which banks lend to small businesses}
 Counting companies by their principal lender produces a league table of secured lending market (Table~\ref{tab:league}). Natwest leads, followed by HSBC, Barclays and Lloyds \cite{lbg_brands}, placing Lloyds fourth on this measure. Adding the largest lenders confirms a concentrated but not dominated market, the top four groups together hold 65.6\%  of the identified market, but the Herfindahl-Hirscham Index \footnote{The Herfindahl-Hirschman Index (HHI) is a standard measure of market concentration, computed as the sum of the squared market shares of all partcipants. On a zero to one scale it runs from near zero, where many participants each hold a small share, to one, where a single participant holds the entire market. Competition authorities broadly treat values below about 0.15 as unconcentrated and above 0.25 as highly concentrated \cite{doj_hhi}.} is 0.133, so the market is concentrated at the top yet retains a long competitive tail of smaller and specialist lenders rather than being dominated by one. Looking at the same ranking within the three target sectors highlights where a single competitor holds an unusually large share of borrowers, and therefore where Lloyds is least represented.\\
 
-\begin{mytable}
+\begin{collapsable}
 \begin{table}[h]
 \centering
 \small\begin{tabular}{@{}lr@{}}
@@ -1778,7 +1775,7 @@ Challenger banks & 7{,}512\\
 \caption{Top principal lenders by number of companies (largest lender by outstanding charges), July 2026. Lloyds ranks fourth.}
 \label{tab:league}
 \end{table}
-\end{mytable}
+\end{collapsable}
 
 \paragraph{The Lloyds book, and where it is under pressure.}
 
@@ -1787,7 +1784,7 @@ Among the 11{,}733 current Lloyds clients,we measure how secure each relationshi
 \paragraph{Borrowing by sector}
 Profiling each sector by the share of its companies that carry a live loan, and share that borrow from Lloyds shows where overall borrowing activity is high but Lloyds' presence is low. Maufacturing stands out. It is the most loan-intensive sector, with 15.7\% of companies holding a secured loan, yet only 2.2\% borrow from Lloyds. The technology, legal and professional sector is much larger but far less loan intensive with 5.5\% of companies having a secured loan, and only 0.6\% borrow from Lloyds. Across every sector, Lloyds' share sits below total borrowing activity. The gap is the largest in manufacturing.
 
-\begin{mytable}
+\begin{collapsable}
 \begin{table}[h]
     \centering
     \small
@@ -1803,7 +1800,7 @@ Profiling each sector by the share of its companies that carry a live loan, and 
     \caption{Borrowing activity and Lloyds' share by target sector, July 2026}
     \label{tab:sectorborrow}
 \end{table}
-\end{mytable}
+\end{collapsable}
 
 These reading carry three limits. They describe secured lending only, which covers about 7.8\% of all companies, so they show who holds loans against assests rather than overall banking share. Every share is computed over identified lenders, and about 22.5\% of lender names could be resolved. A registered charge is a proxy for a banking relationship, not the relationship itself. the figures should be read with that in mind.
 
@@ -1827,7 +1824,7 @@ the modelling data was deliberately not restricted to actively trading firms. It
 % -----------------------------------------------------------------------------
 \chapter{Conclusion}
 \label{chap:conclusion}
-% 3 pages. Owner: TBC.
+
 
 \section{Contributions}
 \note{Re-summarise, in the order they matter. A reproducible 33-month panel over
@@ -1837,6 +1834,34 @@ named. Five measured negatives that most projects would have left unmeasured.
 And a methodological contribution that is genuinely transferable beyond this
 domain: the distinction between when a fact happened and when it became visible,
 and what it costs to get that wrong.}
+The project makes four contributions.
+
+First, a reproducible pipeline from the UK public register to a modelling matrix. We assembled
+thirty-three monthly Companies House snapshots into a company-month panel of 49.6 million rows
+covering the whole register, with every feature defined once in a shared package and every model run
+recorded so that any result is reproducible.
+
+Second, four self-labelled prediction targets and a ranked, explainable shortlist. Because the data
+is a time series, each target is a future value of a column we already hold, so no hand labelling is
+required. Every score carries a SHAP explanation, and the four rankings are routed by counterparty to
+the three teams the client named, so the output is a set of lists each team can act on rather than one
+undifferentiated ranking.
+
+Third, five results that came back negative and were kept because they were measured rather than
+assumed. Narrative news media does not reach companies of this size, the statutory insolvency record
+reaches them only after failure, the additional lender features give the deployed model nothing, the
+name-keyed external sources reach almost none of the population, and hyperparameter tuning did not
+improve on the shipped defaults. Most projects would have left these untested, and measuring them is
+what tells a bank where not to spend its next effort.
+
+Fourth, a methodological contribution that transfers beyond this domain. The project turns on the
+distinction between when a fact happened and when it became visible. A charge created on one date but
+delivered and registered later must not enter a feature row until it was actually observable, and
+getting that boundary wrong produced a model that looked almost perfect while secretly reading its own
+label. Separating the event clock from the visibility clock, and testing against the latter, applies
+to any predictive system built on records that arrive after the events they describe.
+
+
 
 \section{Status against the aims}
 \note{Objective by objective, with the chapter that evidences each. Say plainly
@@ -1845,8 +1870,25 @@ verified; the unstructured integration exists as a delivery layer with one of
 seven sources live and a measured reason for the other six; the model scores
 are joined into the dashboard; and the competitor market intelligence is either
 done or explicitly out, per the decision taken on 16 August.}
+The four objectives of \S\ref{sec:aims} are all met.
 
-\chapter{Further work}
+\begin{itemize}
+  \item \textbf{Objective 1 (pipeline)} is complete and verified in Chapter~\ref{chap:execution}: the
+        panel reproduces the cross-sectional build exactly and the point-in-time and leakage checks
+        pass.
+  \item \textbf{Objective 2 (signals)} is met (Chapter~\ref{chap:execution}), with each signal mapped
+        to a candidate Lloyds service.
+  \item \textbf{Objective 3 (modelling)} is met (Chapter~\ref{chap:evaluation}): the three families
+        were compared out of time and the boosted model selected on evidence.
+  \item \textbf{Objective 4 (unified delivery)} is met through the dashboard
+        (Chapter~\ref{chap:execution}), which brings the structured scores and the external sources
+        together so that a single company can be ranked and investigated. Its coverage is stated
+        honestly: of the seven external sources only the Gazette is live, the other six deferred for
+        measured reasons, and the competitor market intelligence is delivered or explicitly scoped out
+        per the decision of 16 August 2026.
+\end{itemize}
+
+\section{Further work}
 \note{Focus on the interesting openings rather than on a wish list. The gate
 gradient has not flattened at the tightest margin we tested, so the leak-free
 intercept may be lower still and a tighter rung would settle it. Persist
@@ -1856,6 +1898,28 @@ Fading and Insolvent companies so the statutory signal can inform the model
 rather than decorate it. And the enrichment loop that we parked: rank the top
 500 per target, enrich all of them, re-run, now that the ranking half costs one
 command and only the API cost per company is unknown.}
+
+Rather than a wish list, four openings stand out, each following from a result already in hand.
+
+The calibrated lender gate is the tightest we tested, yet the lending effect is still increasing at
+that margin, so the truly leak-free point may sit tighter still. A single tighter gate rung would show
+where the gradient levels off and settle the leak-free intercept.
+
+The comparison between model families rests in part on logistic-regression gains we could not test on
+paired samples, because only summary metrics were retained. Persisting the held-out prediction vector
+for each model family on every run would allow a paired bootstrap between families and turn those gains
+from suggestive into tested.
+
+The modelling population should be widened. At present the models are scored on Active companies only,
+so the register's own record of distress decorates the data rather than informing the model. Including
+the Fading and Insolvent companies in the modelling population, not only at scoring time, would let
+that record of failure contribute to what the model learns about risk.
+
+Finally, the targeted enrichment loop can now be run cheaply. The intention is to rank the top five
+hundred companies per target, enrich all of them with the deeper API lookups, and re-run. Because the
+ranking half of that loop now costs a single command, the only unknown left is the API cost per
+company, and closing the loop would complete the structured-first, enrich-narrow design the project
+set out to build.
 
 =============================================================================
 \backmatter
@@ -1917,7 +1981,7 @@ precedence over the broader sector classifications.
 The Fast growth \& emerging category was defined using the following SIC
 codes:
 
-\begin{mytable}
+\begin{collapsable}
 \begin{table}[!htbp]
 \centering
 \caption{SIC codes used to identify Fast growth \& emerging companies}
@@ -1943,7 +2007,7 @@ codes:
 \bottomrule
 \end{tabularx}
 \end{table}
-\end{mytable}
+\end{collapsable}
 
 \chapter{Target definitions in full}
 \label{appx:targets}
