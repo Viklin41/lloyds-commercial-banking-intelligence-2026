@@ -41,6 +41,7 @@
 
 % Command to hide all tables
 \usepackage{comment}
+\usepackage{pdfpages}
 % \excludecomment{collapsable}
 \includecomment{collapsable}
 
@@ -1837,45 +1838,26 @@ right Lloyds team, the growth team, the attrition team or the maintenance team.
 The result is a set of focused lists a team can act on rather than one long
 combined ranking.
 
-The fourth contribution is honesty about the external record. We tested whether
+Fourth, we tested whether
 unstructured public sources add signal on top of the register. Most did not
 provide enough coverage to rely on, and that negative result is itself a finding
 that shaped the final design. The one source that proved reliable, the Gazette
 insolvency notices, is brought together with the structured scores in a single
-dashboard, so one company can be ranked and then investigated in the same place.
-
-Underneath all of this is one more contribution that is easy to overlook. A data
+dashboard, so one company can be ranked and then investigated in the same place. A data
 leakage defect, where the model could see information that would not have been
 available at decision time, was found and corrected over four separate passes.
-Catching it is the difference between a model that looks good in testing and one
-that would hold up in use.
 
 
 
-\section{Status against the aims}
+
+%\section{Status against the aims}
 \note{Objective by objective, with the chapter that evidences each. Say plainly
 what is working and what is not: the structured pipeline is complete and
 verified; the unstructured integration exists as a delivery layer with one of
 seven sources live and a measured reason for the other six; the model scores
 are joined into the dashboard; and the competitor market intelligence is either
 done or explicitly out, per the decision taken on 16 August.}
-The four objectives of \S\ref{sec:aims} are all met.
 
-\begin{itemize}
-  \item \textbf{Objective 1 (pipeline)} is complete and verified in Chapter~\ref{chap:execution}: the
-        panel reproduces the cross-sectional build exactly and the point-in-time and leakage checks
-        pass.
-  \item \textbf{Objective 2 (signals)} is met (Chapter~\ref{chap:execution}), with each signal mapped
-        to a candidate Lloyds service.
-  \item \textbf{Objective 3 (modelling)} is met (Chapter~\ref{chap:evaluation}): the three families
-        were compared out of time and the boosted model selected on evidence.
-  \item \textbf{Objective 4 (unified delivery)} is met through the dashboard
-        (Chapter~\ref{chap:execution}), which brings the structured scores and the external sources
-        together so that a single company can be ranked and investigated. Its coverage is stated
-        honestly: of the seven external sources only the Gazette is live, the other six deferred for
-        measured reasons, and the competitor market intelligence is delivered or explicitly scoped out
-        per the decision of 16 August 2026.
-\end{itemize}
 
 \section{Further work}
 \note{Focus on the interesting openings rather than on a wish list. The gate
@@ -1888,7 +1870,7 @@ rather than decorate it. And the enrichment loop that we parked: rank the top
 500 per target, enrich all of them, re-run, now that the ranking half costs one
 command and only the API cost per company is unknown.}
 
-Rather than a wish list, four openings stand out, each following from a result already in hand.
+Four openings stand out, each following from a result already discovered.
 
 The calibrated lender gate is the tightest we tested, yet the lending effect is still increasing at
 that margin, so the truly leak-free point may sit tighter still. A single tighter gate rung would show
@@ -1997,10 +1979,8 @@ codes:
 
 \chapter{Run registry and reproducibility}
 \label{appx:runs}
-\note{Every recorded run with its tag, configuration, feature hash, git SHA and
-full metric table with intervals; and the commands to reproduce any of them.
-Include the four manifests that record the wrong gate value, with the true
-values, so an auditor reading manifests alone is not misled.}
+
+\includepdf[pages=-,landscape=true]{run_registry.pdf}
 
 
 
