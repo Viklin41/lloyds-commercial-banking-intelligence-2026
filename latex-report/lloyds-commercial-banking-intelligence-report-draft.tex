@@ -657,33 +657,6 @@ Research grants were collected from UK Research and Innovation's Gateway to Rese
 
 Job adverts were collected from Adzuna. The interface cannot be queired by employer, only by keyword and location, so the national feed was retreived and the employer names matched back against the register. This is the weakest link of the five, because the feed is dominated by large employers and recruitmet agencies and the only location it publishes is a town.
 
-
-\note{Samuel's survey. One short paragraph per source: Contracts Finder and
-Find a Tender, The Gazette, Land Registry CCOD, the IPO trade mark register,
-GLEIF and the LEI system, Adzuna, and the news APIs. \textbf{For each one give a
-single extra sentence saying whether it keys on the company number or on the
-company name.} That one distinction predicts, almost perfectly, which sources
-worked for us and which did not, and setting it up here lets Chapter 4 pay it
-off in a line. Include \texttt{yfinance} and listed-company data here as a
-documented dead end (26 hand-picked listed firms; 0.00\% of our universe holds a
-ticker) rather than giving it a section of its own.}
-\note{viktor-vishal/unstructured-data-lab. Method only; the result is
-\S\ref{sec:unstructured}. The 96-company balanced stress-test grid, four size
-tiers by three sectors by eight, explicitly non-representative so the rare cells
-have a measurable $n$. The API bake-off and why GDELT was dropped early. The
-six levels of query construction from bare name to domain restriction. The
-disambiguation rule: exact phrase plus corroboration on town, sector or context,
-with town mandatory for single common-word names. The positive control design,
-and why a project reporting a zero needs one.}
-\note{Method only. The Gazette has no company-name search, only category, date
-and postcode, so notices are pulled in bulk and matched back through the company
-number printed in each one. One request per ten seconds, cached per page and
-resumable, about 7.6 hours. 284,230 notices extracted, 274,904 after dropping
-ceremonial noise. The five-stage distress ladder and the 52 company-level
-features. \textbf{Set this section up as the deliberate contrast with the
-previous one}: same goal, same team, opposite coverage profile, and the reason
-is that one source keys on a name and the other keys on a number.}
-
 \subsection{The unstructured attempt I: narrative media}
 \note{viktor-vishal/unstructured-data-lab. Method only; the result is
 \S\ref{sec:unstructured}. The 96-company balanced stress-test grid, four size
@@ -818,8 +791,8 @@ Firstly, we need to establish what the three axes are that constitute a run: whi
 We use the three model families according to this rationale:
 \begin{itemize}
     \item \textbf{Regularised logistic regression} is the interpretable floor, meaning that if the boosting cannot clearly beat a linear model on the same features, then it is not earning its complexity. Moreover, its signed coefficients serve as an independent check on the SHAP directions, since a disagreement means one of the two its wrong.
-    \item \textbf{Gradient-boosted trees} \cite{ke2017lightgbm} is the model we actually deploy and use in the final dashboard.
-    \item The \textbf{multi-layer perceptron} occupies the complex end of the interpretability trade-off.
+    \item \textbf{Gradient-boosted trees} (LightGBM)\cite{ke2017lightgbm} is the model we actually deploy and use in the final dashboard.
+    \item The \textbf{multi-layer perceptron} (NN) occupies the complex end of the interpretability trade-off.
 \end{itemize}
 
 Both dense families share a single preprocessing block of imputation, scaling and one-hot encoding\footnote{From scikit documentation: IMPUTATION replaces missing feature values with estimated values based on the observed data; SCALING transforms numerical features to a comparable scale, commonly by centring them at zero and dividing by their standard deviation; and ONE-HOT ENCODING represents a categorical variable as a set of binary indicator variables, one for each category. These transformations are standard preprocessing steps for machine-learning estimators. \cite{scikit_learn_preprocessing}}. This is deliberate, because if the network and the linear floor saw differently prepared features, the comparison between them would be about the preprocessing rather than about the model.
@@ -830,7 +803,10 @@ During imputation, missingness is flagged rather than filled, via an imputer con
 
 Additionally, we implemented three smaller decisions to protect the evaluation. First, early stopping validates on a company-grouped slice of the training rows and never on the test set, since using the test set to make a training decision would compromise the independence of the final estimate; Scikit-learn offers no way to supply a group slice \cite{scikit-learn_early_stopping_gradient_boosting}, so the network may train somewhat longer than ideal, but we ensured that the out-of-time test set stayed fully independent. Second, the dense models are row capped at 500,000 and 300,000 rows respectively, because backpropagation over a dense one-hot matrix is the slowest operation in the module, and we used it more for a comparison rather than looking to obtain the best neural network result. Third, the evaluation matrices are rebuilt with no downsampling, because P@$N$ does not survive negative downsampling.
 
-To tune, we could not rely on the default $k$-fold split, because that would reintroduce inside the search exactly the two leaks the primary split exists to prevent. We therefore built a splitter that applies the origin and embargo rule of \S\ref{sec:train-test-split-logic} recursively inside the training origins, never touching the test origins. The cost is that the number of folds becomes a maximum rather than a guarantee:
+
+
+LightGBM and the NN both have hyperparameters to be tuned before deployment to pick the best combination. To tune, we could not rely on the default $k$-fold split, because that would reintroduce inside the search exactly the two leaks the primary split exists to prevent. We therefore built a splitter that applies the origin and embargo rule of \S\ref{sec:train-test-split-logic} recursively inside the training origins: this means the splitter will hold back data for the tuning respecting the leakage-safe design. Because the splitter works in whole months, what limits tuning is the number of months, not the number of rows. With five training months there is room to carve out several validation folds; with three, barely one; with three separated by a twelve-month embargo, none at all. The cost is that the number of folds becomes a maximum rather than a guarantee: 
+
 \begin{collapsable}
 \begin{center}
 \begin{tabular}{lrrrr}
@@ -845,13 +821,14 @@ growth & 12m & 3 & 0 & not tunable \\
 \end{tabular}
 \end{center}
 \end{collapsable}
-Here, train origin represents those snapshot months whose rows are fed to the training pipeline
 
-Growth cannot be tuned at all: a twelve-month embargo across three training origins leaves no legal validation origin, so the search refuses rather than returning a degenerate answer, where a standard $k$-fold would have manufactured five folds for a target holding no independent evidence. But this matters only if tuning helps in the first place, so we measured what adopting the winning hyperparameter configuration would do rather than assuming it. On lending, the target with the most folds, refitting LightGBM at the winning configuration against the shipped default over 2,782,591 held-out rows moves ROC-AUC by $-0.0008$ (paired interval $[-0.0013, -0.0003]$), so the tuned parameters would have made the shipped model very slightly worse. The reason is a property of the search: \texttt{RandomizedSearchCV} scores every configuration at a fixed 1,500 boosting rounds, so what it ranks is how gracefully a configuration tolerates being run far past its useful length, whereas under company-grouped early stopping the shipped default stops at 143 rounds and the tuned winner at 262. The two are not optimising the same object, so the parameters were never fed back into a fit; every recorded run sits at the same fixed boosting parameters, and each tuning payload records this as applied: false.
+Growth is the extreme case: once a twelve-month embargo is applied, the guard leaves no legal origin, so the pipeline relaxes the guard and rebuilds the split over the full history. This yields three origins from a year earlier (October 2023 to April 2024) drawn from before every feature is properly formed. Growth's three origins are therefore older and lower-quality than the others', which is why its training history returns as a limitation in \S\ref{sec:limits} rather than a design choice here.
 
-The pipeline also verifies the downsampling recalibration. Downsampling negatives at rate $r$ multiplies the odds by $1/r$, so we correct every predicted probability using the keep rate carried through on each row, and check that the mean recalibrated prediction lands on the true base rate of the test population, which is the cheapest test that the correction runs the right way round.
+But this all matters only if tuning helps, so we measured what adopting the winning configuration would do. On lending, the target with the most folds, refitting LightGBM at the winning configuration against the shipped default over 2,782,591 held-out rows moves ROC-AUC by $-0.0008$ (paired interval $[-0.0013, -0.0003]$): the tuned parameters would have made the shipped model very slightly worse.
 
-Finally, the pipeline chooses an explanation method automatically per model. The boosted model is routed to \texttt{TreeExplainer}, which is exact, on a stratified subsample of 100,000 test rows, since a plain draw at a 0.33\% base rate would describe the negatives almost exclusively. Logistic regression is read through its coefficients rather than explained. The neural network uses the more general \texttt{KernelExplainer}, but only on 20 observations because it is computationally expensive; the measured costs are in Chapter~\ref{chap:evaluation}
+% \footnote{The tuned parameters were never applied bucasue \texttt{RandomizedSearchCV} \cite{scikit_learn_randomizedsearchcv, bergstra2012random}, the Scikit-learn routine that searches hyperparameter combinations cannot pass a fold-specific validation set, so it scores every candidate at a fixed boosting rounds rather than at its early-stopping peak, and thus rewards whichever configuration overfits most slowly rather than which is genuinely best.}.
+
+Finally, the pipeline chooses an explanation method automatically per model. An explainer takes a fitted model and a single row and returns one number per feature representing how much that feature pushed the score above or below the model's baseline. The boosted model is routed to \texttt{TreeExplainer}, which is exact, on a stratified subsample of 100,000 test rows, since a plain draw at a 0.33\% base rate would describe the negatives almost exclusively. Logistic regression is read through its coefficients rather than explained. The neural network uses the more general \texttt{KernelExplainer}, but only on 20 observations because it is computationally expensive; the measured costs are in Chapter~\ref{chap:evaluation}
 
 \subsection{Recording a run}
 Every run owns a directory holding a manifest (.json), its metrics (.json), and one SHAP importance table (.csv) per target. The manifest records everything needed to reproduce the run: the matrix and evaluation directories, the contract and lender sources, the exact feature list with a short hash, the categoricals, targets, model set, registry, boosting parameters, git commit and timestamp. A run is therefore reproducible from its manifest without reading any code, and two runs are compared by diffing their manifests. An index across all runs is regenerated from the directories on every write, so the comparison table cannot drift from disk.
@@ -976,81 +953,26 @@ We start from the control model, the one we then deployed in the dashboard (see 
 
 % We also performed a grouped cross-validation check which gives values between 0.004 and 0.021 higher than the out-of-time results for every target. Because the difference is small and always in the same direction, we can confirm the main results do not appear to be caused by a particular time period.
 
-We then run a comparison between model families to answer the question set up in \S\ref{sec:modelling-backgroud}. The results are more interesting than simply saying that "more complex models are better". On insolvency the ordering is logistic, then the network, then the boosted ensemble. The NN therfore captures some non-linear relationships that logistic regression cannot capture. However, it still does not perform as well as the boosted model.
-As mentioned, the important conclusion is not simply that complex models beat simple models. Instead, the best model is the one whose structure fits the type of relationships present in the data. In this case, the boosted model performs best and also has a major practical advantage: its explanations are exact and very cheap to calculate.
+We then run a comparison between model families to determine wheter the added complexity of more sophisticated model is justified, as stated in \S\ref{sec:modelling-backgroud}. On Insolvency the ascending rank is logistic, then the NN, then the boosted ensemble. The NN therfore captures some non-linear relationships that logistic regression cannot capture. However, it still does not perform as well as the boosted model.
+The important conclusion is not merely that complex models beat simple models. Instead, the best model is the one whose structure fits the type of relationships present in the data. In this case, the boosted model performs best. Moreover, the boosted model also wins on explanation speed, with \texttt{TreeExplainer} beign the fastes.
 
-Table~\ref{tab:explaincost} puts the price on that, measured rather than asserted:
-\begin{itemize}
-    \item Logistic regression coefficients are immediate and exact.
-    \item \texttt{TreeExplainer} can calculate exact explanationsfor the boosted model and can process 100,000 rows in seconds
-    \item In contrast, the model-agnostic explanation method used for the neural network took 2.04 seconds for 20 rows with 41 features at \texttt{nsamples=100}. If this time is scaled linearly to 100,000 rows, it would take a little under three hours\footnote{This larger number is an extrapolation rather than a direct measurement: it is scaled linearly, which is the right shape for \texttt{KernelExplainer} but it is not itself a measurement at 100,000 rows. Nevertheless, it shows why the boosted model is the practical choice for production. It not only performs well out of time; it can also provide the reasons behind an individual company's score without a high computational cost.}
-\end{itemize}
+% In general, in this section we avoid treating very small differences as meaningful. Two cases are worth naming. Every multi-layer perceptron delta on the gate ladder of \S\ref{sec:n4} is smaller than 0.009 and sits inside a seed spread of 0.018, so none of them carries weight in either direction. And the growth feature correction moves the boosted model by -0.0010 against a seed standard deviation of 0.0006, which is small, negative, and not a result worth arguing about in either direction.
 
-In general, in this section we avoid treating very small differences as meaningful. Two cases are worth naming. Every multi-layer perceptron delta on the gate ladder of \S\ref{sec:n4} is smaller than 0.009 and sits inside a seed spread of 0.018, so none of them carries weight in either direction. And the growth feature correction moves the boosted model by -0.0010 against a seed standard deviation of 0.0006, which is small, negative, and not a result worth arguing about in either direction.
+\subsection{Target downsampling results}
+The four targets we are aiming to predict have very different base rates. They range from 0.26\% for Lending to about 8\% for Voluntary Exit. This matters because the same predicted metric can mean very different things based on the target. For instance, if a model predicts "no" for every company on the lending task, it would achieve 99.74\% accuracy. On the surface, that sounds excellent, but the model would be misleading given that its predicting accuracy on a very low base rate. The same problem applies to recall, precision and F1 performance metrics. Instead, we use ranking metrics ROC-AUC and P@$N$. We also report a column \texttt{lift}, defined as P@$N$ divided by the target's base rate. This is the only fair way to compare a result on a target that fires 1:100 with one that fires 1:12.
 
-The SHAP readings are explored out in full in \S\ref{sec:sneha-shap} and used operationally in \S\ref{sec:commercial}, so only the shape of them belongs here. In summary:
-\begin{itemize}
-    \item Lending is mainly explained by company size and existing debt.
-    \item Voluntary exit is strongly related to filing behaviour. These features would be leakage in a cross-sectional model, because a company that has already stopped filing may already be close to exiting. But when the features are measured at time (t) and used to predict an outcome between (t+1) and (t+6), they become useful leading indicators.
-    \item Insolvency depends on company age and filing recency, but no single feature dominates. The model is therefore combining many weaker signals.
-    \item Growth is strongly influenced by size rank. This is partly a ceiling effect because a company that is already at the largest size tier cannot move up further. This needs to be investigated rather than automatically treated as a useful discovery.
-\end{itemize}
-
-Here we flag a methodological correction when interpreting SHAP. As mentioned, we validate SHAP directions against the signed coefficients of the linear model, on the principle that where the two disagree one of them is wrong. Hence, the average signed SHAP value is not a measure of direction. A feature can have different effects at different values. Therfore, direction is measured using the Spearman correlation between the feature value and its own SHAP value. This does not assume that the relationship is linear.
-
-Most features give similar directions in the SHAP analysis and the logistic model. The main disagreements occur for insolvency. This is not necessarily a problem because logistic coefficients measure a feature's effect while holding the other variables constant, while SHAP shows the feature's relationship with predictions. Hence, when features are strongly correlated, a partial effect can honestly flip sign against the marginal relationship SHAP displays.
-
-\subsection{Is the target balanced, and what does that do to the metrics?}
-The four targets we are aiming to predict have very different base rates. They range from 0.26\% for lending to about 8\% for voluntary exit. This matters because the same predicted metric can mean very different things based on the target. For instance, if a model predicts "no" for every company on the lending task, it would achieve 99.74\% accuracy. On the surface, that sounds excellent, but the model would be misleading given that its predicting accuracy on a very low base rate. The same problem applies to recall, precision and F1 performance metrics. Instead, we use ranking metrics such as ROC-AUC and P@$N$. We also report a column \texttt{lift}, defined as P@$N$ divided by the target's base rate. This is the only fair way to compare a result on a target that fires 1:100 with one that fires 1:12.
-
-This imbalance also affects how much downsampling we need:
-\begin{itemize}
-    \item For insolvency, the dataset is reduced by about 27 times, from 13.8 mln rows to 520,000, without removing any positive cases.
-    \item Lending is reduced by about 33 times.
-    \item Voluntary exit is different: the dataset only falls from 13.8 mln to 11.9 mln rows, with a keep rate of 0.85. This happens because voluntary exit has a much higher base rate of about 7.8\%, so there is little need to remove additional negative observations.
-\end{itemize}
-
-The number of positive cases also determines how precise the confidence intervals can be:
-\begin{itemize}
-    \item Voluntary exit has about 215,000 positive cases, so it has the narrowest intervals, around ±0.001.
-    \item Lending has only about 7,500 positive cases, so its intervals are much wider, around ±0.0045.
-\end{itemize}
+This imbalance also affects how much downsampling we need. For insolvency, the dataset is reduced by about 27 times, from 13.8 mln rows to 520,000, without removing any positive cases. Lending is reduced by about 33 times. Voluntary exit is different: the dataset only falls from 13.8 mln to 11.9 mln rows, with a keep rate of 0.85. This happens because voluntary exit has a much higher base rate of about 7.8\%, so there is little need to remove additional negative observations.
 
 We must also interpret with caution the results of voluntary exit. Its apparently strong P@$N$ is partly caused by many companies receiving exactly the same score. Therefore, P@$N$ is partly measuring which companies were selected from a large tied group, rather than measuring a precise ranking, for reasons measured in \S\ref{sec:errors}, and it should not be read to three digits.
 
-
-\subsection{A leakage defect, found and fixed}
+\section{Effects of Lender Identity Data}
+\subsection{The leakage}
+\subsubsection{Symptoms and Initial Fix}
 \label{sec:leak}
-\note{The strongest methodological section in the report, and per the 8 August
-decision it stays a section here rather than becoming its own chapter. Tell it
-in four acts. (i) The lender run returns P@$100$ = 1.000 on lending
-against a 0.271\% base rate, while ROC-AUC barely moves; explain why that
-combination is a leakage signature rather than a win, because a genuinely better
-feature set lifts the global ranking and the top of the list together. (ii) The
-cause: the as-of gate admitted a charge on \texttt{created\_on}, but 94.7\% of
-charges are delivered to CH after they are created, so the model
-could see a charge the register had not yet recorded, and the register is what
-defines the label. (iii) The obvious fix was not enough: gating on
-\texttt{delivered\_on} removed about half of it. (iv) Calibrating properly showed
-that 18 of the 21 days of the interim margin were the \emph{satisfaction} clock,
-not a visibility lag, so one gate had been widened to pay for a different gate
-being wrong. Include the retraction: the extract-drift hypothesis was
-satisfying, and it was worth 0.11 days of 21, and it ran the opposite way to
-prediction. Also state that the original verification test inherited the bug
-rather than catching it, because it replayed the harvest against the same wrong
-clock, and that a single-month version of the rewritten test would still have
-passed. Figures: the gate progression on lending P@500, the calibration ladder,
-the lag-error plots.}
+Since we already started with a rich feature matrix, including many deltas, the original comparison was designed to test if the 25 hours of Charges API harvest improved prediction. 
 
-\subsubsection{The symptom}
-Since we already started with a pretty solid model, including many deltas, the original comparison was designed to test if the 25 hours of Charges API harvest improved prediction. 
-
-For three of the four targets, the answer appeared to be no. However, the lending result looked extremely strong: P@$100$ of 1.000 against a base rate of 0.271\%, and
-P@$500$ of 0.992, a lift of 366 times, while ROC-AUC moved only from 0.8767 to 0.8951.
-
-These two things cannot co-exist, and it's the reason why \S\ref{sec:evaldesign} reports both metrics. If the model had generally become much better at ranking companies, both ROC-AUC and P@$N$ should have improved substantially. Instead, P@$N$ became almost perfect, while ROC-AUC changed only slightly. 
-
-The explanation is that ROC-AUC looks at th,e ranking across about 2.8 mln evaluation rows, while P@$N$ looks only at the very top of the list. Hence, if the model receives information about the outcome for only a small group of companies, that can make the top of the list look almost perfect, while having very little effect on the global ranking. The gap between a global metric and a local one is the entire tell, and had we tracked only AUC we would have shipped this.
+For three of the four targets, the answer appeared to be no. However, the Lending result looked extremely strong: P@$100$ of 1.000 against a base rate of 0.271\%, and
+P@$500$ of 0.992, a lift of 366 times, while ROC-AUC moved only from 0.8767 to 0.8951. These two things cannot co-exists. If the model had generally become much better at ranking companies, both ROC-AUC and P@$N$ should have improved substantially. Instead, P@$N$ became almost perfect, while ROC-AUC changed only slightly. The explanation is that ROC-AUC looks at the ranking across about 2.8 mln evaluation rows, while P@$N$ looks only at the very top of the list. Hence, if the model receives information about the outcome for only a small group of companies, that can make the top of the list look almost perfect, while having very little effect on the global ranking.
 
 Before explaining this bizarreness with leakage, we ruled out several simpler explanations:
 \begin{itemize}
@@ -1059,124 +981,58 @@ Before explaining this bizarreness with leakage, we ruled out several simpler ex
     \item Finally, the best individual feature had a P@$500$ of only 0.164, while the full model reached 0.992. This meant that no individual column was driving the label. On the contrary, the model was combining several features, which demanded further analysis rather than isolating one single problematic feature.
 \end{itemize}
 
-\subsubsection{The cause}
-Every charge in the CH API carries: \texttt{created\_on}, the date the charge was made; \texttt{delivered\_on}, the date it reached the registrar and became visible to anyone looking.
+Each CH charge carries \texttt{created\_on} (when the charge was made) and \texttt{delivered\_on} (when it reached the registrar and became visible). The original as-of join used \texttt{created\_on}, which caused the leakage: a charge created on 28 January but not delivered until 5 February would still be attached to the 1 February feature row, even though nobody inspecting the register on 1 February could yet see it. But the lending label was computed from the bulk register, which could not contain the charge until delivery. The feature thus held information the label could only acquire later, so the model was partly reading past events rather than predicting future ones. The scale is clear from the gap between the API and register charge counts. For companies that borrowed within three months, the API count was already 0.29 charges higher, and in 19.2\% of these cases it had already reached the future post-borrowing value. Across the whole population the gap is about 0.05, so the discrepancy is six times larger exactly where it does damage. Among the model's top 500 companies, 46.6\% had a charge counted before it was observable, against only 0.01\% across the whole population, the strongest evidence of leakage.
 
-The original as-of join used the first one and this created the leakage.
+The first obvious solution we attempted to fix the problem was to use \texttt{delivered\_on} instead of \texttt{created\_on}. This reduced the problem substantially, moving the mean gap from 0.29 to 0.16 and the share of companies already at the future value from 19.2\% to 9.7\%, but the problem was not gone altogether. After rerunning the model, Lending P@$500$ was still 0.742, compared with 0.282 for the control model.
 
-Imagine that a charge was created on 20 January, but delivered on 28 January. The original system could include this charge in the feature row for 1 January, even though the charge was not yet visible at that time. 
+After digging deeper into how the charge API works, we discovered that delivery is not the same as registration: after a charge is delivered, the registrar still needs time to process it before it appears in the register used to compute the label. To estimate that delay, we ran a sweep: increasing a margin day by day until the API's charge count agreed on average with the register's count. Comparing the two counts this way, the margin that made them agree on average came out at 21 days, and that is the figure we fitted.
 
-The lending label, however, was calculated from the bulk register. That register could not contain the charge before it had been delivered. The feature, therefore, contained information that the label could only know later. 
-
-The model was not actually predicting future lending. Instead, it was partly reading information about something that had already happened.
-
-We also measured this disruption, making the size of the problem even clearer. 
-
-For companies that went on to borrow within three months, the API's charge count was already 0.29 charges higher than the register's count. In 19.2\% of these cases, the API had already reached the future post-borrowing value. 
-
-Across the whole population that same gap is about 0.05, so the discrepancy is six times larger precisely where it does damage.
-
-If we then consider the top 500 companies ranked by the model, 46.6\% had a charge that was counted before it was observable. Across the whole population, this happened for only 0.01\% of companies. This was the strongest evidence of leakage.
-
-\subsubsection{The obvious fix we attempted}
-
-The first obvious solution we attempted to fix the problem was to use \texttt{delivered\_on} instead of \texttt{created\_on}. This reduced the problem substantially, moving the mean gap from 0.29 to 0.16 and the share of companies already at the future value from 19.2\% to 9.7\%, but the problem was not gone altogether. After rerunning the model, lending P@$500$ was still 0.742, compared with 0.282 for the control model.
-
-After digging deeper into how the charge API works, we discovered that delivery is not the same as registration: after a charge is delivered, the registrar still needs time to process it before it appears in the register used to compute the label. To estimate that delay, we ran a sweep: increasing a margin day by day until the API's charge count agreed on average with the register's count. Three choices went into how we ran it, each a sensible-looking default at the time. We swept over only seven monthly origins rather than all of them, to limit the cost of repeatedly rebuilding and comparing the panel. We assumed each register extract was cut on the 1st of the month, which is what the monthly bulk file is nominally dated and is true the large majority of the time. And we measured the gap only on companies that go on to borrow (the subset where the distortion is worst) on the instinct of calibrating where the problem actually shows up. Comparing the two counts this way, the margin that made them agree on average came out at 21 days, and that is the figure we fitted.
-
-\subsubsection{The calibration}
-The 21-day value initially looked reasonable, but we decomposed it. Walking from the old estimate to the new one, changing one thing at a time with the same estimator throughout, we created an audit trail that helped us in our calibration. The aim was to figure out how many days of "margin" to add so that the API's view of a company's charges lined up with the register's view. We did so by sweeping the margin until the two counts agreed on average. The 21-day answer came out of one particular way of running that sweep, and this decomposition re-runs it correctly, one change at a time, to see where the 21 came from:
-\begin{itemize}
-    \item Using all origins rather than seven moves the crossing from 22.1 to 23.7 days
-    \item Using the real extract date moves it from 23.7 to 23.6
-    \item Pointing the sweep at the right target moves it from 23.6 to 5.3: the register count it had been matching against moves both when a charge is created and when one is satisfied, so calibrating the creation clock against it forced the margin to absorb the satisfaction (i.e. a charge exiting when repaid) clock's error too; matching against a count that reflects creation alone removes that.
-    \item and finally, removing the conditioning on companies that go on to borrow moves it from 5.3 to 1.8.
-\end{itemize}
-
-The key result is that 18 of the 21 days came from the satisfaction clock. 
+The 21-day value initially looked reasonable, but we decomposed it. The margin was fitted by nudging it upward until the API's charge count agreed on average with the register's count. But the register count moves for two different reasons: it goes up when a charge is created and back down when a charge is satisfied (repaid). We only wanted to calibrate the creation delay, but because we were matching against a count that also reflects satisfactions, the fitted margin was silently forced to absorb the satisfaction timing error as well. Once we matched against a count reflecting creation alone, the margin collapsed from about 21 days to roughly 3. In other words, 18 of the 21 days were never a visibility lag at all; they were the satisfaction clock leaking into a number that was supposed to describe only when a new charge becomes visible.
 
  There was also independent evidence of the leakage inside the model itself. In fact, under the leaking \texttt{created\_on} gate, \texttt{n\_of\_charges\_outstanding} was the most important feature, with a mean absolute SHAP value of 0.414, ranking 1st out of 54 features. After we changed to \texttt{delivered\_on}, it fell to 0.284, ranking 3rd. And after we added the 21-day margin, it fell almost completely to 0.002, ranking 40th. A similar pattern appeared for \texttt{lbg\_share\_of\_outstanding}, whose importance fell from 0.146 to 0.073 to 0.002. 
  
 This mattered because it is not derived from the metric we are trying to explain. P@$100$ = 1.000 tells
 us the top of the list is wrong. Thanks to the SHAP ranking, we could understand which feature the model was using to obtain that wrong information. Two independent instruments, one mechanism.
 
-Moving on to other results we obtained from the decomposition, we originally thought that most of the 21 days were caused by differences in the monthly extract dates. In reality, we showed this explains only 0.11 days. The extract date usually was the first of the month: 29 of 33 extracts were on the first, with an average drift of 0.39 days. The correction actually goes in the opposite direction from what we expected because an extract taken after the first includes more charges, not fewer. So extract drift is real, but it is not the main explanation.
+\subsubsection{The Fix}
+The ultimate solution was to stop fitting a margin by averages and instead measure the delay directly. For each charge, we found the first monthly register extract that actually showed it, which tells us exactly how long it took to become visible. Done this way, the real creation delay was only about 4 days, and the satisfaction delay about 1 day, not 21. Moreover, the old 21-day gate carried a large practical cost. The margin existed to prevent leakage, but pushing it too far caused the opposite: staleness (i.e. charges that the register already contained, and that the model was entitled to see, got withheld from the feature row, leaving the model to work from an outdated picture).
+Measuring first appearance directly gives a gate that is tight enough to block the leakage and short enough to avoid throwing away information the model is allowed to see, which is why it was the best of the options tried.
 
-The deeper issue is that the register is only observed once a month. If a charge is delivered on the tenth, it cannot appear in the observed register until the next monthly extract, regardless of how quickly the registrar processes it. Therefore, matching the average API count to the monthly register can incorrectly interpret waiting time as processing time.
+% % The gate bought only 0.60 percentage points of reduced leakage while paying 43 percentage points of staleness for it, so that more than half of all charges were hidden for a full month after they had genuinely become visible. That is why the 21-day model scored below the plain control: it was no longer peeking at future charges, but it was now blind to past ones it should have used.
 
-\subsubsection{The final solution}
-Instead of a mean-matching sweep, we calibrated on first appearance. For each charge, we find the first monthly extract in which the register shows that charge. This gives\footnote{The confidence intervals collapse to a single point because the estimated value is stable, not because the underlying criterion is beyond debate.}:
-\begin{itemize}
-    \item creation lag: 4 days (95\% CI [4, 4], (n=51,669))
-    \item satisfaction lag: 1 day (95\% CI [1, 1], (n=47,480))
-\end{itemize}
+% But then, why did the original test never caught it?
+% The original verification test truncated the charge history at a cut-off date and checked whether the rebuilt panel matched the original panel. However, both the truncation and the panel used \texttt{created\_on}. Same clock on both sides, so the test could never fail. In other words, the test was effectively asking if the panel included charges created after the cut-off date. By construction, the answer was no. Instead, we were trying to verify if the panel included charges that were already created but were not yet observable at the cut-off date.
 
-This was the best overall solution.
+% The rewritten test keeps the reference clock and the visibility clock separate. It also checks that rebuilding the panel from the full history reproduces the stored panel. Any difference in the blind replay can therefore be attributed to the truncated history rather than to the test itself.
 
-Moreover, the old 21-day gate carried a large practical cost. The margin exists to prevent leakage, but pushing it too far causes the opposite problem: charges that the register already contained, and that the model was entitled to see, get withheld from the feature row anyway, leaving the model to work from an outdated picture. This is staleness, and at 21 days it was severe. The gate bought only 0.60 percentage points of reduced leakage while paying 43 percentage points of staleness for it, so that more than half of all charges were hidden for a full month after they had genuinely become visible. That is why the 21-day model scored below the plain control: it was no longer peeking at future charges, but it was now blind to past ones it should have used.
+% There is one more important lesson.
 
-But then, why did the original test never caught it?
-The original verification test truncated the charge history at a cut-off date and checked whether the rebuilt panel matched the original panel. However, both the truncation and the panel used \texttt{created\_on}. Same clock on both sides, so the test could never fail. In other words, the test was effectively asking if the panel included charges created after the cut-off date. By construction, the answer was no. Instead, we were trying to verify if the panel included charges that were already created but were not yet observable at the cut-off date.
+% Even the rewritten test would have passed if it had been run on only one month. Hence, we tested it on:
+% \begin{itemize}
+%     \item January 2025, with no extract drift
+%     \item February 2024, with the largest drift of six days
+% \end{itemize}
 
-The rewritten test keeps the reference clock and the visibility clock separate. It also checks that rebuilding the panel from the full history reproduces the stored panel. Any difference in the blind replay can therefore be attributed to the truncated history rather than to the test itself.
+% In February 2024, the six-day extract drift happened to compensate for the missing satisfaction delay. The leakage therefore remained hidden.
 
-There is one more important lesson.
+% From this we learnt that a blind-replay test (i.e. taking the full history, cutting it off at some date, rebuilding what the model should have been able to see at that date, and checking it matches the stored data) is successful contingent on having the same date field for when you cut and when you check against and the range of months you run it on.
 
-Even the rewritten test would have passed if it had been run on only one month. Hence, we tested it on:
-\begin{itemize}
-    \item January 2025, with no extract drift
-    \item February 2024, with the largest drift of six days
-\end{itemize}
+% The final table and figures document the four gates and their sensitivity range. The main lending P@$500$ sequence is:
 
-In February 2024, the six-day extract drift happened to compensate for the missing satisfaction delay. The leakage therefore remained hidden.
+% 0.282 → 0.992 → 0.742 → 0.310 → 0.332
 
-From this we learnt that a blind-replay test (i.e. taking the full history, cutting it off at some date, rebuilding what the model should have been able to see at that date, and checking it matches the stored data) is successful contingent on having the same date field for when you cut and when you check against and the range of months you run it on.
+% with a sensitivity band from 0.294 to 0.406.
 
-The final table and figures document the four gates and their sensitivity range. The main lending P@$500$ sequence is:
-
-0.282 → 0.992 → 0.742 → 0.310 → 0.332
-
-with a sensitivity band from 0.294 to 0.406.
-
-\subsection{Does counterparty identity help? (N4)}
-\note{The verdict, read off the most conservative gate against the deterministic
-control, and the reasoning that makes it more than a null. The apparent gain
-scales monotonically with how much margin the gate allows, in every model family;
-one model getting greedier is a story about that model, three families moving in
-lockstep is a story about the data. The mechanism sentence the section turns on:
-the lending label is computed from the very register the gate governs, so
-loosening visibility leaks the label directly, whereas insolvency comes from a
-separate register and shows no gradient at all under the same loosening. Two
-targets, opposite behaviour, one mechanism, and we did not design that natural
-experiment. Then the answer with its caveats: at the tightest gate tested, the
-lender features give a boosted model nothing and give the linear model a small
-but real gain, which locates the finding in \emph{encoding} rather than in
-information, because the base feature set already carries mortgage-charge counts.
-Both caveats travel with it: the tightest gate tested is not a gate proved
-clean, and the most impressive precision number the project produced is one we
-are throwing away on purpose.}
-
+\subsection{Model comparison: before and after lender indentity data}
 Once again, the whole point of the test was to see if adding features from the Charger API would increase model accuracy against the 41-feature control model. Across the four targets and the three model families, here we present the most conservative result, applying the solution to the leakage explained in \S\ref{sec:leak}.
 
-The strongest evidence comes from the pattern across the gate settings rather than from any one number. As we showed in previous section, the apparent improvement increases monotonically as the visibility gate becomes more permissive. This happens in all three model families and in all nine relevant cells. This is important, If we observed only one model improving as the gate loosened, that would be a model-specific improvement. However, since all three families show the same pattern, it is much more likely that the pattern comes from the data itself.
+The apparent improvement from adding the lender features increases monotonically as the visibility gate becomes more permissive: the looser the gate, the larger the measured gain on lending. Reading the lending P@500 across the gate ladder makes this concrete. Under the leaking \texttt{created\_on} gate the score reaches 0.992, against a control of 0.282; tightening to \texttt{delivered\_on} brings it down to 0.742; the calibrated 21-day margin drops it to 0.310; and measuring the visibility delay directly, the tightest and cleanest gate, leaves 0.332. The same collapse appears inside the model itself: the mean absolute SHAP value of \texttt{n\_of\_charges\_outstanding} falls from 0.414 under the leaking gate to 0.284 under \texttt{delivered\_on} and to 0.002 once the margin is applied, moving the feature from 1st to 40th in importance. This ordering holds in all three model families and in all nine relevant cells. That consistency is what makes it diagnostic. If only one model's lending score rose as the gate loosened, we could dismiss it as a model-specific artefact. Because all three families move the same way, the pattern is coming from the data.
 
-The reason becomes clear when comparing lending with insolvency. The lending label is calculated from the same charge register controlled by the visibility gate. If the gate is loosened, the model gets earlier access to information that directly contributes to its own label. That creates leakage. On the other hand, the insolvency label comes from a completely different register. The gate affects the features but has no path to the insolvency label.
-
-Therefore, insolvency acts as a control experiment. If the lender features were simply useful information, both lending and insolvency should improve in a similar way regardless of the gate. If the gate is leaking the lending label, only lending should respond strongly to the gate. That is what we observe.
-
-For lending, P@$500$ is 0.294, 0.332 and 0.406 across the three gate settings against a control of 0.282, with the two looser gates clear of zero on the paired interval. For insolvency, there is no similar pattern. The linear model stays around +0.0023 at all three settings. The insolvency MLP does increase across the ladder, but the change is negative and much smaller than its seed variation. It therefore does not provide useful evidence. Removing those MLP rows makes the main argument stronger because the monotonic pattern remains in the two model families whose results are reproducible enough to interpret.
+This matters directly for interpreting the lender features, because the gate reveals why the gain appears. The Lending target label is read from the charge register, and the gate controls what the model sees of that same register. So loosening the gate lets the model see charges early, and since those charges are exactly what the Lending label measures, the model is partly reading its own answer. The measured "improvement" on lending is therefore partly leakage, not the lender features adding real predictive signal. To confirm this we use Insolvency as a built-in control. Conversely from Lending, its label does not come from the charge register at all; it comes from the company's status, which the gate has no way of touching. So if the lender features were simply informative, insolvency would improve alongside lending no matter how the gate is set. It does not. This gap between the two targets is exactly the signature of leakage rather than of a useful new feature. The consequence for the verdict is that the honest measure of what the lender data is worth must be read at the tightest gate, where this leakage is smallest, and not at the looser settings where the apparent gains are inflated by the label bleeding into the features.
 
 \subsubsection{Verdict by model family: LightGBM}
 
-The boosted model gains essentially nothing from the thirteen additional lender features.
-\begin{itemize}
-    \item Across the four targets, its largest absolute ROC-AUC change is only 0.0007.
-    \item For voluntary exit and growth, the paired intervals actually show small negative changes of -0.0002 and -0.0005.
-\end{itemize}
-
-This means that the result is not simply that we did not find evidence of an improvement. More importantly, the evidence shows that the boosted model does not benefit from these additional features and may be very slightly worse.
-
-After 25 hours of data harvesting, the boosted model is already extracting the useful information from the mortgage-charge count features in the original feature set.
+The boosted model gains essentially nothing from the thirteen additional lender features. Across the four targets, its largest absolute ROC-AUC change is only 0.0007. For voluntary exit and growth, the paired intervals actually show small negative changes of -0.0002 and -0.0005.
 
 \subsubsection{Verdict by model family: Logistic}
 The linear model is different, and we measured all four of its deltas on a paired bootstrap, for the reason set out in \S\ref{sec:errors}. Refitting logistic under the control and under the tightest gate in a single process, aligning the evaluation rows on origin month and company number, and resampling both models on the same replicate gives:
@@ -1196,41 +1052,34 @@ growth & 0.7290 & 0.7382 & $+0.0092$ $[+0.0081, +0.0103]$ \\
 \end{center}
 \end{collapsable}
 
-Every interval excludes zero. The linear family therefore gains a small but real amount from the lender columns on three targets and loses a small but real amount on the fourth, and this is the opposite of the boosted verdict above, where the largest movement in either direction is 0.0007.
+Every interval excludes zero. The linear family therefore gains a small but real amount from the lender columns on three targets and loses a small but real amount on the fourth.
 
 \subsubsection{Verdict by model family: MLP}
 The neural network is not interpreted because its seed instability is too large.
 
-\subsubsection{Ineffectiveness of some lenders metrics}
-There is also an internal model check supporting the conclusion. In the \texttt{lender\_fixed} LightGBM model, \texttt{is\_lbg\_client} has a mean absolute SHAP value of exactly 0.000000 on all four targets. It ranks between 51st and 53rd out of 54 features. This means that LightGBM never used this feature in a split across its 1,500 trees.
-
-Before interpreting that as evidence, we checked whether the model was actually capable of using the feature: with \texttt{min\_child\_samples} = 200, a binary feature needs at least 200 positive examples to be usable in a split. \texttt{is\_lbg\_client} has between 5,085 and 103,182 positive cases depending on the target, so it easily passes this requirement.
-
-Its zero importance therefore means the model chose not to use the feature.
-
-By contrast, \texttt{competitor\_entered\_12m} also has zero importance, but it does not have enough positive cases for the model to use it reliably on some targets. Its zero importance is therefore a limitation of model capacity, not evidence that the feature is useless.
-
-\texttt{ever\_lbg\_client} and \texttt{lbg\_charge\_satisfied\_6m} are also barely used, with mean absolute SHAP values never above ($3.1\times10^{-4}$).
-
-\subsubsection{Conclusion}
+\subsubsection{Conclusion of Lender Data Effectivness}
 The broader conclusion is more useful than simply saying that the lender features do not help. The additional columns mostly provide a different encoding of information that the base features already contain. Hence, while the boosted model can already extract this information from the raw charge counts, the linear model cannot easily create the interactions needed to do so, so it benefits from the richer encoding.
+Morover, while not strictly useful for modelling, these features proved pivotal in the dashboard as they allowed to filter company views based on LBG clients and prospects and, more importantly, to identify those company that recently left LBG and to what competitor they went to.
 
-Therefore, the finding is mainly about encoding rather than new information. Voluntary exit is the exception that keeps the reading honest. There, the linear model is measurably slightly worse with the lender columns, by $-0.0010$ with an interval that excludes zero, which is the same shape as the boosted verdict on voluntary exit and growth. So the claim is not that the richer encoding helps the linear model everywhere. It is that where the base features already carry the charge counts in a form the model can use, the extra columns are at best redundant and can cost a little.
-This means the data harvest could still be useful when interpretability is important and a linear model is being used. However, tt is not useful for the boosted model that we actually deploy.
-
-Two caveats are important.
-\begin{enumerate}
-    \item First, the tightest gate we tested has not been proven completely clean. The lending performance is still increasing at that gate. We therefore know that the remaining lookahead is smaller than at the calibrated gate, but we do not know that it is zero.
-    \item Second, the strongest result in the entire project is deliberately being discarded. The loosest gate produces lending P@$500$ of 0.406, which is a 44\% improvement over the control and a lift of roughly 150 times the base rate. However, this is also the gate with the most leakage. Reporting 0.406 as a genuine model improvement would therefore mean reporting a result that is partly caused by the model seeing its own label.
-\end{enumerate}
-
-The number is kept in the report so that anyone who finds it elsewhere also sees the explanation for why it is not used.
-
-\subsection{What the model learned: global SHAP analysis}
+\section{What the model learned: global SHAP analysis}
 \label{sec:label-shap-importance}
-We created four beeswarm summaries from the control run, one per target at figures~\ref{fig:beeswarm}. This section interprets those graphs and explains what the models actually learned from the data.
+We created four beeswarm summaries from the control run, one per target in Figure~\ref{fig:beeswarm}. This section interprets those graphs and explains what the models actually learned from the data\footnote{There is one important technical point about all SHAP values in this chapter. \texttt{TreeExplainer} for \texttt{LGBMClassifier} gives contributions in log-odds, not probabilities. These contributions add up to the logit of the model's uncalibrated score. Hence, the final score used in production is recalibrated using: $$odds_{true} = odds_{sampled} \times neg\_keep\_rate$$ For example, the top lending company in the July 2026 list has an uncalibrated probability of 0.972 but a final shipped score of 0.500. The ranking does not change because the recalibration is monotonic. Therefore, the SHAP values explain the ranking, while the displayed probability is the recalibrated version of that ranking. The SHAP values should therefore not be added together and expected to reproduce the probability shown on the shortlist.}.
 
-There is one important technical point about all SHAP values in this chapter. \texttt{TreeExplainer} for \texttt{LGBMClassifier} gives contributions in log-odds, not probabilities. These contributions add up to the logit of the model's uncalibrated score. Hence, the final score used in production is recalibrated using: $$odds_{true} = odds_{sampled} \times neg\_keep\_rate$$. For example, the top lending company in the July 2026 list has an uncalibrated probability of 0.972 but a final shipped score of 0.500. The ranking does not change because the recalibration is monotonic. Therefore, the SHAP values explain the ranking, while the displayed probability is the recalibrated version of that ranking. The SHAP values should therefore not be added together and expected to reproduce the probability shown on the shortlist.
+\begin{collapsable}
+\begin{figure}[p]
+  \centering
+  \includegraphics[width=0.49\linewidth]{images/shap_beeswarm_lending.pdf}\hfill
+  \includegraphics[width=0.49\linewidth]{images/shap_beeswarm_insolvency.pdf}\\[1ex]
+  \includegraphics[width=0.49\linewidth]{images/shap_beeswarm_voluntary_exit.pdf}\hfill
+  \includegraphics[width=0.49\linewidth]{images/shap_beeswarm_growth.pdf}
+  \caption{SHAP beeswarm summaries for all four targets under
+  \texttt{refactor\_growthfix}: Lending Readiness (top left), Credit Risk Exposure
+  (top right), Voluntary Exit (bottom left) and Growth Signal (bottom right).
+  Each panel is the top 15 features by mean absolute contribution over the same
+  100{,}000-row stratified subsample of the out-of-time test frame.}
+  \label{fig:beeswarm}
+\end{figure}
+\end{collapsable}
 
 \subsubsection{Lending}
 Lending is mainly a story about company size and existing debt. \texttt{Mortgages.NumMortCharges} is the most important feature, with a mean absolute SHAP value of 0.57. \texttt{segment} follows at 0.46. Companies with no existing charges tend to receive negative SHAP contributions, while companies with many charges tend to receive positive contributions.
@@ -1239,112 +1088,51 @@ This is reasonable for a lending-readiness model, but it also gives a slightly u
 
 \subsubsection{Voluntary exit}
 
-Voluntary exit is mainly a filing-behaviour story.
+Voluntary exit is mainly a filing-behaviour story. The three strongest features are: \texttt{months\_since\_last\_confstmt}: 0.38; \texttt{accounts\_stale\_streak\_months}: 0.31; \texttt{days\_to\_next\_accounts\_due}: 0.30.
 
-The three strongest features are:
-\begin{itemize}
-    \item \texttt{months\_since\_last\_confstmt}: 0.38
-    \item \texttt{accounts\_stale\_streak\_months}: 0.31
-    \item \texttt{days\_to\_next\_accounts\_due}: 0.30
-\end{itemize}
-
-These features are interesting because their interpretation changes depending on when they are measured. In a cross-sectional model, they would be leakage. A company that has already stopped filing is already showing the outcome we are trying to predict. But in this project, the features are measured at time (t) and used to predict a strike-off proposal between (t+1) and (t+6). In that setting, the same features become early warning signals.
+These features are interesting because their interpretation changes depending on when they are measured. In a cross-sectional model, they would be leakage. A company that has already stopped filing is already showing the outcome we are trying to predict. But in this project, the features are measured at time $t$ and used to predict a strike-off proposal for later months. In that setting, the same features become early warning signals.
 
 This is one of the clearest benefits of using a time series: information that would be leakage in a cross-sectional model can become valid predictive information when it is measured before the outcome occurs.
 
 \subsubsection{Insolvency}
-
-Insolvency does not have one dominant feature. \texttt{segment} is the strongest feature, with mean absolute SHAP of 0.73, followed by \texttt{company\_age\_years} at 0.32. After that, importance is spread across age and filing-recency variables. This is consistent with the lower ROC-AUC seen for insolvency. The model is combining many relatively weak signals rather than relying on one powerful predictor. The disadvantage is that there is no simple explanation that can easily be given to a RM for why a particular company appears high in the ranking.
+Insolvency does not have one dominant feature. \texttt{segment} is the strongest feature, with a mean absolute SHAP of 0.73, followed by \texttt{company\_age\_years} at 0.32. After that, importance is spread across age and filing-recency variables. This is consistent with the lower ROC-AUC seen for insolvency. The model is combining many relatively weak signals rather than relying on one powerful predictor. The disadvantage is that there is no simple explanation that can easily be given to a RM for why a particular company appears high in the ranking.
 
 \subsubsection{Growth}
 Growth is dominated by \texttt{tier\_rank}, with a mean absolute SHAP value of 0.94, almost twice that of the next feature. This result should be treated carefully. \texttt{tier\_rank} comes from \texttt{Accounts.AccountCategory}, so the model is strongly using the company's current position in the size hierarchy to predict whether it will move to a higher tier. Part of this predictive power is a ceiling effect. A company that is already at the highest tier cannot move to a higher tier. The model may therefore be learning this boundary rather than learning a real mechanism of growth.
 
 This is the weakest of the four SHAP interpretations and should be investigated further.
 
-\subsubsection{Checking the direction of features}
+\subsubsection{SHAP against the logistic coefficients}
 
-We then compared the direction of the most important features with the signs of the corresponding logistic coefficients. However, there is an important correction to the way direction should be calculated: the average signed SHAP value is not a measure of direction. A feature can have a positive effect for some companies and a negative effect for others. The average can therefore be close to zero or even have the opposite sign from the actual relationship. Instead, we measure direction using the Spearman correlation between the feature's value and its own SHAP value. Using this method, the SHAP and logistic models agree on:
-\begin{itemize}
-    \item 10/10 top features for growth
-    \item 9/10 for voluntary exit
-    \item 8/10 for lending
-    \item only 3/10 for insolvency
-\end{itemize}
+We then compared the direction of the most important features with the signs of the corresponding logistic coefficients. However, there is an important correction to the way direction should be calculated: the average signed SHAP value is not a measure of direction. A feature can have a positive effect for some companies and a negative effect for others. The average can therefore be close to zero or even have the opposite sign from the actual relationship. Instead, we measure direction using the Spearman correlation between the feature's value and its own SHAP value. Using this method, the SHAP and logistic models agree on: 10/10 top features for growth; 9/10 for voluntary exit; 8/10 for lending; only 3/10 for insolvency.
 
-The insolvency disagreement is scritically not matching. One possible explanation is that insolvency features have genuinely non-linear relationships, while logistic regression is trying to represent them using straight lines. However, this has not been demonstrated, so it remains a hypothesis.
+Insolvency is critically not matching. One possible explanation is that insolvency features have genuinely non-linear relationships, while logistic regression is trying to represent them using straight lines. However, this has not been demonstrated, so it remains an hypothesis.
 
 \subsection{What our error bars are worth}
 \label{sec:errors}
-\note{Present this as a result, not a footnote, because it is one. Two findings.
-(i) We validated our confidence intervals against a second, independent source of
-variation, refitting under different seeds, and they held for LightGBM and
-logistic and failed for the MLP, where a seed term dominates. In one case two
-non-overlapping intervals were reassuring us about a difference whose sign flips
-across seeds. State the resulting rule: no MLP difference in this project below
-about 0.02 ROC-AUC is interpretable. (ii) The paired bootstrap: comparing two
-runs by separate intervals is the wrong test when both are evaluated on the same
-companies, and resampling once and differencing tightens the lending interval
-about five-fold and moves it from inconclusive to clearly excluding zero.
-(iii) Pooled P@$N$ is not an average of its months; it lands outside the
-range of the two months it pools in 9 of 12 rows, in both directions, and the
-worst row lands 0.108 below the worse of its own months. So per-origin figures
-are the honest ones, and it is also what a RM receives, one
-month at a time.}
-
 In this section we explore confidence intervals and the uncertainty analysis results, because they changed which conclusions the project could safely make.
 
 \subsubsection{Bootstrap uncertainty versus model instability}
+The bootstrap resamples the evaluation companies. It therefore answers how much the score changes depending on which companies happen to be in the test sample. It does not answer what happens if we fit the model again. These are different sources of uncertainty.
 
-The bootstrap resamples the evaluation companies. It therefore answers how much does the score change depending on which companies happen to be in the test sample. It does not answer what happens if we fit the model again. These are different sources of uncertainty.
+When the growth models were fitted using four different random seeds: LightGBM varied by 0.0013; Logistic regression varied by 0.0021. These values are relatively small compared with their bootstrap intervals. For these two models, the row bootstrap therefore captures most of the relevant uncertainty.
 
-When the growth models were fitted using four different random seeds:
-\begin{itemize}
-    \item LightGBM varied by 0.0013
-    \item Logistic regression varied by 0.0021
-\end{itemize}
-
-These values are relatively small compared with their bootstrap intervals. For these two models, the row bootstrap therefore captures most of the relevant uncertainty.
-
-The neural network behaves very differently. Its variation is:
-
-\begin{itemize}
-    \item 0.018 for the 41-feature model
-    \item 0.031 for the corrected 27-feature model
-\end{itemize}
-
-
-These are four to seven times larger than the bootstrap widths. 
-
-
-In the light of the results, the practical rule we used throughout the chapter is: for the neural network, a ROC-AUC difference below about 0.02 should not be interpreted as meaningful. A difference between two individual fits carries uncertainty of roughly ±0.035.
-
-The growth feature correction showed why this matters. Initially, it appeared that the correction improved the MLP by +0.0075, with non-overlapping bootstrap intervals.
-
-But when both feature sets were fitted using four different seeds, the paired differences were:
-\begin{itemize}
-    \item +0.0075
-    \item +0.0283
-    \item -0.0063
-    \item -0.0101
-\end{itemize}
-
-The sign therefore changed in two of the four runs. The mean difference was only +0.0048, with a standard deviation of 0.0174. Even worse, the recorded 41-feature model was exactly the worst of the four seeds. The apparent improvement was therefore partly caused by which particular seed happened to be used.
+The neural network behaves very differently. Its variation is: 0.018 for the 41-feature model; 0.031 for the corrected 27-feature model. These are four to seven times larger than the bootstrap widths. In light of the results, the practical rule we used throughout the chapter is: for the neural network, an ROC-AUC difference below about 0.02 should not be interpreted as meaningful. A difference between two individual fits carries uncertainty of roughly ±0.035. The growth feature correction showed why this matters. Initially, it appeared that the correction improved the MLP by +0.0075, with non-overlapping bootstrap intervals. But when both feature sets were fitted using four different seeds, the paired differences were: +0.0075; +0.0283; -0.0063; -0.0101. The sign therefore changed in two of the four runs. The mean difference was only +0.0048, with a standard deviation of 0.0174. Even worse, the recorded 41-feature model was exactly the worst of the four seeds. The apparent improvement was therefore partly caused by which particular seed happened to be used.
 
 The lesson we learnt is that two non-overlapping bootstrap intervals can still give a misleading impression of a difference if the model itself is unstable across seeds. When the same model is fitted twice in the same process with the same inputs, all three model families produce bit-identical predictions. The issue is fit instability across random seeds: the model is reproducible when the seed is fixed, but different seeds produce genuinely different fitted models.
 
-\subsubsection{Numerical reproducibility}
-The dense models are exactly reproducible given a threading configuration, and differ between configurations. Refitting one growth cell at one, four, eight and sixteen BLAS threads gives ROC-AUC 0.738222, 0.738209, 0.738222 and 0.738214, a spread of about $1.3\times10^{-5}$, while two fresh processes at the same thread count agree bit for bit. The residual is therefore deterministic within a configuration rather than random per process. It is irrelevant for ROC-AUC at the scale of any difference this chapter interprets, but it can still matter for P@$N$, which changes discontinuously when two companies swap positions around the ranking cut-off.
+% \subsubsection{Numerical reproducibility}
+% The dense models are exactly reproducible given a threading configuration, and differ between configurations. Refitting one growth cell at one, four, eight and sixteen BLAS threads gives ROC-AUC 0.738222, 0.738209, 0.738222 and 0.738214, a spread of about $1.3\times10^{-5}$, while two fresh processes at the same thread count agree bit for bit. The residual is therefore deterministic within a configuration rather than random per process. It is irrelevant for ROC-AUC at the scale of any difference this chapter interprets, but it can still matter for P@$N$, which changes discontinuously when two companies swap positions around the ranking cut-off.
 
-A relative numerical change as small as ($10^{-15}$) can change P@$500$ by 0.004. For this reason, the report does not treat P@$N$ differences below about 0.01 as meaningful results.
+% A relative numerical change as small as ($10^{-15}$) can change P@$500$ by 0.004. For this reason, the report does not treat P@$N$ differences below about 0.01 as meaningful results.
 
-Voluntary exit provides an extreme example: 982 of the top 1,000 scores are exact ties. This happens because the boosted model assigns the same leaf value to very large groups of companies.
+% Voluntary exit provides an extreme example: 982 of the top 1,000 scores are exact ties. This happens because the boosted model assigns the same leaf value to very large groups of companies.
 
-As a result, P@$N$ is not really measuring a fine ranking among those companies. It partly depends on which companies the partition procedure happens to select from the tied group.
+% As a result, P@$N$ is not really measuring a fine ranking among those companies. It partly depends on which companies the partition procedure happens to select from the tied group.
 
-The two rare targets behave differently. Their score gaps around rank 500 are around ($10^{-4}$), so numerical noise is not enough to change their ordering.
+% The two rare targets behave differently. Their score gaps around rank 500 are around ($10^{-4}$), so numerical noise is not enough to change their ordering.
 
 \subsubsection{The paired bootstrap}
-
 The paired bootstrap is important when comparing two models. We know that, both models are evaluated on the same companies at the same origins. Therefore, much of the uncertainty caused by the companies themselves is shared by both models. Hence, if we calculate separate confidence intervals for each model and simply ask whether the intervals overlap, we ignore this shared variation. This makes the test unnecessarily conservative. Instead, we resample the rows once and calculate both models' metrics on exactly the same resample. The difference between the two models then becomes the quantity of interest. For the lending comparison, the separate intervals overlap heavily and suggest that the difference is unclear. The paired interval is about five times narrower and clearly excludes zero. The paired method is therefore the appropriate test because the question is not. Instead of asking ourselves if a different group of companies would produce different results, we must investigate if these same companies do receive different rankings under the two models.
 
 \subsubsection{Why pooled P@$N$ is misleading}
@@ -1359,22 +1147,6 @@ This happens for two reasons.
 Therefore, per-origin P@$N$ is the honest operational metric. It also matches how a RM actually receives the output: one month's ranking at a time.
 
 The pooled metric is kept only when comparing runs in a way that treats both runs identically.
-
-\subsubsection{Final observations}
-All of these problems have the same underlying pattern.
-\begin{enumerate}
-    \item A check was run, it produced a clean-looking result, and the result was initially believed.
-    \item The pooled number looked like an average.
-    \item The tied top-500 looked like a real ranking.
-    \item The bootstrap looked like a complete confidence interval.
-    \item  The hyperparameter search produced a confident and internally consistent ranking of twelve configurations, identical in its winner across three targets, and that ranking does not survive contact with the model we deploy (\S\ref{sec:pipeline}).
-\end{enumerate}
-
-None of these calculations was mathematically wrong. The problem was that we interpreted them as answering questions that they did not actually answer.
-
-The same issue appeared in the blind-replay test in \S\ref{sec:leak}, in the acceptance gate discussed in \S\ref{sec:limits}, and in the hyperparameter search of \S\ref{sec:pipeline}, which scored every candidate at a fixed round count that the production fit never reaches. This is the main process lesson we learned from the modelling: a test is not useful simply because it runs and returns a clean result. We also need to check that the test is capable of detecting the failure it is supposed to detect.
-
-One technical limitation was found late and closed. The staged runner originally persisted only the boosted model, so for most of the project only boosted comparisons could be paired, and the linear verdict of §\ref{sec:n4} rested on unpaired point estimates. The runner now writes the held-out labels, the row keys and one score vector per model family for every target, which costs roughly 30 MB a target and about 120 MB a run rather than the few megabytes we first assumed. Every future comparison between any two runs and any model family is therefore pairable by construction, and the comparison that motivated the change was re-measured directly from the stored matrices, in §\ref{sec:n4}.
 
 \section{The unstructured result: media coverage against statutory}
 \label{sec:unstructured}
@@ -1511,18 +1283,7 @@ arbitrary hundred drawn from a pool of more than two hundred equally ranked comp
 re-running the sort could return a different hundred with identical scores. In other words, the model can't tell apart the companies at the top of its list; it lumps them into a few big groups with identical scores instead of ranking them one by one. The other three targets do not have this problem: their top 1000 hold 993, 961 and 994 distinct scores, with a single company at the cut.
 
 \subsection{One company, end to end}
-Here we explore one example end to end in detail. is a Small manufacturer, about ten years old, active in all thirty-three panel months. It took on new secured borrowing three separate times inside the window; it was a Lloyds client at the start of the panel and released both Lloyds charges in November 2023 before borrowing from two competitors, and in February 2026 it won its first public-sector contract, a £597k award. The pipeline places it 499th of 1,409,284 on Lending Readiness, which puts it literally inside a top-500 call list, and in the bottom 0.2\% on Voluntary Exit. Both answers are right about that company, and the reasons behind the first are the ones an RM would actually open with: it already carries charges, it has borrowed repeatedly and recently, and it has just landed a first public contract, which is a textbook working-capital trigger.
-
-%INTERNAL COMMENT: This is what we planned to do; it is not confirmed to be covered in the dashboard, so we need to double-check it
-Those reasons are now in the shipped artefacts rather than being described as a thing we could build. \texttt{scripts/make\_shortlist\_reasons.py}` writes a sibling file beside each shortlist carrying, per company, the three features with the largest absolute SHAP contribution together with the signed contribution and the feature value it came from, because a contribution without its value cannot be turned into a sentence. It also writes a long-format extract of the top 5,000 per target for the dashboard, deliberately not all 1.4M companies, since the browser store it feeds is already 11 MB. We present here the comapny ranked 1st of the July 2026 lending list, which makes the shape obvious: MS LENDING GROUP LIMITED ranks first on 578 mortgage charges (+2.77 log-odds), eleven new charge events in twelve months (+0.92) and a Large segment (+0.86). One caveat travels with every one of those numbers (and is covered in \S\ref{sec:label-shap-importance}: \texttt{TreeExplainer} works in raw log-odds, so the three contributions add up toward the model's raw internal logit, not toward the tidy probability shown in the \texttt{score} column beside them. However, the ranking is unaffected, because the recalibration is monotone (i.e. it never reorders anything). The reasons explain the ranking; the score is that ranking recalibrated.
-
-Two further caveats travel with every number on this page.
-\begin{itemize}
-    \item Companies that are not Active carry no score at all, which is correct rather than missing: the models are fitted on trading companies, and a lending-readiness forecast for a company already in liquidation would be a number with nothing behind it. Any interface showing these scores has to say "not scored" rather than render a zero.
-    \item And the scores are forecasts about August 2026 onwards, not descriptions of July, so each needs its horizon displayed beside it, and the wording should lead with the measured hit rate rather than the raw probability, which runs optimistic at the very top of the list, which is exactly where a dashboard looks. 
-\end{itemize}
-
-Finally, a ranked list still has to reach the right desk. \S\ref{sec:routing} partitions the scored universe by lender relationship, which is what turns these four rankings into work for the three teams the client actually named.
+Here we explore one company end to end. \textsc{Cubicle Washroom Systems Limited} (09919041) is a Small manufacturer, ten and a half years old, present and \texttt{Active} in all thirty-three panel snapshots. It took on new secured borrowing on three separate occasions inside the window, its charge count moving 4 to 5 in February 2024, to 7 in August 2025 and to 8 in May 2026. It was a Lloyds client at the start of the panel and released both Lloyds charges in November 2023, after which it borrowed from two competitors and now banks primarily with NatWest. In February 2026 it won its first public-sector contract, a £597k award. The model reads that row as follows. The four features the register and the contract feed contribute most are its eight charges, the five months since that first award, the £597k value itself and its Small segment. \texttt{TreeExplainer} attributes the score to them exactly: from the model's base value of $-3.19$ log-odds, the 41 contributions sum to $+5.20$ and land on a raw logit of $2.00$, which is an uncalibrated probability of $0.881$. Recalibrating by $odds_{true} = odds_{sampled} \times neg\_keep\_rate$ with the lending run's keep rate of $0.0285$ gives the $0.174$ that ships in the \texttt{score} column, and that score places the company 499th of 1{,}409{,}284 on Lending Readiness. On Voluntary Exit the same company sits 1{,}406{,}602nd, in the bottom 0.2\%. Both answers are right about it. The three reasons shipped beside that score are the ones an RM would actually open with: \begin{itemize} \item \texttt{Mortgages.NumMortCharges} $= 8$, contributing $+2.46$ log-odds \item \texttt{months\_since\_last\_award} $= 5$, contributing $+0.49$ \item \texttt{total\_value\_won\_12m} $= \pounds597{,}000$, contributing $+0.31$ \end{itemize} A company that already carries charges and has just landed its first public contract is a textbook working-capital trigger, and the second and third reasons are exactly the join between the structured register and the unstructured sources that this project set out to make. Note that the contributions are in raw log-odds and sum toward the internal logit of $2.00$ above, not toward the $0.174$ printed beside them; the recalibration is monotone and so never reorders anything, which is why the reasons explain the ranking and the score is that ranking recalibrated (\S\ref{sec:label-shap-importance}). 
 
 \section{What each public source was worth}
 \label{sec:sources-eval}
