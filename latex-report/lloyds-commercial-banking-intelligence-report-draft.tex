@@ -31,11 +31,11 @@
 %   Samuel  2.5, 3.6, 4.2, 4.4
 % =============================================================================
 
-\documentclass[    author={Team 5},
+\documentclass[    author={Samuel Menon Demelo; Vishal Khatri; Viktor Ander Lindholm; Sneha Saphala Ram Prasad},
                supervisor={Prof. Fernando Moreno-Pino},
                    degree={MSc},
                     title={Mining the Public Record for Commercial Banking Intelligence},
-                 subtitle={Subtitle},
+                 subtitle={Ranking SME Lending, Risk and Growth Prospects for Lloyds Banking Group},
                      type={},
                      year={2026}]{dissertation}
 
@@ -57,6 +57,7 @@
 \maketitle
 \frontmatter
 \makedecl
+\makediaisclosure
 
 \tableofcontents
 \listoffigures
@@ -115,7 +116,7 @@ used, and name the things we deliberately did NOT use.}
 \item \textbf{Reporting and delivery.} \emph{Matplotlib} for every figure, a
       \texttt{src/models/report.py} module that writes figures and tables
       directly as PDF and \texttt{.tex} for \verb|\includegraphics| and
-      \verb|\input|, and a dependency-free static HTML and vanilla-JavaScript
+      \verb|\input|, and a server-based HTML and vanilla-JavaScript
       dashboard.
 \item \textbf{Engineering practice.} Git and GitHub with one branch per
       workstream; a run registry that does not overwrite a recorded tag; a
@@ -417,7 +418,7 @@ The first group describes each company as the register currently shows it, and i
 \begin{table}[htbp]
 \centering
 \small
-\caption{The base fields carried from CH bulk dataset. Fields marked $^{\dagger}$ are derived
+\caption[Base fields from CH bulk dataset.]{The base fields carried from CH bulk dataset. Fields marked $^{\dagger}$ are derived
 from the bulk record by a single deterministic step rather than read raw.}
 \label{tab:base-fields}
 \begin{tabular}{@{}llp{7.2cm}@{}}
@@ -472,7 +473,7 @@ is decaying. Every delta is computed on a dense calendar spine rather than by co
 \begin{table}[htbp]
 \centering
 \small
-\caption{Delta and behavioural features derived from the base fields, measured
+\caption[Delta and behavioural features derived from the base fields]{Delta and behavioural features derived from the base fields, measured
 across the panel. Windows are trailing calendar months from the origin.}
 \label{tab:delta-fields}
 \begin{tabular}{@{}llp{7.0cm}@{}}
@@ -532,7 +533,7 @@ So far, the register shows how a company files and borrows, but not whether it's
 \begin{table}[htbp]
 \centering
 \small
-\caption{Contract-activity features, aggregated to the company level from the
+\caption[Contract-activity features]{Contract-activity features, aggregated to the company level from the
 unioned Contracts Finder and Find a Tender feeds.}
 \label{tab:contract-fields}
 \begin{tabular}{@{}lp{7.6cm}@{}}
@@ -565,7 +566,7 @@ For companies that have secured loans, lender names attached to each charge were
 \begin{table}[htbp]
 \centering
 \small
-\caption{Lender-relationship features, derived from the Charges API harvest.
+\caption[Lender-relationship features]{Lender-relationship features, derived from the Charges API harvest.
 Descriptive only: none fed the model scores (\S\ref{sec:leak}).}
 \label{tab:lender-fields}
 \begin{tabular}{@{}lp{7.4cm}@{}}
@@ -776,7 +777,7 @@ Finally, we performed three checks to determine if our design choiches where cor
     \begin{figure}[p]
   \centering
   \includegraphics[height=0.86\textheight]{images/15_feature_label_corr.pdf}
-  \caption[Feature-label correlation across all four targets]{}
+  \caption[Feature-label correlation matrix across all four targets]{Feature-label correlation matrix across all four targets}
   \label{fig:feature-label-corr}
 \end{figure}
 \end{collapsable}
@@ -861,7 +862,7 @@ Momentum & Size-tier, relocation and industry changes \\
 Signals & Lending readiness, growth, credit risk and Gazette signals \\
 \hline
 \end{tabular}
-\caption{The six groups containing 27 Home filters.}
+\caption[The six filter families for the dashboard]{The six filter families, containing 27 Home filters.}
 \label{tab:dashboard_filters}
 \end{table}
 \end{collapsable}
@@ -1072,7 +1073,7 @@ We created four beeswarm summaries from the control run, one per target in Figur
   \includegraphics[width=0.49\linewidth]{images/shap_beeswarm_insolvency.pdf}\\[1ex]
   \includegraphics[width=0.49\linewidth]{images/shap_beeswarm_voluntary_exit.pdf}\hfill
   \includegraphics[width=0.49\linewidth]{images/shap_beeswarm_growth.pdf}
-  \caption{SHAP beeswarm summaries for all four targets under
+  \caption[SHAP beeswarm summaries for all four targets]{SHAP beeswarm summaries for all four targets under
   \texttt{refactor\_growthfix}: Lending Readiness (top left), Credit Risk Exposure
   (top right), Voluntary Exit (bottom left) and Growth Signal (bottom right).
   Each panel is the top 15 features by mean absolute contribution over the same
@@ -1203,7 +1204,7 @@ A logical criticism is that the first sample was intentionally difficult; theref
 \begin{collapsable}
 \begin{table}[htbp]
 \centering
-\caption{Guardian coverage of the 398 companies the models flagged for July 2026.}
+\caption[Guardian API coverage]{Guardian API coverage of the 398 companies the models flagged for July 2026.}
 \label{tab:news-funnel}
 \begin{tabular}{lrr}
 \toprule
@@ -1306,7 +1307,7 @@ In \S\ref{sec:public-sources} we group public data into two categories: those th
 \begin{collapsable}
 \begin{table}[htbp]
 \centering
-\caption{What each public source reached, as a share of the 1,493,972 company
+\caption[Public sources reach-rate]{What each public source reached, as a share of the 1,493,972 company
 universe at July 2026.}
 \label{tab:source-coverage}
 \begin{tabular}{llrrl}
@@ -1343,7 +1344,7 @@ unusable.
 \begin{collapsable}
 \begin{table}[htbp]
 \centering
-\caption{Coverage by sector. A manufacturer is roughly six times more likely to own
+\caption[Unstructured sources coverage by sector]{Coverage by sector. A manufacturer is roughly six times more likely to own
 property than a fast growth firm.}
 \label{tab:coverage-sector}
 \begin{tabular}{lrrr}
@@ -1408,7 +1409,7 @@ Lloyds Banking Group & 10{,}604\\
 Challenger banks & 7{,}512\\
 \bottomrule
 \end{tabular}
-\caption{Top principal lenders by number of companies (largest lender by outstanding charges), July 2026. Lloyds ranks fourth.}
+\caption[Top lenders by number of companies]{Top principal lenders by number of companies (largest lender by outstanding charges), July 2026. Lloyds ranks fourth.}
 \label{tab:league}
 \end{table}
 \end{collapsable}

@@ -218,6 +218,24 @@
   \noindent {\dissertation@author}, \today
 }
 
+% define macro to generate AI disclosure statement
+
+\newcommand{\makediaisclosure}{
+  \newpage
+  \thispagestyle{plain}
+
+  \chapter*{AI Disclosure}
+
+  Third-party artificial intelligence (AI) tools were used in the preparation
+  of this dissertation in the following ways:
+
+  \begin{itemize}
+    \item creating tables and commands for \LaTeX{} code;
+    \item checking spelling and grammar; and
+    \item providing debugging assistance for code.
+  \end{itemize}
+}
+
 % define macros to mark front, main and back matter
 
 \renewcommand{\frontmatter}{
