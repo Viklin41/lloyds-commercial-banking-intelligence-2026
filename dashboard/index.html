@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Companies House Data Store · Lloyds Commercial Banking</title>
+<title>Companies House Data Store</title>
 <!-- Inline, so the browser's automatic /favicon.ico request never fires and no longer
      logs a 404 on every page load. A data URI needs no file and no round trip. -->
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%23044D3E'/><text x='16' y='23' font-family='Georgia,serif' font-size='19' font-weight='700' fill='%2300C48C' text-anchor='middle'>C</text></svg>" />
@@ -224,11 +224,7 @@ body{
     radial-gradient(760px 560px at 48% 118%, rgba(0,196,140,.07), transparent 64%),
     linear-gradient(168deg, #08120E 0%, #060D0A 42%, #040907 78%, #030605 100%);
 }
-/* Lower against the darker field: at .13 the silhouette read as a shape behind the
-   cards rather than a watermark under them. */
-.bg-horse{position:fixed;right:-7vw;bottom:-14vh;z-index:-1;
-  width:min(42vw,560px);height:auto;opacity:.055;pointer-events:none;
-  filter:drop-shadow(0 0 70px rgba(0,0,0,.45));}
+
 
 /* ==========================================================================
    Chrome
@@ -238,17 +234,7 @@ body{
 .topbar::after{content:"";position:absolute;left:0;right:0;bottom:-1px;height:1px;
   background:linear-gradient(90deg,transparent,var(--jade) 18%,var(--mint) 50%,var(--jade) 82%,transparent);
   opacity:.5}
-/* The official mark is black, the bar is dark green. A white chip keeps the
-   asset unmodified and still legible. */
-.markwrap{display:flex;align-items:center;justify-content:center;flex:none;
-  background:#fff;border-radius:10px;padding:7px 12px;height:52px;
-  box-shadow:0 2px 12px rgba(0,0,0,.28)}
-/* The supplied asset is the full lockup, so it gets room to stay legible and
-   is never cropped. The inline fallback has no intrinsic size, so it needs an
-   explicit width. */
-.mark{height:38px;max-width:150px;width:auto;color:#0B0B0B;display:block}
-.markwrap > svg.mark{width:34px}
-.divider{width:1px;height:28px;background:var(--edge);flex:none}
+
 .wordmark{font-family:var(--font-neutral);font-weight:600;letter-spacing:-.01em;font-size:15px}
 .wordmark span{display:block;font-family:var(--font-ui);font-weight:400;font-size:11px;
   letter-spacing:.14em;text-transform:uppercase;color:var(--text-faint);margin-top:1px}
@@ -1528,7 +1514,6 @@ button.tile{font:inherit;color:inherit;text-align:left;width:100%;cursor:pointer
   background:rgba(255,255,255,.07);color:var(--text-dim);border:1px solid var(--edge)}
 
 .nothing{position:relative;overflow:hidden;padding:38px 32px}
-.nothing-horse{position:absolute;right:18px;bottom:-30px;width:200px;height:auto;opacity:.16;pointer-events:none}
 .nothing h2{font-family:var(--font-neutral);font-size:21px;font-weight:600;letter-spacing:-.02em;margin:0 0 10px}
 .nothing p{color:var(--text-dim);max-width:54ch;margin:0 0 22px}
 .checked{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:0 26px;max-width:660px}
@@ -1986,78 +1971,7 @@ html[data-field="light"]{
   --lg-bevel-lg:inset 1px 1px 0 rgba(255,255,255,.95), inset -1.5px -1.5px 0 rgba(0,0,0,.08);
 }
 
-/* ==========================================================================
-   OPENING SEQUENCE
 
-   A short branded clip covering the page while the dashboard boots behind it.
-   It is purely a curtain: the app initialises underneath as normal, so when the
-   clip ends the dashboard is already built and the hand-over is a fade rather
-   than a wait.
-
-   `cover`, so the clip fills the viewport edge to edge with no bars. The clip is
-   16:9 and a desktop window is usually wider or shorter than that, so cover
-   crops rather than letterboxes: at a typical 1440x900 it loses about 10% off
-   each side. Checked against the actual frames, the mark sits well inside that,
-   so nothing that carries meaning is lost. --ink stays as the backing colour for
-   the moment before the first frame decodes.
-   ========================================================================== */
-.intro{
-  position:fixed;inset:0;z-index:200;
-  display:grid;place-items:center;
-  background:var(--ink);
-  transition:opacity .55s ease, visibility .55s ease;
-}
-.intro.is-done{opacity:0;visibility:hidden;pointer-events:none}
-/* Absolutely filling the curtain, not laid out by the grid. `place-items:center`
-   sizes a grid item to its content, so the video kept its own 16:9 box (measured
-   1425x801 in a 1440x1000 window) and object-fit had nothing left to cover. The
-   grid still exists only to position the skip button.
-
-   The scale is the part that matters, and it is not arbitrary. The clip is
-   pillarboxed IN THE FILE: measured off the decoded frames, there are 149px of
-   black down the left and 150px down the right of the 1920-wide picture, with
-   nothing at the top or bottom. So the real content is 1621x1080, an aspect of
-   1.50, sitting inside a 1.778 frame.
-
-   `cover` alone cannot help, because it fits the FRAME, bars included. It only
-   hides them when the window happens to be 1.5:1 or narrower, which is why this
-   looked fine in a 1440x1000 test and showed black edges on a real 16:9 monitor.
-
-   Solving for the scale that pushes 7.8%-wide bars outside the viewport at any
-   window aspect gives s >= 1.185. At 1.2 the source pixel landing on the screen
-   edge is 160, only 10px clear of the bar, and that margin is constant for every
-   aspect wider than the clip. 1.22 puts it at 173, which is 23px of clearance -
-   enough to absorb the compression fringe along the bar edge. The cost is more
-   crop off the top and bottom, which is free here: the mark is centred and takes
-   up about a third of the height. */
-.intro video{position:absolute;inset:0;width:100%;height:100%;
-  object-fit:cover;display:block;
-  transform:scale(1.22);transform-origin:center}
-/* The clip replays on every refresh, which during a demo is often. A way past it
-   is not optional. The whole curtain is clickable; this is just the visible hint,
-   held back for a moment so it does not compete with the opening frame. */
-.intro-skip{
-  position:absolute;bottom:30px;right:30px;
-  font:inherit;font-size:12px;letter-spacing:.02em;
-  padding:8px 16px;border-radius:99px;cursor:pointer;
-  color:var(--text-dim);
-  background-color:var(--glass-2-tint);
-  border:1px solid var(--glass-2-rim);
-  -webkit-backdrop-filter:blur(var(--lg-blur-sm)) saturate(var(--lg-sat));
-  backdrop-filter:blur(var(--lg-blur-sm)) saturate(var(--lg-sat));
-  box-shadow:var(--glass-cast-2), var(--glass-bevel-2);
-  opacity:0;animation:introSkipIn .4s ease 1.1s forwards;
-  transition:color var(--glass-ease), border-color var(--glass-ease);
-}
-.intro-skip:hover{color:var(--text);border-color:var(--glass-hover-rim)}
-.intro-skip:focus-visible{outline:2px solid var(--jade);outline-offset:2px}
-@keyframes introSkipIn{to{opacity:1}}
-/* Someone who has asked for less motion should not be handed an animation as the
-   very first thing. The script dismisses it immediately; this is the belt to that
-   braces, in case the clip paints for a frame before the script runs. */
-@media (prefers-reduced-motion:reduce){
-  .intro{display:none}
-}
 
 /* ---- Fallback ----------------------------------------------------------- */
 /* No backdrop-filter at all: fill the panes so text stays readable. */
@@ -2168,11 +2082,6 @@ html[data-field="light"]{
      else, and `autoplay` starts the clip without waiting for the script. Muted
      and playsinline are not decoration: without both, browsers refuse to
      autoplay and the curtain would sit on a still frame until the guard fired. -->
-<div class="intro" id="intro" role="presentation">
-  <video id="introvid" muted playsinline autoplay preload="auto"
-         src="Lloyds_intro.mp4" aria-hidden="true"></video>
-  <button class="intro-skip" id="introskip" type="button">Skip intro</button>
-</div>
 
 <!-- ==========================================================================
      Liquid Glass lens. Defined once, referenced by every refracting surface.
@@ -2300,12 +2209,8 @@ html[data-field="light"]{
 
 <div class="bg"></div>
 
-<img class="bg-horse" src="assets/horse-mark.png" alt="" aria-hidden="true"
-     onerror="this.remove()">
 
 <header class="topbar">
-  <span class="markwrap" id="brand"></span>
-  <span class="divider"></span>
   <div class="wordmark">Companies House Data Store<span>Minimum Viable Prototype</span></div>
   <nav class="topnav" id="topnav" aria-label="Sections"></nav>
   <!-- Placeholder only; replaced from META.snapshot_date at boot. Kept deliberately
@@ -2337,46 +2242,6 @@ html[data-field="light"]{
    It is tied to page load, not to the router, so moving between Home and
    Analytics never brings it back. A refresh does, which is what was asked for.
    ========================================================================== */
-(function openingSequence(){
-  const el = document.getElementById("intro");
-  if(!el) return;
-  const vid  = document.getElementById("introvid");
-  const skip = document.getElementById("introskip");
-  let done = false;
-
-  const finish = () => {
-    if(done) return;
-    done = true;
-    clearTimeout(guard);
-    document.documentElement.style.overflow = "";
-    el.classList.add("is-done");
-    try { vid.pause(); } catch(e){}
-    // Taken out of the document once the fade has run, so a full-viewport
-    // element is not left sitting over the dashboard for the rest of the session.
-    setTimeout(() => { el.remove(); }, 650);
-    removeEventListener("keydown", onKey);
-  };
-  const onKey = e => { if(e.key === "Escape" || e.key === "Enter" || e.key === " ") finish(); };
-
-  // Asked for less motion: no clip at all, straight to the dashboard.
-  if(matchMedia("(prefers-reduced-motion: reduce)").matches){ el.remove(); return; }
-
-  document.documentElement.style.overflow = "hidden";   // no scrolling behind the curtain
-  const guard = setTimeout(finish, 9000);               // the catch-all
-
-  vid.addEventListener("ended", finish);
-  vid.addEventListener("error", finish);
-  vid.addEventListener("stalled", finish);
-  vid.addEventListener("abort", finish);
-  el.addEventListener("click", finish);                 // anywhere on the curtain
-  if(skip) skip.addEventListener("click", e => { e.stopPropagation(); finish(); });
-  addEventListener("keydown", onKey);
-
-  // autoplay is a promise, and a rejected one means the browser refused: fall
-  // through rather than leaving a frozen first frame on screen.
-  const p = vid.play();
-  if(p && typeof p.catch === "function") p.catch(finish);
-})();
 
 /* ==========================================================================
    Liquid Glass capability probe.
@@ -2475,25 +2340,6 @@ html[data-field="light"]{
 /* ==========================================================================
    Brand mark. Try the official asset, fall back to the drawn placeholder.
    ========================================================================== */
-(function brand(){
-  const host = document.getElementById("brand");
-  /* The list is probed in order and every miss costs a 404 in the console, so it names
-     files that are actually on disk. It used to lead with assets/lloyds-logo.svg and
-     assets/lloyds-logo.png, neither of which was ever added, so every single page load
-     logged two 404s before falling through to the real mark. Adding a new asset means
-     putting its filename at the FRONT of this list, not relying on a naming convention
-     the folder does not follow. */
-  const tries = ["Lloyds_Banking_Group_Logo.png", "Lloyds-Bank-Symbol.png"];
-  let i = 0;
-  const attempt = () => {
-    if(i >= tries.length){ host.remove(); return; }   // no asset, no white box
-    const img = new Image();
-    img.onload = () => { img.className = "mark"; img.alt = "Lloyds"; host.replaceChildren(img); };
-    img.onerror = () => { i++; attempt(); };
-    img.src = tries[i];
-  };
-  attempt();
-})();
 
 /* ==========================================================================
    The store. Built by dashboard/build_data.py from the NB10 Gazette work.
@@ -5114,8 +4960,7 @@ function emptyPanel(c){
   }).join("");
   return el(`
     <section class="panel nothing">
-      <img class="nothing-horse" src="assets/horse-mark.png" alt="" aria-hidden="true" onerror="this.remove()">
-      <h2>Nothing found for this company.</h2>
+            <h2>Nothing found for this company.</h2>
       <p>This is a result, not an error. Only ${nf(META.companies_with_signal)} of the
       ${nf(META.universe)} companies we hold carry a Gazette signal at all.
       For a company the model has flagged, an absence of distress notices is itself

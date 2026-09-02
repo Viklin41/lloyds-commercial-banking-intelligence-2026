@@ -17,7 +17,7 @@ most important corrections in the project came from checking work we had already
 
 ---
 
-## 1. The problem, as it actually was
+## 1. The problem we actually had
 
 The original design document states it in one line:
 
@@ -34,7 +34,7 @@ the notebook that produced it, and nothing upstream was rewritten to suit the da
 
 ---
 
-## 2. What we planned, and why it was wrong
+## 2. Two plans that did not work
 
 The architecture went through three versions before it settled, and the second one is the interesting
 one, because it was fully designed and was still the wrong answer.
@@ -313,7 +313,7 @@ source stopped recording them. The code is correspondingly careful about tense:
 UKRI research funding, matched on name and postcode area rather than number, so it carries a
 confidence and the tile says "name match only".
 
-### Hiring, and why it is not here
+### Why hiring data is not here
 
 The original design assigned Adzuna job adverts to Sam as a hiring signal, notebook 07, described as
 "already built". It is not in the dashboard, and there are now **zero references to hiring anywhere in
@@ -348,7 +348,7 @@ The panel is not hand-written HTML. The browser asks the server what filters exi
 it is told, so a filter cannot appear in the UI without a predicate behind it, and a predicate cannot
 change without the panel following.
 
-### The rule that governs NULLs
+### How we handle missing values
 
 This is the most consequential design rule in the filter system:
 
@@ -367,7 +367,7 @@ It exists because the NULL rates are enormous and they mean specific things:
 Collapsing any of those to "No" would produce a confidently wrong list. A company incorporated eight
 months ago has not "not relocated"; we cannot say.
 
-### Live counts, and why they are mandatory
+### Why every option shows a live count
 
 Every option carries its own count. The specification argues for this with a worked collapse:
 
@@ -388,7 +388,7 @@ same gap that appears again in section 9.
 
 ---
 
-## 8. Presets, and the rule that killed two of them
+## 8. Presets, and the two we dropped
 
 Presets started as saved combinations. The final pass added a test that a preset had to pass:
 
@@ -419,7 +419,7 @@ less. Restricting them would hide the cases that matter most."*
 
 ---
 
-## 9. The adversarial pass, and the five defects it found
+## 9. Testing it hard, and the five bugs that turned up
 
 On 19 August a full verification pass was run against the live server. The method matters:
 
@@ -493,7 +493,7 @@ presentation bug got a presentation fix.
 
 ---
 
-## 10. The investigation that overturned our own conclusion
+## 10. Where we checked our own answer and found it wrong
 
 This is the most valuable thing in the record, because it is the project catching itself being wrong
 about something it had already decided.
@@ -509,7 +509,7 @@ entire file whose ratio falls in the 0 to 0.005 band.
 Preset A moved to `Mortgages.NumMortOutstanding = 0`. 31,003 became 31,002. One company removed, none
 added.
 
-### What the cross-check then uncovered
+### Two measures that disagreed
 
 The file carries **two different "outstanding" measures and they disagree**:
 
@@ -525,7 +525,7 @@ argument: **996 companies where the bulk says nothing is outstanding but a named
 Inside preset A, a list whose entire promise is "no incumbent to displace", that left **661 companies
 carrying a named lender and 118 of them current LBG clients**.
 
-### The conclusion we reached first, and it was wrong
+### What we thought at first
 
 The record preserves it rather than deleting it, struck through, with a note explaining why it is
 still there:
@@ -536,7 +536,7 @@ still there:
 
 That reads like an obvious business error. It is not.
 
-### What the investigation found
+### It came down to company age
 
 The disagreement is a function of **company age**, not of data freshness:
 
@@ -575,7 +575,7 @@ the LBG subset, because that is the only charge-date column in the file. For the
 companies in preset A the live-versus-stale split is inferred from the same gradient rather than
 measured.
 
-### What this one taught us
+### What we took from it
 
 Three things, and they are the reason this section is the longest in the document.
 
@@ -612,7 +612,7 @@ One invariant keeps the two halves honest:
 > `where` remains the definition of a preset. **The count is always computed from `where`, never from
 > the mapping**, so the two cannot drift silently in the direction that matters.
 
-### How it was verified, and why counts were not enough
+### Why counting rows was not enough to check it
 
 > The mapping was verified before any UI was written, **by SET DIFFERENCE rather than by count**. Two
 > predicates can agree on a total and still select different companies.
@@ -620,7 +620,7 @@ One invariant keeps the two halves honest:
 For every preset, the companies matched by `where` and the companies matched by the filter expansion
 were compared in both directions. Eight of nine returned 0 and 0.
 
-### The ninth
+### The one preset that will not come apart
 
 `contract_no_borrowing` cannot be taken apart, and the set difference shows exactly how badly:
 
@@ -646,7 +646,7 @@ Two equivalences were also recorded here because they are not obvious, and both 
 
 ---
 
-## 12. Scores, and what they are not
+## 12. The scores, and what they do not mean
 
 Four models, held to a presentation discipline that is stricter than the modelling:
 
@@ -749,7 +749,7 @@ than helping anyone use it.
 
 ---
 
-## 16. Defects found after the specification closed
+## 16. Bugs found after the spec was signed off
 
 The record in `FILTER_SPEC.md` ends on 21 August. Three more defects were found in the final
 verification and visual passes, and they are worth adding because two of them were invisible.
@@ -778,7 +778,7 @@ same time, and a normal page load now produces zero console errors.
 
 ---
 
-## 17. What we can actually prove
+## 17. What we can prove
 
 The evidence, in the order it would convince someone:
 
@@ -864,7 +864,7 @@ none of the four driving columns contains a null that could silently drop a row.
 
 `lbg=never` is now rejected rather than silently accepted, so a saved link using it fails loudly.
 
-### 19.2 The model scores panel was rebuilt, and one of its sentences was wrong
+### 19.2 Rebuilding the model scores panel
 
 The panel now shows the score as a percentage, with precision, base rate and lift beside it and the
 three SHAP drivers underneath. The reason for the rebuild was a defect rather than a preference.
@@ -950,7 +950,7 @@ by counterparty** would carry nothing: by decile down the lending hundred, "borr
 9, 8, 7, 7, 5, 5, 8, 8, 6, 7, and on insolvency "no charge ever" runs 10, 10, 10, 10, 10, 9, 10, 7, 8,
 9. The variable does not vary with rank, so the colour would be ink rather than information.
 
-### 19.5 Defects found by verification rather than by eye
+### 19.5 Bugs the checks caught that we did not
 
 Worth recording because in each case the measurement caught what looking did not.
 
@@ -967,7 +967,7 @@ Worth recording because in each case the measurement caught what looking did not
 - **Height jumps between a skeleton and its content**, measured at 117px and then 149px, in both cases
   invisible in a screenshot and obvious in a measurement.
 
-### 19.6 The identity source stopped being the biggest file for the smallest job
+### 19.6 A 639 MB file read for four fields
 
 `serve.py` read a **639 MB, 58 column, untyped CSV** at every startup for four fields: incorporation
 date and the three address lines. Fifty-four columns were parsed and discarded once per restart, and it
@@ -1013,7 +1013,7 @@ is checked against the data.
 | `post_build_change/shortlist_reasons_2026-07.parquet` | The per-company SHAP reasons in section 19.3 |
 | `POST_BUILD_CHANGES.md` | The full change record behind section 19 |
 
-## What could not be established from the records
+## What the records could not tell us
 
 **The architecture history and the engine benchmark in section 2** are not in any file in the repository.
 The sharded `core.js` design and the DuckDB-against-PyArrow measurements come from the working record

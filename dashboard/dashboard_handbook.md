@@ -61,7 +61,7 @@ between Home and Analytics.
 
 ---
 
-## The shape of the thing
+## How the dashboard is laid out
 
 ![The Home page](handbook_img/01-home.png)
 
@@ -255,7 +255,7 @@ list will not run away with you. Clicking anywhere on a row opens that company.
 The header gives you identity: name, company number, lifecycle chip, registered status, incorporation
 date, address, SIC code, and chips for sector and size.
 
-### The chips, and what each one is telling you
+### What the chips mean
 
 Small labels turn up all over the profile and they are not decoration. There are three families and
 they mean quite different things.
@@ -496,7 +496,7 @@ down to a segment. If you want to know about a slice, that is a Home question.
 
 ---
 
-## Some things to actually try
+## Things to try
 
 Work down this table and you will have used every part of the dashboard at least once.
 
@@ -522,7 +522,7 @@ business, and that the dashboard reports what the register says rather than inte
 
 ---
 
-## A last word on reading it honestly
+## Reading the numbers honestly
 
 Three habits will keep you out of trouble when using the dashboard.
 

@@ -42,3 +42,11 @@ __pycache__/
 dashboard/Lloyds_Banking_Group_Logo.png
 dashboard/Lloyds-Bank-Symbol.png
 dashboard/assets/horse-mark.png
+
+# The handbook and the design doc are generated from their markdown by
+# dashboard/build_handbook.py. Only the .md source and the printed .pdf are versioned;
+# the intermediate HTML is a build artefact and is rebuilt on demand.
+# Named one by one on purpose: dashboard/index.html IS the dashboard and must stay tracked.
+dashboard/dashboard_handbook.html
+dashboard/dashboard_design.html
+ # Branded intro clip. Kept local, removed from the public repo alongside the # logo and horse marks above. dashboard/Lloyds_intro.mp4 # Same build-artefact rule as the handbook and design doc. dashboard/dashboard_manual.html # Zip of handbook_img/, whose PNGs are already tracked individually. dashboard/handbook_img.zip
