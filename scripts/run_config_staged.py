@@ -150,6 +150,22 @@ for t in CFG.target_names:
             "levels": {c: list(r["_X_test"][c].cat.categories) for c in CFG.cats(t)},
         }, fh)
 
+    # The held-out prediction vector for **every** family, not just the ranker.
+    # Without this only boosted comparisons can be paired, because a paired bootstrap
+    # needs both runs' scores on the same rows and a refit is the only other way to
+    # get them back. That gap is what `scripts/paired_linear_n4.py` had to close by
+    # hand for the logistic half of the N4 verdict. float32 is enough: the tie
+    # structure that section 4.1.7 measures sits far above the float32 residual. Costs
+    # roughly 30MB a target here, not the "few megabytes" the first draft claimed.
+    keys = r["_test_keys"].reset_index(drop=True)
+    np.savez_compressed(
+        STAGE / f"preds_{t}.npz",
+        y=r["_y_test"].astype(np.int8),
+        CompanyNumber=keys["CompanyNumber"].to_numpy().astype("U8"),
+        origin_month=keys["origin_month"].to_numpy().astype("datetime64[D]"),
+        **{m: p.astype(np.float32) for m, p in r["_p_test"].items()},
+    )
+
     save_json(f"result_{t}.json", public)
     del r, Xs, sv
 
