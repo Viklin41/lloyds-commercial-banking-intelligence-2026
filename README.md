@@ -11,7 +11,7 @@ manager can work.
 No internal bank data was used, or available, at any point.
 
 MSc Data Science group project, University of Bristol, 2026.
-Samuel Menon Demelo, Sneha Saphala Ram Prasad, Viktor Ander Lindholm, Vishal Khatri.
+Samuel Menon Demelo, Sneha Saphala Ram Prasad, Viktor Anders Lindholm, Vishal Khatri.
 
 ![The dashboard home screen](latex-report/images/01-home.png)
 
