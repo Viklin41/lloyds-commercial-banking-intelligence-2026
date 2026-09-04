@@ -19,7 +19,7 @@
 %
 %  The maximum length of a dissertation is 30 pages. This includes everything from the
 %  start of your first chapter till the end of your last chapter. It excludes front matter,
-%  bibliography, references, contents pages, declaration, tables, appendices etc. There is
+%  bibliography, references, contents pages, declaration, tables, appendices, etc. There is
 %  no minimum word count for the dissertation. However, a dissertation that falls
 %  substantially short of the page limit is unlikely to have covered the subject in sufficient
 %  depth.
@@ -72,21 +72,21 @@ Viktor Ander Lindholm; Vishal Khatri},
 % Compulsory, at most 1 page. Owner: TBC, written LAST.
 A commercial bank has full visibility of its own customers and very little of companies it does not serve. Working with Lloyds Banking Group's Commercial Banking division, this project asks whether the public record alone can identify banking prospects and risks among both its existing customers and companies that are not yet clients, using only freely available data and no internal information. The question is framed as a search over a large and sparse population rather than a classification over a known customer base and is scoped to roughly 1.4 mln companies across three target sectors.
 
-To answer it, we reconstructed a history the register does not provide, assembling thirty-three monthly snapshots of CH into a company-month panel of 49.6 mln rows. On this panel we engineered 41 features across four families and defined four self-labelled targets. We then compared an interpretable baseline against a gradient-boosted tree and a neural network over eleven recorded model runs, and attach a SHAP explanation to every score, so that the output is a ranked and defensible shortlist with a reason for each entry.
+To answer it, we reconstructed a history the register does not provide, assembling thirty-three monthly snapshots of CH into a company-month panel of 49.6 mln rows. On this panel we engineered 41 features across four families and defined four self-labelled targets. We then compared an interpretable baseline against a gradient-boosted tree and a neural network over eleven recorded model runs, and attached a SHAP explanation to every score, so that the output is a ranked and defensible shortlist with a reason for each entry.
 
 The project's central finding is that the structured public record does carry predictive signal, with the lending readiness shortlist ranking companies at roughly one hundred fifty times the base rate among its top candidates. 
 
-Unstructured news, articles and media, however, do not reach companies of this size at all, and when its coverage of the target population was measured, it was negligible, so unstructured signals were added for enriched query. but not modelling. The statutory record of insolvency (the Gazette) does reach these companies, but only once they have already failed, by which point a lender has nothing left to act on. Overall, mapping these limits is a contribution in itself: knowing which sources can predict and which can only confirm lets us concentrate on the public records that carry a usable signal instead of the ones that arrive too late.
+Unstructured news, articles and media, however, do not reach companies of this size at all, and when its coverage of the target population was measured, it was negligible, so unstructured signals were added for enriched queries, but not modelling. The statutory record of insolvency (the Gazette) does reach these companies, but only once they have already failed, by which point a lender has nothing left to act on. Overall, mapping these limits is a contribution in itself: knowing which sources can predict and which can only confirm lets us concentrate on the public records that carry a usable signal instead of the ones that arrive too late.
 
 \noindent
-In quantitative terms the project delivered the following
+In quantitative terms, the project delivered the following
 \begin{itemize}
     \item a 33-month company-month panel of 49.6 mln rows over the CH register;
     \item 41 engineered features across four families and 4 self-labelled prediction targets;
     \item an eleven-run model comparison across three model families;
     \item a 25.4-hour programmatic harvest of 558{,}693 secured charges;
     \item a 284{,}230 notice crawl of \emph{The Gazette};
-    \item an interactive HTML and CSS-based dashboard with global and single-firm views, pre-coded filterings and a market analysis 
+    \item an interactive HTML and CSS-based dashboard with global and single-firm views, pre-coded filtering, and a market analysis 
 \end{itemize}
 
 % -----------------------------------------------------------------------------
@@ -305,7 +305,7 @@ Across the project's lifetime, the team worked in three different organisational
 
 The first split mirrored the project brief; the brief listed three needs, namely growth, attrition and maintenance, so the team split into three strands to match, and early work began along those lines. This arrangement was revised within two weeks because we assumed the three streams would need three independent datasets, but in reality they all asked for one: the CH bulk dataset\cite{companieshouse_api}. Splitting the team by question meant repeating the same cleaning and feature work three times, with no one owning the shared base. The strands were merged back together.
 
-The second split was by data type, one strand handling structured data from CH and related public records, and another exploring unstructured text such as news articles for company-level signal \cite{guardian_api, newsapi}. This division held for several weeks because the two halves genuinely needed different tools. It was found that unstructured data, especially SMEs has almost no news coverage. 
+The second split was by data type, one strand handling structured data from CH and related public records, and another exploring unstructured text such as news articles for company-level signal \cite{guardian_api, newsapi}. This division held for several weeks because the two halves genuinely needed different tools. It was found that unstructured data, especially SMEs, has almost no news coverage. 
 
 That measurement drove the third and final arrangement, which split the team by task rather than by data type. One pair moved into modelling, building the feature matrix, the prediction targets, the classifiers and SHAP explanations on top of the structured core. The other pair kept working on the unstructured side to engineer the harmonisation needed to establish how much signal, if any, could be recovered from previous work. This is the shape the project held to the end.
 
@@ -316,14 +316,14 @@ Once we obtained the June snapshot comprising the $\sim5$ mln companies, we deci
 Here it is worth noting that the register maintained by CH records a company's status (active, insolvent, etc.), but does not carry any information on when or why it switched to a particular status. For this reason, we later incorporate data from the \textit{Gazette}, the UK's official public record, which publishes formal notices relating to corporate insolvency. These notices cover a range of insolvency events, including administrations, receiverships, voluntary liquidations, winding-up petitions and winding-up orders, and can contain event-specific information such as the date on which a petition was filed and the date on which a winding-up order was made \cite{gazette_insolvency}. This makes The Gazette particularly valuable for reconstructing the sequence of events preceding and surrounding insolvency, rather than relying only on a company's observed status in the CH register. This distinction is important as it explains why every target in \S\ref{sec:targets} is defined as an event occurring within a forward window rather than as a state observed at a particular point in time.
 
 \subsection{Acquiring the historical data}
-We quiclky incurred a limitation, as the single snapshot described a company today but did not express change, which is essential to encapsulate the modelling signal. More fundamentally, a single snapshot contains limitations on what to predict, as it has no time-linked target event. For this reason, we successfully attempted to create a time series dataset, solving both problems at once and turning the target label into a future value of a column we already hold.
+We quickly encountered a limitation, as the single snapshot described a company today but did not express change, which is essential to encapsulate the modelling signal. More fundamentally, a single snapshot contains limitations on what to predict, as it has no time-linked target event. For this reason, we successfully attempted to create a time series dataset, solving both problems at once and turning the target label into a future value of a column we already hold.
 
 To do so, we dug deeper into the CH website and found older monthly .zips stored on the server, reachable by direct URL. These file names are not reliably dated to the first of the month, so rather than guessing, we probed days 1 to 15 of each candidate month once and recorded the dates that resolved. This gave us a manifest of 33 snapshots from October 2023 to July 2026. We keep all 33 zips, roughly 15 GB, permanently: the server ages older months off, at which point our copy is the only one, and re-deriving the panel with a different column set then costs no downloads at all.
 
 While doing this operation, we encountered three methodological considerations that changed our design moving forward:
 \begin{enumerate}
     \item The obvious approach would have been to replay the SIC filter on every month independently. That is wrong, because a company can be re-coded out of our target sectors without dying, and under a per-month filter that company simply disappears from the panel, which is indistinguishable from a dissolution. So we built the panel on two passes: pass one collects every \texttt{CompanyNumber} matching our sectors in any month, and pass two emits a row for every member of that universe present in a given month, whatever its status or current sector. Absence from the panel now means the firm is gone from the register. The \texttt{recoded\_out\_of\_sector} column records how often this mattered.
-    \item Secondly. we decided to keep every status. Filtering monthly to "Active", as we did in the first filtering logic, would delete every failure event and produce a panel in which no company ever fails, leaving a credit-risk model with nothing to learn from. Insolvent companies are not prospects, but they are precisely the labels we need. They stay in the panel, and we apply \texttt{is\_active} at scoring time instead; the signal \S\ref{sec:targets} keys off.
+    \item Secondly, we decided to keep every status. Filtering monthly to "Active", as we did in the first filtering logic, would delete every failure event and produce a panel in which no company ever fails, leaving a credit-risk model with nothing to learn from. Insolvent companies are not prospects, but they are precisely the labels we need. They stay in the panel, and we apply \texttt{is\_active} at scoring time instead; the signal \S\ref{sec:targets} keys off.
     \item A third, smaller decision protects point-in-time correctness at build time: the static feature computation is passed the real snapshot date rather than the date whenever the code happens to run.
 \end{enumerate}
 
@@ -333,14 +333,14 @@ While downloading the monthly snapshots, we encountered a significant limitation
 
 \section{Structured Feature engineering: CH and additional source}
 \note{Summarise `reports/dashboard_handover_columns.md`}
-The team explored a wide range of public signals, and not all of them were kept in the final model; this section records both what we kept and what we discarded along with the reasons. The retained features form four families. Every feature is calculated strictly at the month it belongs to: a feature for month $t$ can only use information that existed in month $t$, never anything from future observations.
+The team explored a wide range of public signals, and not all of them were kept in the final model; this section records both what we kept and what we discarded, along with the reasons. The retained features form four families. Every feature is calculated strictly at the month it belongs to: a feature for month $t$ can only use information that existed in month $t$, never anything from future observations.
 
 \paragraph{Base fields from CH bulk dataset}
 The first group describes each company as the register currently shows it, and it is pulled straight from the CH bulk file \cite{companieshouse_api}. We list in Table~\ref{tab:base-fields} only those that matter for the modelling or for filtering in the dashboard.
 
 \paragraph{Delta variables derived from base fields}
 To capture change, we measure against the 33-month spine the change in the base charge and filing fields over a trailing 3-, 6-, and 12-month window. We also compute a set of streak and recency counters that track how a company's filing discipline
-is decaying. Every delta is computed on a dense calendar spine rather than by counting rows, so the missing June 2025 snapshot yields an honest NULL rather than a silently mis-dated change (\S\ref{sec:train-test-split-logic}). We list in Table~\ref{tab:delta-fields} the fields that carry model weight or drive a dashboard filter.
+is decaying. Every delta is computed on a dense calendar spine rather than by counting rows, so the missing June 2025 snapshot yields an honest NULL rather than a silently misdated change (\S\ref{sec:train-test-split-logic}). We list in Table~\ref{tab:delta-fields} the fields that carry model weight or drive a dashboard filter.
 
 \paragraph{Contract Finders \& Find a Tender}
 So far, the register shows how a company files and borrows, but not whether it's winning business. From the Contracts Finder and Find a Tender \cite{contractsfinder, findatender, ocds}, each company's public-sector contract wins were aggregated, including the count, their total and average value, and whether it has just won its very first. Partway through the window, the rules changed. When the Procurement Act 2023 came into force on 24 February 2025, new public contracts stopped being published on Contracts Finder and began appearing on Find a Tender \cite{findatender}, while Contracts Finder kept only older notices. So information from both was combined to avoid a false drop in wins that has nothing to do with companies themselves. Every win is counted only up to the month in question, so a 2026 award never lands on the 2024 row. See Table~\ref{tab:contract-fields} for the full listing.
@@ -427,7 +427,7 @@ We faced a significant problem due to the scarcity of targets. At a base rate ne
 $\text{odds}_{\text{true}} = r \cdot \text{odds}_{\text{sampled}}$.
 
 \subsection{Verification}
-Finally, we performed three checks to determine if our design choiches where correct. First, we tested leakage: we measured the correlation of every feature with every label (Figure~\ref{fig:feature-label-corr}), and the strongest is only 0.37, with an economically sensible explanation, where larger companies, those already carrying debt, and those that recently took on charges are the most likely to borrow again. No near-unit correlation undermines the result. Second, we stress-tested the June 2025 hole. On the label side, the April 2025 origin has a three-month window over May, June, and July, and it correctly builds a normal label from May and July rather than reaching into August or going silently null. Third, we measured whether the downsampling produced base rates that remained stable for all four targets across the eleven origins. The frequencies remained stable and well within the base-rate ranges shown in Table~\ref{tab:targets}, meaning that the model scores are more likely to come from the model genuinely predicting the event, rather than test months just happening to have way more (or fewer) events than the training months. Third, we tested base rate stability.
+Finally, we performed three checks to determine if our design choices were correct. First, we tested leakage: we measured the correlation of every feature with every label (Figure~\ref{fig:feature-label-corr}), and the strongest is only 0.37, with an economically sensible explanation: larger companies, those already carrying debt, and those that recently took on charges are the most likely to borrow again. No near-unit correlation undermines the result. Second, we stress-tested the June 2025 hole. On the label side, the April 2025 origin has a three-month window over May, June, and July, and it correctly builds a normal label from May and July rather than reaching into August or going silently null. Third, we measured whether the downsampling produced base rates that remained stable for all four targets across the eleven origins. The frequencies remained stable and well within the base-rate ranges shown in Table~\ref{tab:targets}, meaning that the model scores are more likely to come from the model genuinely predicting the event, rather than test months just happening to have way more (or fewer) events than the training months. Fourth, we tested base rate stability.
 
 \section{The modelling pipeline as software}
 \label{sec:pipeline}
@@ -438,7 +438,7 @@ Firstly, we need to establish what the three axes are that constitute a run: whi
 
 We use the three model families according to this rationale:
 \begin{itemize}
-    \item \textbf{Regularised logistic regression} is the interpretable floor, meaning that if the boosting cannot clearly beat a linear model on the same features, then it is not earning its complexity. Moreover, its signed coefficients serve as an independent check on the SHAP directions, since a disagreement means one of the two its wrong.
+    \item \textbf{Regularised logistic regression} is the interpretable floor, meaning that if the boosting cannot clearly beat a linear model on the same features, then it is not earning its complexity. Moreover, its signed coefficients serve as an independent check on the SHAP directions, since a disagreement means one of the two is wrong.
     \item \textbf{Gradient-boosted trees} (LightGBM)\cite{ke2017lightgbm} is the model we actually deploy and use in the final dashboard.
     \item The \textbf{multi-layer perceptron} (NN) occupies the complex end of the interpretability trade-off.
 \end{itemize}
@@ -453,7 +453,7 @@ Additionally, we implemented three smaller decisions to protect the evaluation. 
 
 
 
-LightGBM and the NN both have hyperparameters to be tuned before deployment to pick the best combination. To tune, we could not rely on the default $k$-fold split, because that would reintroduce, inside the search, exactly the two leaks the primary split exists to prevent. We therefore built a splitter that applies the origin and embargo rule of \S\ref{sec:train-test-split-logic} recursively inside the training origins: this means the splitter will hold back data for the tuning, respecting the leakage-safe design. Because the splitter works in whole months, what limits tuning is the number of months, not the number of rows. With five training months there is room to carve out several validation folds; with three, barely one; with three separated by a twelve-month embargo, none at all. The cost is that the number of folds becomes a maximum rather than a guarantee (see Table~\ref{tab:targets-folds} for the full listing).
+LightGBM and the NN both have hyperparameters to be tuned before deployment to pick the best combination. To tune, we could not rely on the default $k$-fold split, because that would reintroduce, inside the search, exactly the two leaks the primary split exists to prevent. We therefore built a splitter that applies the origin and embargo rule of \S\ref{sec:train-test-split-logic} recursively inside the training origins: this means the splitter will hold back data for the tuning, respecting the leakage-safe design. Because the splitter works in whole months, what limits tuning is the number of months, not the number of rows. With five training months, there is room to carve out several validation folds; with three, barely one; with three separated by a twelve-month embargo, none at all. The cost is that the number of folds becomes a maximum rather than a guarantee (see Table~\ref{tab:targets-folds} for the full listing).
 Growth is the extreme case: once a twelve-month embargo is applied, the guard leaves no legal origin, so the pipeline relaxes the guard and rebuilds the split over the full history. This yields three origins from a year earlier (October 2023 to April 2024) drawn from before every feature is properly formed. Growth's three origins are therefore older and lower-quality than the others', which is why its training history returns as a limitation in \S\ref{sec:limits} rather than a design choice here.
 
 But this all matters only if tuning helps, so we measured what adopting the winning configuration would do. On lending, the target with the most folds, refitting LightGBM at the winning configuration against the shipped default over 2,782,591 held-out rows moves ROC-AUC by $-0.0008$ (paired interval $[-0.0013, -0.0003]$): the tuned parameters would have made the shipped model very slightly worse.
@@ -508,13 +508,16 @@ The dashboard does not turn a signal into a banking recommendation. A prospect i
 Three engineering practices used throughout the projects were:
 
 \begin{itemize}
-    \item Feature or label logic was never rewritten in each notebook. It was defined once, in a shared Python package \texttt{(src/features)} and \texttt{(src/models)} and imported by every notebook rather than copied. The panel and its deltas, the contract and lender features, the targets and training pipeline were all defined there and called from the exploratory notebooks. This guarantees that the matrix used for modelling is the same one we explored. It also makes the logic testable; the leakage and consistency tests run against the same functions that build the features, rather than against a separate notebook version that might quietly diverge. The modelling pipeline itself was built on scikit-learn \cite{sklearn_docs}, with a small registry so that adding a new model was a small change rather than an edit threaded through several functions.
+    \item \textbf{Shared feature and label logic}: We never rewrote feature or label logic inside individual notebooks. It was defined once, in a shared Python package \texttt{(src/features)} and \texttt{(src/models)} and every notebook imported those functions instead of copying the code. The company-month panel and its deltas, the contract and lender features, the targets and training pipeline were all generated from the same definitions. This guarantees that the matrix used for modelling is the same one we explored. It also makes the logic easy to test; the leakage and consistency tests run against the same functions that produced the features, rather than against a separate notebook version that might drift. The modelling pipeline itself was built on scikit-learn \cite{sklearn_docs}, so that adding a new model was a small change.
 \end{itemize}
 
-Since five people worked in parallel, version control was organised as one feature branch per workstream rather than a single shared line. Each strand, namely filtering, attrition, the structured panel and modelling, the unstructured lab and harmonisation, owned its own branch so work was processed without people overwriting one another, and the history recorded who did what and when.
+\begin{itemize}
+    \item \textbf{Version control by workstream }: Five people worked in parallel, so version control was organised as one feature branch per workstream rather than a single shared line.  Filtering, attrition, the structured panel and modelling, the unstructured data exploration and harmonisation had their own branch. This avoided accidental overwrites and kept the history of who changed what and when.
+\end{itemize}
 
-\paragraph{Runs that could be re-checked}
-Every modelling run writes down exactly how it has been produced. Alongside its metrics, each run wrote its full configuration, which feature matrix was used, the exact ordered list of features and the short \texttt{feature\_hash}, the model settings, the code version and a timestamp into a small record on disk and refused to overwrite an existing one. Two things followed. A run could be reproduced from its record without reading any code, and two runs could be compared by simply looking at the difference between their records. Any changes in the results are always traceable to changes in inputs, not to an untracked edit.
+\begin{itemize}
+    \item \textbf{Reproducible modelling runs}: Every modelling run records exactly how it was produced. Alongside its metrics, each run wrote its full configuration, which feature matrix was used, the exact ordered list of features and the short \texttt{feature\_hash}, the model settings, the code version and a timestamp into a small record on disk and refused to overwrite an existing one. This created two benefits. A run could be reproduced from its record without reading any code, and two runs could be compared by looking at the difference between their records. Any changes in the results are always traceable to changes in inputs.
+\end{itemize}
 
 
 
@@ -532,7 +535,7 @@ Before we delve into the resulting numbers we obtained, we need to explain the m
 
 All operational figures are reported per origin rather than pooled. Section \S\ref{sec:errors} explains why this is necessary.
 
-On top of that, every metric carries a 95\% CI from resampling the evaluation rows with replacement (one thousand replicates with percentile method). These capture uncertainty from the evaluation sample only, rather than the cohort of a specific training period; for this reason, these CI need to be treated as lower bounds on a total uncertainty that might be bigger than what the interval shows. On the other hand, for comparison of two models on the same companies at the same origins, we use the same pretend set so that shared variation cancels; \S\ref{sec:errors} shows that this design choice matters as the unpaired reading is inconclusive.
+On top of that, every metric carries a 95\% CI from resampling the evaluation rows with replacement (one thousand replicates with the percentile method). These capture uncertainty from the evaluation sample only, rather than the cohort of a specific training period; for this reason, these CIs need to be treated as lower bounds on a total uncertainty that might be bigger than what the interval shows. On the other hand, for comparison of two models on the same companies at the same origins, we use the same pretend set so that shared variation cancels; \S\ref{sec:errors} shows that this design choice matters as the unpaired reading is inconclusive.
 
 \subsection{Model comparison}
 We start from the control model, the one we then deployed in the dashboard (see \texttt{refactor\_growthfix} in Appendix~\ref{appx:runs}). This model runs on the 41-feature control matrix (comprising register base fields, their deltas and contract features; without any lender data) and is evaluated out-of-time on the unsampled population. This model gives the following ROC-AUC values: Lending Readiness at 0.87; Credit Risk Exposure at 0.76; Voluntary Exit at 0.79; and Growth at 0.76.
@@ -541,7 +544,7 @@ We then run a comparison between model families to determine whether the added c
 The important conclusion is not merely that complex models beat simple models. Instead, the best model is the one whose structure fits the type of relationships present in the data. In this case, the boosted model performs best. Moreover, the boosted model also wins on explanation speed, with \texttt{TreeExplainer} being the fastest.
 
 \subsection{Target downsampling results}
-The four targets we are aiming to predict have very different base rates. They range from 0.26\% for Lending to about 8\% for Voluntary Exit. This matters because the same predicted metric can mean very different things based on the target. For instance, if a model predicts "no" for every company on the lending task, it would achieve 99.74\% accuracy. On the surface, that sounds excellent, but the model would be misleading given that its predicting accuracy on a very low base rate. The same problem applies to recall, precision and F1 performance metrics. Instead, we use ranking metrics ROC-AUC and P@$N$. We also report a column \texttt{lift}, defined as P@$N$ divided by the target's base rate. This is the only fair way to compare a result on a target that fires 1:100 with one that fires 1:12.
+The four targets we are aiming to predict have very different base rates. They range from 0.26\% for Lending to about 8\% for Voluntary Exit. This matters because the same predicted metric can mean very different things based on the target. For instance, if a model predicts "no" for every company on the lending task, it would achieve 99.74\% accuracy. On the surface, that sounds excellent, but the model would be misleading given that it's predicting accuracy on a very low base rate. The same problem applies to recall, precision and F1 performance metrics. Instead, we use ranking metrics ROC-AUC and P@$N$. We also report a column \texttt{lift}, defined as P@$N$ divided by the target's base rate. This is the only fair way to compare a result on a target that fires 1:100 with one that fires 1:12.
 
 This imbalance also affects how much downsampling we need. For insolvency, the dataset is reduced by about 27 times, from 13.8 mln rows to 520,000, without removing any positive cases. Lending is reduced by about 33 times. Voluntary exit is different: the dataset only falls from 13.8 mln to 11.9 mln rows, with a keep rate of 0.85. This happens because voluntary exit has a much higher base rate of about 7.8\%, so there is little need to remove additional negative observations.
 
@@ -585,7 +588,7 @@ Once again, the whole point of the test was to see if adding features from the C
 
 The apparent improvement from adding the lender features increases monotonically as the visibility gate becomes more permissive: the looser the gate, the larger the measured gain on lending. Reading the lending P@500 across the gate ladder makes this concrete. Under the leaking \texttt{created\_on} gate, the score reaches 0.992, against a control of 0.282; tightening to \texttt{delivered\_on} brings it down to 0.742; the calibrated 21-day margin drops it to 0.310; and measuring the visibility delay directly, the tightest and cleanest gate, leaves 0.332. The same collapse appears inside the model itself: the mean absolute SHAP value of \texttt{n\_of\_charges\_outstanding} falls from 0.414 under the leaking gate to 0.284 under \texttt{delivered\_on} and to 0.002 once the margin is applied, moving the feature from 1st to 40th in importance. This ordering holds in all three model families and in all nine relevant cells. That consistency is what makes it diagnostic. If only one model's lending score rose as the gate loosened, we could dismiss it as a model-specific artefact. Because all three families move the same way, the pattern is coming from the data.
 
-This matters directly for interpreting the lender features, because the gate reveals why the gain appears. The Lending target label is read from the charge register, and the gate controls what the model sees of that same register. So loosening the gate lets the model see charges early, and since those charges are exactly what the Lending label measures, the model is partly reading its own answer. The measured "improvement" on lending is therefore partly leakage, not the lender features adding real predictive signal. To confirm this, we use Insolvency as a built-in control. Conversely from Lending, its label does not come from the charge register at all; it comes from the company's status, which the gate has no way of touching. So if the lender features were simply informative, insolvency would improve alongside lending no matter how the gate is set. It does not. This gap between the two targets is exactly the signature of leakage rather than of a useful new feature. The consequence for the verdict is that the honest measure of what the lender data is worth must be read at the tightest gate, where this leakage is smallest, and not at the looser settings where the apparent gains are inflated by the label bleeding into the features.
+This matters directly for interpreting the lender features, because the gate reveals why the gain appears. The Lending target label is read from the charge register, and the gate controls what the model sees of that same register. So loosening the gate lets the model see charges early, and since those charges are exactly what the Lending label measures, the model is partly reading its own answer. The measured "improvement" on lending is therefore partly leakage, not the lender features adding real predictive signal. To confirm this, we use Insolvency as a built-in control. Unlike Lending, its label does not come from the charge register at all; it comes from the company's status, which the gate has no way of touching. So if the lender features were simply informative, insolvency would improve alongside lending no matter how the gate is set. It does not. This gap between the two targets is exactly the signature of leakage rather than of a useful new feature. The consequence for the verdict is that the honest measure of what the lender data is worth must be read at the tightest gate, where this leakage is smallest, and not at the looser settings where the apparent gains are inflated by the label bleeding into the features.
 
 \subsubsection{Verdict by model family: LightGBM}
 
@@ -663,7 +666,7 @@ The neural network behaves very differently. Its variation is: 0.018 for the 41-
 The lesson we learnt is that two non-overlapping bootstrap intervals can still give a misleading impression of a difference if the model itself is unstable across seeds. When the same model is fitted twice in the same process with the same inputs, all three model families produce bit-identical predictions. The issue is fit instability across random seeds: the model is reproducible when the seed is fixed, but different seeds produce genuinely different fitted models.
 
 \subsubsection{The paired bootstrap}
-The paired bootstrap is important when comparing two models. We know that, both models are evaluated on the same companies at the same origins. Therefore, much of the uncertainty caused by the companies themselves is shared by both models. Hence, if we calculate separate confidence intervals for each model and simply ask whether the intervals overlap, we ignore this shared variation. This makes the test unnecessarily conservative. Instead, we resample the rows once and calculate both models' metrics on exactly the same resample. The difference between the two models then becomes the quantity of interest. For the lending comparison, the separate intervals overlap heavily and suggest that the difference is unclear. The paired interval is about five times narrower and clearly excludes zero. The paired method is therefore the appropriate test because the question is not. Instead of asking ourselves if a different group of companies would produce different results, we must investigate if these same companies do receive different rankings under the two models.
+The paired bootstrap is important when comparing two models. We know that both models are evaluated on the same companies at the same origins. Therefore, much of the uncertainty caused by the companies themselves is shared by both models. Hence, if we calculate separate confidence intervals for each model and simply ask whether the intervals overlap, we ignore this shared variation. This makes the test unnecessarily conservative. Instead, we resample the rows once and calculate both models' metrics on exactly the same resample. The difference between the two models then becomes the quantity of interest. For the lending comparison, the separate intervals overlap heavily and suggest that the difference is unclear. The paired interval is about five times narrower and clearly excludes zero. The paired method is therefore the appropriate test because the question is not. Instead of asking ourselves if a different group of companies would produce different results, we must investigate if these same companies do receive different rankings under the two models.
 
 \subsubsection{Why pooled P@$N$ is misleading}
 P@$N$ calculated by combining several months is not the average of the monthly P@$N$ values. When the two test origins are pooled together, the pooled value falls outside the range of the two monthly values in 9 of 12 target-and-model-family combinations. In six of those nine cases, the difference is greater than 0.02.
@@ -680,15 +683,15 @@ The pooled metric is kept only when comparing runs in a way that treats both run
 
 \section{The unstructured result: media coverage against statutory}
 \label{sec:unstructured}
-We tested two types of unstructured text sources using the same question: can public written information reveal anything useful about a small company before a major event occurs? Using the media, one source was narrative-based, the other was statutory, using official insolvency records. The two sources show opposite strengths and weaknesses, which forms the main conclusion of this analysis.
+We tested two types of unstructured text sources using the same question: can public written information reveal anything useful about a small company before a major event occurs? Using the media, one source was narrative-based, and the other was statutory, using official insolvency records. The two sources show opposite strengths and weaknesses, which forms the main conclusion of this analysis.
 
 \subsection{Near-zero media coverage for SMEs}
 \label{sec:unstructured-media}
-We tested news coverage in two stages. In the first stage we made use of a balanced sample of 96 companies designed to challenge the system. Across NewsAPI, the Guardian, GNews and GDELT, the initial match rate was between 2.8-6.9\%. After we checked and removed incorrect matches, none of the 96 companies and none of the 83 articles remained valid. A test control search for Tesco produced 1,209 articles, confirming that the system was functioning correctly and that the lack of results was not caused by technical problems.
+We tested news coverage in two stages. In the first stage, we made use of a balanced sample of 96 companies designed to challenge the system. Across NewsAPI, the Guardian, GNews and GDELT, the initial match rate was between 2.8-6.9\%. After we checked and removed incorrect matches, none of the 96 companies and none of the 83 articles remained valid. A test control search for Tesco produced 1,209 articles, confirming that the system was functioning correctly and that the lack of results was not caused by technical problems.
 
 A logical criticism is that the first sample was intentionally difficult; therefore, we had to repeat the same process without any changes using the 398 companies that the models ranked highest in July 2026. This group represents the practical output of the project, meaning these are the actual companies that would be found interesting if reviewed by an RM. Full coverage is shown in Table~\ref{tab:news-funnel}.
 
-The 10 companies that produced results generated 139 raw articles in total, alongside 112 we reviewed manually. Only one article passed the verification process, and we found it to be incorrect. This example showed the type of problem that was created by name matching. For instance, Company 16392251, \textsc{Tiger Holdings Ltd}, is a London-based company incorporated in April 2025 with no accounts yet filed, but this was incorrectly linked to an article about the acquisition of Flying Tiger Copenhagen by private equity. The name cleaning process reduces the company name to the word \textsc{Tiger}, which appears separately inside ``Flying Tiger''. The location check also failed because London appears frequently in Guardian business articles. We therefore removed the match rather than counting it as valid.
+The 10 companies that produced results generated 139 raw articles in total, alongside 112 that we reviewed manually. Only one article passed the verification process, and we found it to be incorrect. This example showed the type of problem that was created by name matching. For instance, Company 16392251, \textsc{Tiger Holdings Ltd}, is a London-based company incorporated in April 2025 with no accounts yet filed, but this was incorrectly linked to an article about the acquisition of Flying Tiger Copenhagen by private equity. The name cleaning process reduces the company name to the word \textsc{Tiger}, which appears separately inside ``Flying Tiger''. The location check also failed because London appears frequently in Guardian business articles. We therefore removed the match rather than counting it as valid.
 
 The other nine companies failed in the same way. \textsc{Partners and Company Group Ltd} produced 77 articles because the cleaned name became the common phrase ``partners and''. \textsc{Watts Group} was reduced to ``Watts'', and \textsc{Clockwise Group} became ``Clockwise''. These examples show us that common words create significant problems when matching company names to new articles. A Tesco control search using the same period and rules produced 147 raw results, with 6 of 50 manually checked articles confirmed as valid, showing that the pipeline can identify news coverage when it actually exists.
 
@@ -732,7 +735,7 @@ The most important metric of the table is lift; voluntary exit is the worked exa
 
 On the other hand, lending readiness at 43\% is the stronger result the project produced on a clean run. This is because it operates at an extremely low base rate: with the event it is predicting happening to about one company in 400, getting 43 correct calls in 100 against that background is a huge improvement, and the one we most strongly present commercially. A newly registered charge is a financing event with a decision behind it, and a company that is about to make that decision is one worth speaking to first for Lloyds.
 
-In terms of how sound the 4 target approach is, we have measured it. Across 400 rows (4 shortlists, one per target x top 100 companies = 400 rows total), there are 398 unique companies. There are two appearing twice, both on Lending Readiness and Growth Signal, but this is economically sensible given that a company that's growing is exactly the kind of company that also needs to borrow to fund that growth, so the overlap isn't random noise. That is the operational payoff of the decision in \S\ref{sec:targets} to build four separate indices rather than one composite prospect score: the four carve the book into nearly non-overlapping groups rather than re-ranking the same few thousand companies four times.
+In terms of how sound the 4-target approach is, we have measured it. Across 400 rows (4 shortlists, one per target x top 100 companies = 400 rows total), there are 398 unique companies. There are two appearing twice, both on Lending Readiness and Growth Signal, but this is economically sensible given that a company that's growing is exactly the kind of company that also needs to borrow to fund that growth, so the overlap isn't random noise. That is the operational payoff of the decision in \S\ref{sec:targets} to build four separate indices rather than one composite prospect score: the four carve the book into nearly non-overlapping groups rather than re-ranking the same few thousand companies four times.
 
 We need, however, to flag a limitation here: the voluntary exit ranking should not be treated as a ranking of individuals. Its top 1000 scores contain only fourteen distinct values, and 138
 companies are tied at exactly the score sitting in 100th place, so "the top 100" there is an
@@ -740,7 +743,7 @@ arbitrary hundred drawn from a pool of more than two hundred equally ranked comp
 re-running the sort could return a different hundred with identical scores. In other words, the model can't tell apart the companies at the top of its list; it lumps them into a few big groups with identical scores instead of ranking them one by one. The other three targets do not have this problem: their top 1000 hold 993, 961 and 994 distinct scores, with a single company at the cut.
 
 \subsection{One company, end to end}
-Here we explore one company end to end. \textsc{Cubicle Washroom Systems Limited} (09919041) is a Small manufacturer, ten and a half years old, present and \texttt{Active} in all thirty-three panel snapshots. It took on new secured borrowing on three separate occasions inside the window, its charge count moving 4 to 5 in February 2024, to 7 in August 2025 and to 8 in May 2026. It was a Lloyds client at the start of the panel and released both Lloyds charges in November 2023, after which it borrowed from two competitors and now banks primarily with NatWest. In February 2026 it won its first public-sector contract, a £597k award. The model reads that row as follows. The four features the register and the contract feed contribute most are its eight charges, the five months since that first award, the £597k value itself and its Small segment. \texttt{TreeExplainer} attributes the score to them exactly: from the model's base value of $-3.19$ log-odds, the 41 contributions sum to $+5.20$ and land on a raw logit of $2.00$, which is an uncalibrated probability of $0.881$. Recalibrating by $odds_{true} = odds_{sampled} \times neg\_keep\_rate$ with the lending run's keep rate of $0.0285$ gives the $0.174$ that ships in the \texttt{score} column, and that score places the company 499th of 1{,}409{,}284 on Lending Readiness. On Voluntary Exit, the same company sits 1{,}406{,}602nd, in the bottom 0.2\%. Both answers are right about it. The three reasons shipped beside that score are the ones an RM would actually open with: 
+Here we explore one company end to end. \textsc{Cubicle Washroom Systems Limited} (09919041) is a Small manufacturer, ten and a half years old, present and \texttt{Active} in all thirty-three panel snapshots. It took on new secured borrowing on three separate occasions within the window, its charge count moving from 4 to 5 in February 2024, to 7 in August 2025 and to 8 in May 2026. It was a Lloyds client at the start of the panel and released both Lloyds charges in November 2023, after which it borrowed from two competitors and now banks primarily with NatWest. In February 2026 it won its first public-sector contract, a £597k award. The model reads that row as follows. The four features the register and the contract feed contribute most are its eight charges, the five months since that first award, the £597k value itself and its Small segment. \texttt{TreeExplainer} attributes the score to them exactly: from the model's base value of $-3.19$ log-odds, the 41 contributions sum to $+5.20$ and land on a raw logit of $2.00$, which is an uncalibrated probability of $0.881$. Recalibrating by $odds_{true} = odds_{sampled} \times neg\_keep\_rate$ with the lending run's keep rate of $0.0285$ gives the $0.174$ that ships in the \texttt{score} column, and that score places the company 499th of 1{,}409{,}284 on Lending Readiness. On Voluntary Exit, the same company sits 1{,}406{,}602nd, in the bottom 0.2\%. Both answers are right about it. The three reasons shipped beside that score are the ones an RM would actually open with: 
 \begin{itemize} 
 \item \texttt{Mortgages.NumMortCharges} $= 8$, contributing $+2.46$ log-odds
 \item \texttt{months\_since\_last\_award} $= 5$, contributing $+0.49$
@@ -762,9 +765,9 @@ The data reveals a lifecycle pattern that is not visible from the structured mod
 
 \subsection{Limitations of trade marks and hiring data}
 
-Trade marks achieved 1.05\% coverage but the dataset itself has major limitations: the register ends on 28 January 2018. The Intellectual Property Office released the free bulk dataset in February of that year and has not been updated since, so it can show whether a company was building a brand before 2018 but says nothing about current activity.
+Trade marks achieved 1.05\% coverage, but the dataset itself has major limitations: the register ends on 28 January 2018. The Intellectual Property Office released the free bulk dataset in February of that year and has not been updated since, so it can show whether a company was building a brand before 2018 but says nothing about current activity.
 
-Hiring data cannot be expanded effectively. Adzuna searches jobs using keywords and locations rather than employer names. Therefore, finding a specific small company requires downloading a national job feed and hoping that the company appears within it. A sample of 1,000 adverts we collected in July 2026 contained only 266 unique employers. Eight advertisers produced 374 of the adverts and only one advert matched a company in the project universe. With the free API limit being capped at 250 calls per day, the maximum collection capacity is approximately 12,500 adverts per day across 1.49 mln companies, meaning improvements in tuning cannot solve the coverage problem.
+Hiring data cannot be expanded effectively. Adzuna searches jobs using keywords and locations rather than employer names. Therefore, finding a specific small company requires downloading a national job feed and hoping that the company appears within it. A sample of 1,000 adverts we collected in July 2026 contained only 266 unique employers. Eight advertisers produced 374 of the adverts, and only one advert matched a company in the project universe. With the free API limit being capped at 250 calls per day, the maximum collection capacity is approximately 12,500 adverts per day across 1.49 mln companies, meaning improvements in tuning cannot solve the coverage problem.
 
 \section{July 2026 Market analysis results}
 This section profiles the UK SME secured lending market descriptively,  from the merged July 2026 company dataset provided for the project. The dataset is assembled by left joining five blocks on the eight digit CH number, one row per company which included the CH register base and its month over month deltas \cite{companieshouse_api}, public sector contract wins from Contracts Finder and Find a Tender \cite{contractsfinder, findatender, ocds}, secured lender activity from CH charges API \cite{companieshouse_api}, and the model scores, giving 1,531,094 companies and 69 columns in total. 
@@ -784,24 +787,24 @@ These readings carry three limits. They describe secured lending only, which cov
 
 \section{Limitations}
 \label{sec:limits}
-The limitations below are listed plainly without softening. Naming them makes the work more trustworthy. Most of them are recorded openly in the project's own run log.
+The limitations are stated directly. Naming them makes the work more trustworthy. Most of them are recorded openly in the project's own run log.
 
-\paragraph{A permanent gap in the source}
-CH never published a snapshot for June 2025 \cite{companieshouse_api}. This is a permanent gap, not a download error. The pipeline was built to cope with it, but it still leaves a mark for the month that sits right next to the gap, most notably a one-month change measured at July 2025; those features come back blank rather than being guessed.
+\paragraph{Missing data in the source}
+CH never published a snapshot for June 2025 \cite{companieshouse_api}. This is a gap in the public record, not a download issue. The pipeline was built to handle it, but it still leaves a mark for the month that follows. Any one-month change that depends on June shows up blank in July 2025 rather than being guessed. This is the unavoidable consequence of a data gap in a time series.
 
-\paragraph{The growth model's feature count was, for a while, misleading}
-A bug in the growth pipeline meant nine of its features were empty in every training month, even though they had values in the test months. A model cannot learn from a column it never sees while training, so the growth model was really using far fewer features than its label claimed. Those columns were removed, taking the nominal features from forty-one features to twenty-seven it actually uses, and is reported honestly.
+\paragraph{The misleading feature count in the growth model}
+For a period, a bug in the growth pipeline meant nine features were empty in every training month, even though they had values in the test months. A model cannot learn from a column it never sees while training, so the growth model was using far fewer features than the label claimed. These columns were removed, reducing the nominal features from forty-one features to twenty-seven that the model actually used, and this is reported honestly.
 
-\paragraph{Secured lending does not show the full relationship}
-Features used in this project show who has registered a loan against a company, but that captures secured borrowing only. It says nothing about current accounts, deposits, unsecured loans or advice, so it is a narrow view of the real relationship. A fuller picture would need information the public record does not hold, and it is well established that non-financial and behavioural data add real value beyond any single record like this \cite{altman_sabato_wilson_2010,berg_etal_2020}
+\paragraph{Secured lending shows only a part of banking relationship}
+The lender features used in this project show who has registered a loan against a company. This reveals secured borrowing only. It does not show current accounts, deposits, unsecured loans or advice, so it is a narrow view of the real relationship. A complete picture would require information the public record does not hold. This is the structural limit of secured lending data.
 
 \paragraph{Limited population}
-The modelling data was deliberately not restricted to actively trading firms. It keeps every company status, so that failed companies supply the insolvency labels the model learns from, and it includes roughly 181,000 dormant companies rather than dropping them. But the two boundaries remain. The population is filtered to the project's three target sectors: about 1.5 mln companies of the roughly 5.7 mln on the register, which is a smaller slice of the whole UK business population \cite{beis_bpe}. So the findings are specific to those sectors. Live scores are produced only for active companies because a lending ot growth forecast for a company already in liquidation is meaningless. Extending scoring to a wider deployed population is a natural next step.
+The modelling data keeps every company status, so that failed companies contribute the insolvency labels the model learns from, and it includes roughly 181,000 dormant companies rather than dropping them. But the two boundaries remain. The population is filtered to the project's three target sectors: about 1.5 million companies of the roughly 5.7 million on the CH register\cite{beis_bpe}. So the findings are specific to those sectors. Live scores are produced only for active companies because a lending or growth forecast for a company already in liquidation is meaningless. Extending scoring to a wider deployed population is a natural next step.
 
 % -----------------------------------------------------------------------------
 \chapter{Conclusion}
 \label{chap:conclusion}
-We set out our project to test one simple idea: that the public record of a company holds useful and readable signals about what that company might need from a bank. The work we carried out in the past months shows that it does, and we ensured to turn those signals into something a relationship team at LBG can pick up and use.
+We set out our project to test one simple idea: that the public record of a company holds useful and readable signals about what that company might need from a bank. The work we carried out in the past months shows that it does, and we ensured we turned those signals into something a relationship team at LBG can pick up and use.
 
 Across the project, we always tried to design our proposed solution with the brief Lloyds' client gave us always in mind. We soon realised that there were many challenges, and we ensured we addressed them in our design choices. Mainly, we realised that coverage of structured, massive data is present and available, while the depth of unstructured sources remains hard to capture. The task of predicting financial signals is prone to leakage and requires careful engineering of features. In the industry, companies are stored across online sources with varied methods, which require careful linkage logic.
 
@@ -814,7 +817,7 @@ The first contribution is the pipeline. We built a reproducible route that start
 
 The second contribution are the signals. On top of the register's base variables, we engineered four families of features, drawn from director activity, secured lenders, public contract awards and the company accounts. We mapped each signal to a business need and to a Lloyds service, so a high score is not an abstract number but a reason to make a specific offer.
 
-The third contribution is the modelling. We compared a simple, readable logistic regression against a gradient-boosted tree and a neural network, and we engineered every score to come with a SHAP explanation that names the features behind it. The idea being that a company arrives on a list with a rank and a reason at the same time. In the end, we picked the model with the best performance according to our selected metrics. This model produced four separate rankings, one for likely borrowing, one for credit risk, one for a voluntary wind down and one for growth.
+The third contribution is the modelling. We compared a simple, readable logistic regression against a gradient-boosted tree and a neural network, and we engineered every score to come with a SHAP explanation that names the features behind it. The idea was that a company arrives on a list with a rank and a reason at the same time. In the end, we picked the model with the best performance according to our selected metrics. This model produced four separate rankings, one for likely borrowing, one for credit risk, one for a voluntary wind down and one for growth.
 
 Fourth and final, we tested whether unstructured public sources add signal on top of the register-structured approach. We discovered and documented the limitation that most did not provide enough coverage to rely on. Only one source, the Gazette insolvency notices, was brought together with the structured scores in a single dashboard, so one company can be ranked and then investigated in the same place.
 
@@ -831,10 +834,6 @@ Finally, calibration and deployment. The scores rank companies well, but for a b
 
 % -----------------------------------------------------------------------------
 \appendix
-% Appendices do not count toward the 30 pages, so anything that is evidence
-% rather than argument belongs here. Examiners are not obliged to read them,
-% which means nothing load-bearing may live here and nothing here may be the
-% only statement of a result.
 
 \chapter{Sector selection and SIC mapping}
 \label{appx:sic}
@@ -1240,7 +1239,7 @@ Any verified article  &   0 & 0.00\% \\
 \begin{table}[htbp]
 \centering
 \caption[Public sources reach-rate]{What each public source reached, as a share of the 1,493,972 company
-universe at July 2026.}
+universe at June 2026.}
 \label{tab:source-coverage}
 \begin{tabular}{llrrl}
 \toprule
@@ -1317,10 +1316,12 @@ Challenger banks & 7{,}512\\
 
 \chapter{The dashboard}
 \label{appx:dashboard}
+The dashboard is a small local app, not a file that can be opened directly.Run \texttt{python dashboard/serve.py} from the project folder and it opens itself at \url{http://127.0.0.1:8000}. Leave that window running while you use it, and press Ctrl+C to stop. It needs the bulk Parquet in the sibling \texttt{data/processed/} folder, and it only reads it, so nothing in the interface can change the data. Requirements: Python 3.10+, DuckDB 1.5.5, Flask 3.1.x, pandas 3.0.x, numpy 2.4+.
+
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{latex-report/images/01-home.png}
-  \caption{The landing page shows the complete 1,531,094 active UK companies that are searchable, with the four tiles summarising the universe and how much of it carries each signal.}
+  \caption{The landing page shows the complete 1,531,094 UK companies that are searchable, with the four tiles summarising the universe and how much of it carries each signal.}
   \label{fig:home}
 \end{figure}
 
@@ -1329,6 +1330,14 @@ Challenger banks & 7{,}512\\
   \includegraphics[width=\textwidth]{latex-report/images/02-presets.png}
   \caption{Preset queries. Each chip is a commercial question with a live count attached, and selecting one loads its conditions into the advanced filters where they can be investigated and adjusted.}
   \label{fig:presets}
+\end{figure}
+
+\begin{figure}[htbp]
+  \centering
+  \includegraphics[width=\textwidth]{latex-report/images/20-preset-pristine.png}\\[6pt]
+  \includegraphics[width=\textwidth]{latex-report/images/21-preset-adjusted.png}
+  \caption{A preset as approved (top) and after the user narrows it to manufacturing sector (bottom). The bar then turns amber, and the count is replaced by an \textsc{adjusted} tag, \emph{Remove} becomes \emph{Reset}, and the hint states what the preset returns on its own, so a modified query can never pass for the approved one.}
+  \label{fig:preset-adjusted}
 \end{figure}
 
 \begin{figure}[htbp]
@@ -1370,7 +1379,7 @@ Challenger banks & 7{,}512\\
 \begin{figure}[htbp]
   \centering
   \includegraphics[width=\textwidth]{latex-report/images/09-analytics-lenders.png}
-  \caption{Main lender by number of companies, and how quickly cumulative share gathers. Shows Four banks hold two thirds of the market.}
+  \caption{Main lender by number of companies, and how quickly cumulative share gathers. Shows four banks hold two-thirds of the market.}
   \label{fig:lenders}
 \end{figure}
 
@@ -1388,17 +1397,6 @@ Challenger banks & 7{,}512\\
   \label{fig:gazette}
 \end{figure}
 
-\begin{figure}[htbp]
-  \centering
-  \includegraphics[width=\textwidth]{latex-report/images/20-preset-pristine.png}\\[6pt]
-  \includegraphics[width=\textwidth]{latex-report/images/21-preset-adjusted.png}
-  \caption{A preset as approved (top) and after the user narrows it to
-           manufacturing (bottom). The bar turns amber, the count is replaced
-           by an \textsc{adjusted} tag, \emph{Remove} becomes \emph{Reset}, and
-           the hint states what the preset returns on its own, so a modified
-           query can never pass for the approved one.}
-  \label{fig:preset-adjusted}
-\end{figure}
 
 \note{Screenshots of the landing page, the watchlist, a company page with the
 model indices filled, and the shortlist explorer with the counterparty routing.
