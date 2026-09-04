@@ -1,0 +1,13 @@
+\begin{table}
+\caption{The growth feature fix: 41 nominal columns against 27, where the effective count was 32 for every family either way.}
+\label{tab:19_growth_fix}
+\begin{tabular}{lrrrrrrr}
+\toprule
+model & n_features_before & n_features_after & roc_auc_before & roc_auc_after & d_roc_auc & unpaired_intervals_overlap & interpreted \\
+\midrule
+lightgbm & 41 & 27 & 0.762019 & 0.761063 & -0.000955 & True & True \\
+logistic & 41 & 27 & 0.728975 & 0.732427 & 0.003452 & True & True \\
+mlp & 41 & 27 & 0.694114 & 0.701578 & 0.007464 & False & False \\
+\bottomrule
+\end{tabular}
+\end{table}

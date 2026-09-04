@@ -1,0 +1,21 @@
+\begin{table}
+\caption{Machine-checked assertions for notebook 17.}
+\label{tab:17_checks}
+\begin{tabular}{lrl}
+\toprule
+check & pass & detail \\
+\midrule
+all three model families are bit-identical when fitted twice in one process & True & rows differing: [0, 0, 0] \\
+G2b: every bootstrap interval contains its own point estimate & True & 360 of 360 interval/point pairs across six runs \\
+cross-process differences on the untouched dense paths are below 1e-8 & True & max 5.21e-09 \\
+row order does not change any metric & True &  \\
+BLAS thread count does change the dense predictions & True & max abs diff 6.06e-12 \\
+the growth MLP 27-vs-41 difference does not hold its sign across seeds & True & per-seed deltas [0.00746, 0.02827, -0.0063, -0.01014] \\
+the MLP seed range exceeds its row-bootstrap interval width & True & ratios [7.21, 4.1] \\
+the deterministic families' seed range stays inside their bootstrap width & True & ratios [0.33, 0.48] \\
+lending improves monotonically as the gate loosens, in all three families & True & {'2d / 1d': {'lightgbm': 0.0056, 'logistic': 0.007, 'mlp': 0.0077}, '4d / 1d': {'lightgbm': 0.0043, 'logistic': 0.0053, 'mlp': 0.0056}, '7d / 3d': {'lightgbm': -0.0, 'logistic': 0.0036, 'mlp': 0.0045}} \\
+insolvency shows no such ordering & True & {'2d / 1d': {'lightgbm': 0.0006, 'logistic': 0.0023, 'mlp': -0.0019}, '4d / 1d': {'lightgbm': 0.0017, 'logistic': 0.0023, 'mlp': -0.0026}, '7d / 3d': {'lightgbm': 0.0007, 'logistic': 0.0023, 'mlp': -0.0039}} \\
+the paired interval on lending is narrower than the unpaired one and excludes zero & True & paired width 0.00179 vs unpaired 0.00891 \\
+\bottomrule
+\end{tabular}
+\end{table}

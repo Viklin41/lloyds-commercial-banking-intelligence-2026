@@ -1,0 +1,82 @@
+\begin{table}
+\caption{ROC-AUC and precision@500 with 95% row-bootstrap intervals, for the six defensible runs.}
+\label{tab:17_run_intervals}
+\begin{tabular}{lllrrrrrrr}
+\toprule
+tag & target & model & roc_auc & roc_auc_lo & roc_auc_hi & precision_at_500 & precision_at_500_lo & precision_at_500_hi & roc_auc_halfwidth \\
+\midrule
+lender_asof21_det & lending & lightgbm & 0.876266 & 0.871533 & 0.880623 & 0.310000 & 0.266000 & 0.348050 & 0.004545 \\
+lender_asof21_det & lending & logistic & 0.862469 & 0.857712 & 0.867149 & 0.188000 & 0.150000 & 0.224000 & 0.004719 \\
+lender_asof21_det & lending & mlp & 0.867991 & 0.863430 & 0.872603 & 0.230000 & 0.188000 & 0.272000 & 0.004587 \\
+lender_asof21_det & insolvency & lightgbm & 0.762613 & 0.757660 & 0.766746 & 0.126000 & 0.095950 & 0.152000 & 0.004543 \\
+lender_asof21_det & insolvency & logistic & 0.734609 & 0.729683 & 0.739302 & 0.068000 & 0.046000 & 0.092000 & 0.004809 \\
+lender_asof21_det & insolvency & mlp & 0.739234 & 0.734621 & 0.743669 & 0.078000 & 0.056000 & 0.100000 & 0.004524 \\
+lender_asof21_det & voluntary_exit & lightgbm & 0.792860 & 0.791835 & 0.793954 & 0.836000 & 0.799950 & 0.866000 & 0.001059 \\
+lender_asof21_det & voluntary_exit & logistic & 0.770510 & 0.769355 & 0.771659 & 0.296000 & 0.242000 & 0.336050 & 0.001152 \\
+lender_asof21_det & voluntary_exit & mlp & 0.778415 & 0.777335 & 0.779560 & 0.756000 & 0.722000 & 0.794000 & 0.001112 \\
+lender_asof21_det & growth & lightgbm & 0.761995 & 0.760071 & 0.763732 & 0.210000 & 0.174000 & 0.244000 & 0.001830 \\
+lender_asof21_det & growth & logistic & 0.738585 & 0.736595 & 0.740603 & 0.170000 & 0.138000 & 0.202000 & 0.002004 \\
+lender_asof21_det & growth & mlp & 0.700669 & 0.698265 & 0.702957 & 0.082000 & 0.062000 & 0.108000 & 0.002346 \\
+lender_calib & lending & lightgbm & 0.881003 & 0.876694 & 0.885217 & 0.332000 & 0.290000 & 0.378000 & 0.004262 \\
+lender_calib & lending & logistic & 0.866809 & 0.862237 & 0.871363 & 0.180000 & 0.146000 & 0.216000 & 0.004563 \\
+lender_calib & lending & mlp & 0.872865 & 0.868439 & 0.877345 & 0.238000 & 0.200000 & 0.276000 & 0.004453 \\
+lender_calib & insolvency & lightgbm & 0.763247 & 0.758778 & 0.767592 & 0.142000 & 0.110000 & 0.172000 & 0.004407 \\
+lender_calib & insolvency & logistic & 0.734632 & 0.730092 & 0.738945 & 0.072000 & 0.050000 & 0.096000 & 0.004426 \\
+lender_calib & insolvency & mlp & 0.741073 & 0.737050 & 0.745457 & 0.078000 & 0.056000 & 0.102000 & 0.004203 \\
+lender_calib & voluntary_exit & lightgbm & 0.792846 & 0.791750 & 0.793898 & 0.864000 & 0.830000 & 0.892050 & 0.001074 \\
+lender_calib & voluntary_exit & logistic & 0.770202 & 0.769134 & 0.771362 & 0.294000 & 0.252000 & 0.342000 & 0.001114 \\
+lender_calib & voluntary_exit & mlp & 0.772516 & 0.771391 & 0.773591 & 0.538000 & 0.500000 & 0.590000 & 0.001100 \\
+lender_calib & growth & lightgbm & 0.761822 & 0.759978 & 0.763530 & 0.188000 & 0.154000 & 0.224000 & 0.001776 \\
+lender_calib & growth & logistic & 0.736040 & 0.733955 & 0.738023 & 0.142000 & 0.112000 & 0.172000 & 0.002034 \\
+lender_calib & growth & mlp & 0.703728 & 0.701266 & 0.705810 & 0.108000 & 0.080000 & 0.134050 & 0.002272 \\
+lender_calib_hi & lending & lightgbm & 0.876639 & 0.872080 & 0.881266 & 0.294000 & 0.252000 & 0.334000 & 0.004593 \\
+lender_calib_hi & lending & logistic & 0.865086 & 0.860432 & 0.869638 & 0.188000 & 0.152000 & 0.222000 & 0.004603 \\
+lender_calib_hi & lending & mlp & 0.871731 & 0.867298 & 0.876281 & 0.196000 & 0.165950 & 0.234000 & 0.004491 \\
+lender_calib_hi & insolvency & lightgbm & 0.762240 & 0.757932 & 0.766729 & 0.124000 & 0.095950 & 0.152050 & 0.004398 \\
+lender_calib_hi & insolvency & logistic & 0.734666 & 0.730233 & 0.739425 & 0.068000 & 0.048000 & 0.092000 & 0.004596 \\
+lender_calib_hi & insolvency & mlp & 0.739812 & 0.734999 & 0.744462 & 0.070000 & 0.048000 & 0.094000 & 0.004732 \\
+lender_calib_hi & voluntary_exit & lightgbm & 0.792666 & 0.791539 & 0.793723 & 0.856000 & 0.826000 & 0.892000 & 0.001092 \\
+lender_calib_hi & voluntary_exit & logistic & 0.769327 & 0.768256 & 0.770435 & 0.336000 & 0.292000 & 0.392000 & 0.001090 \\
+lender_calib_hi & voluntary_exit & mlp & 0.776917 & 0.775814 & 0.777986 & 0.686000 & 0.638000 & 0.724000 & 0.001086 \\
+lender_calib_hi & growth & lightgbm & 0.761563 & 0.759729 & 0.763564 & 0.212000 & 0.176000 & 0.242000 & 0.001917 \\
+lender_calib_hi & growth & logistic & 0.738222 & 0.736280 & 0.740184 & 0.152000 & 0.120000 & 0.182000 & 0.001952 \\
+lender_calib_hi & growth & mlp & 0.695941 & 0.693779 & 0.698182 & 0.090000 & 0.066000 & 0.116000 & 0.002202 \\
+lender_calib_lo & lending & lightgbm & 0.882298 & 0.878086 & 0.886494 & 0.406000 & 0.359950 & 0.454000 & 0.004204 \\
+lender_calib_lo & lending & logistic & 0.868462 & 0.863893 & 0.872926 & 0.180000 & 0.148000 & 0.218050 & 0.004516 \\
+lender_calib_lo & lending & mlp & 0.874910 & 0.870401 & 0.879415 & 0.326000 & 0.278000 & 0.364000 & 0.004507 \\
+lender_calib_lo & insolvency & lightgbm & 0.762121 & 0.757842 & 0.766666 & 0.136000 & 0.104000 & 0.164000 & 0.004412 \\
+lender_calib_lo & insolvency & logistic & 0.734698 & 0.730123 & 0.739396 & 0.072000 & 0.050000 & 0.096000 & 0.004637 \\
+lender_calib_lo & insolvency & mlp & 0.741838 & 0.737438 & 0.746637 & 0.092000 & 0.068000 & 0.118000 & 0.004600 \\
+lender_calib_lo & voluntary_exit & lightgbm & 0.792761 & 0.791724 & 0.793806 & 0.834000 & 0.800000 & 0.866000 & 0.001041 \\
+lender_calib_lo & voluntary_exit & logistic & 0.769205 & 0.768197 & 0.770294 & 0.428000 & 0.373950 & 0.478000 & 0.001048 \\
+lender_calib_lo & voluntary_exit & mlp & 0.778244 & 0.777305 & 0.779331 & 0.658000 & 0.620000 & 0.708050 & 0.001013 \\
+lender_calib_lo & growth & lightgbm & 0.761664 & 0.759812 & 0.763545 & 0.200000 & 0.164000 & 0.236000 & 0.001867 \\
+lender_calib_lo & growth & logistic & 0.738685 & 0.736681 & 0.740743 & 0.158000 & 0.124000 & 0.186050 & 0.002031 \\
+lender_calib_lo & growth & mlp & 0.701561 & 0.699168 & 0.703903 & 0.134000 & 0.104000 & 0.168000 & 0.002367 \\
+refactor_det & lending & lightgbm & 0.876666 & 0.872209 & 0.881124 & 0.282000 & 0.240000 & 0.324000 & 0.004457 \\
+refactor_det & lending & logistic & 0.861508 & 0.856927 & 0.866209 & 0.150000 & 0.120000 & 0.182000 & 0.004641 \\
+refactor_det & lending & mlp & 0.867215 & 0.862743 & 0.872042 & 0.266000 & 0.225950 & 0.308000 & 0.004650 \\
+refactor_det & insolvency & lightgbm & 0.761520 & 0.757123 & 0.765919 & 0.122000 & 0.095950 & 0.152000 & 0.004398 \\
+refactor_det & insolvency & logistic & 0.732376 & 0.728019 & 0.737049 & 0.058000 & 0.036000 & 0.078000 & 0.004515 \\
+refactor_det & insolvency & mlp & 0.743704 & 0.739035 & 0.748046 & 0.092000 & 0.065950 & 0.114000 & 0.004505 \\
+refactor_det & voluntary_exit & lightgbm & 0.792892 & 0.791905 & 0.794025 & 0.846000 & 0.818000 & 0.882000 & 0.001060 \\
+refactor_det & voluntary_exit & logistic & 0.770367 & 0.769158 & 0.771465 & 0.296000 & 0.250000 & 0.342000 & 0.001153 \\
+refactor_det & voluntary_exit & mlp & 0.781143 & 0.779993 & 0.782290 & 0.680000 & 0.639950 & 0.728050 & 0.001148 \\
+refactor_det & growth & lightgbm & 0.762019 & 0.760039 & 0.763892 & 0.202000 & 0.164000 & 0.234000 & 0.001927 \\
+refactor_det & growth & logistic & 0.728975 & 0.726854 & 0.731196 & 0.098000 & 0.070000 & 0.126050 & 0.002171 \\
+refactor_det & growth & mlp & 0.694114 & 0.691810 & 0.696230 & 0.128000 & 0.096000 & 0.156000 & 0.002210 \\
+refactor_growthfix & lending & lightgbm & 0.876666 & 0.872341 & 0.881018 & 0.282000 & 0.240000 & 0.324000 & 0.004339 \\
+refactor_growthfix & lending & logistic & 0.861508 & 0.856906 & 0.866362 & 0.150000 & 0.120000 & 0.182050 & 0.004728 \\
+refactor_growthfix & lending & mlp & 0.867215 & 0.862655 & 0.871777 & 0.266000 & 0.225950 & 0.308000 & 0.004561 \\
+refactor_growthfix & insolvency & lightgbm & 0.761520 & 0.757225 & 0.766357 & 0.122000 & 0.095950 & 0.152000 & 0.004566 \\
+refactor_growthfix & insolvency & logistic & 0.732376 & 0.727872 & 0.736630 & 0.058000 & 0.036000 & 0.078000 & 0.004379 \\
+refactor_growthfix & insolvency & mlp & 0.743704 & 0.739185 & 0.747777 & 0.092000 & 0.065950 & 0.114000 & 0.004296 \\
+refactor_growthfix & voluntary_exit & lightgbm & 0.792892 & 0.791884 & 0.793953 & 0.848000 & 0.820000 & 0.882000 & 0.001034 \\
+refactor_growthfix & voluntary_exit & logistic & 0.770367 & 0.769138 & 0.771455 & 0.296000 & 0.250000 & 0.344000 & 0.001159 \\
+refactor_growthfix & voluntary_exit & mlp & 0.781143 & 0.780055 & 0.782260 & 0.682000 & 0.638000 & 0.724050 & 0.001102 \\
+refactor_growthfix & growth & lightgbm & 0.761063 & 0.759317 & 0.763003 & 0.194000 & 0.156000 & 0.228000 & 0.001843 \\
+refactor_growthfix & growth & logistic & 0.732427 & 0.730220 & 0.734511 & 0.102000 & 0.078000 & 0.130000 & 0.002145 \\
+refactor_growthfix & growth & mlp & 0.701578 & 0.699410 & 0.703736 & 0.106000 & 0.082000 & 0.136000 & 0.002163 \\
+\bottomrule
+\end{tabular}
+\end{table}

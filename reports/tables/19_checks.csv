@@ -1,0 +1,23 @@
+check,pass,detail
+index.csv holds 11 tags,True,11
+baseline has 8 rows because it predates the MLP,True,"['lightgbm', 'logistic']"
+every tag recorded after the bootstrap landed carries intervals throughout,True,"6 with, 5 without: ['baseline', 'lender', 'lender_asof21', 'lender_fixed', 'refactor']"
+no interval is silently blank in the exported table,True,56 cells marked not recorded
+act 1 leaks: lending P@500 above 0.99,True,0.9919999837875366
+the calibrated gate scores higher than the flat 21-day gate,True,0.310 -> 0.332
+lending rises monotonically across the ladder in all three families,True,"{'lightgbm': True, 'logistic': True, 'mlp': True}"
+lending is monotone in the two families we do interpret,True,
+insolvency is not monotone across the ladder in LightGBM,True,"{'lightgbm': {'7d / 3d': 0.0007, '4d / 1d': 0.0017, '2d / 1d': 0.0006}, 'logistic': {'7d / 3d': 0.0023, '4d / 1d': 0.0023, '2d / 1d': 0.0023}, 'mlp': {'7d / 3d': -0.0039, '4d / 1d': -0.0026, '2d / 1d': -0.0019}}"
+insolvency logistic is flat across the ladder (range below 0.001),True,6.563422017591414e-05
+"the two looser gates are clear of zero on lending, paired",True,
+every MLP delta on the ladder is inside the MLP seed noise of 0.018,True,0.007694638671259857
+LightGBM gains nothing at the tightest gate on any target,True,0.0007201812248125439
+no LightGBM paired interval at the tightest gate excludes zero on the positive side,True,"{'lending': -3e-05, 'insolvency': 0.00072, 'voluntary_exit': -0.00023, 'growth': -0.00046}"
+the two LightGBM intervals that do exclude zero are both negative,True,"{'voluntary_exit': -0.00023, 'growth': -0.00046}"
+the logistic gain on growth survives even the unpaired reading,True,0.009247288900126716
+the discarded _lo run really is the best lending P@500 on record,True,"0.406 at 2d/1d, excluding the two runs we know were leaking"
+the growth fix leaves the other three targets identical to the control,True,
+the growth fix moves logistic and LightGBM in opposite directions,True,"{'lightgbm': -0.001, 'logistic': 0.0035, 'mlp': 0.0075}"
+"pooled P@500 falls outside its own months' range in 9 of 12 rows, on both tags",True,"{'lender_calib': '9 of 12', 'refactor_det': '9 of 12'}"
+982 of the top 1000 voluntary_exit scores are exact ties,True,982
+the MLP seed range exceeds its bootstrap width; the other two families' do not,True,"{('27 features', 'mlp'): 7.21, ('41 features', 'lightgbm'): 0.33, ('41 features', 'logistic'): 0.48, ('41 features', 'mlp'): 4.1}"

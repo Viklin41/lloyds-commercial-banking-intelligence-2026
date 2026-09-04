@@ -1,0 +1,22 @@
+\begin{table}
+\caption{Change against the 41-feature control at three visibility gates, LightGBM, with paired-bootstrap 95% intervals.}
+\label{tab:19_gate_ladder_paired}
+\begin{tabular}{llllrrrr}
+\toprule
+target & gate & tag & metric & delta & lo & hi & excludes_zero \\
+\midrule
+lending & 7d / 3d & lender_calib_hi & roc_auc & -0.000027 & -0.000510 & 0.000471 & False \\
+lending & 7d / 3d & lender_calib_hi & precision_at_500 & 0.012000 & -0.004000 & 0.036000 & False \\
+insolvency & 7d / 3d & lender_calib_hi & roc_auc & 0.000720 & -0.000151 & 0.001698 & False \\
+insolvency & 7d / 3d & lender_calib_hi & precision_at_500 & 0.002000 & -0.022000 & 0.024000 & False \\
+lending & 4d / 1d & lender_calib & roc_auc & 0.004337 & 0.003452 & 0.005242 & True \\
+lending & 4d / 1d & lender_calib & precision_at_500 & 0.050000 & 0.028950 & 0.084000 & True \\
+insolvency & 4d / 1d & lender_calib & roc_auc & 0.001727 & 0.000814 & 0.002673 & True \\
+insolvency & 4d / 1d & lender_calib & precision_at_500 & 0.020000 & -0.008000 & 0.042000 & False \\
+lending & 2d / 1d & lender_calib_lo & roc_auc & 0.005633 & 0.004574 & 0.006614 & True \\
+lending & 2d / 1d & lender_calib_lo & precision_at_500 & 0.124000 & 0.094000 & 0.162100 & True \\
+insolvency & 2d / 1d & lender_calib_lo & roc_auc & 0.000601 & -0.000346 & 0.001525 & False \\
+insolvency & 2d / 1d & lender_calib_lo & precision_at_500 & 0.014000 & -0.011050 & 0.036000 & False \\
+\bottomrule
+\end{tabular}
+\end{table}

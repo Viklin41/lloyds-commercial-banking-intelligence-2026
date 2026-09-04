@@ -1,0 +1,34 @@
+% The src/ module map. Referenced from \S"The modelling pipeline as software" as
+% Table~\ref{tab:modules}. Needs booktabs and tabularx in the preamble.
+\begin{table}[htbp]
+  \centering
+  \small
+  \caption[The \texttt{src/} module map]{The \texttt{src/} module map. Every module
+  owns one stage of the pipeline and is callable from a notebook, a script or a
+  test; nothing in \texttt{src/} imports a notebook. Line counts are given because
+  they show where the complexity actually sits: two modules hold half the project.}
+  \label{tab:modules}
+  \begin{tabularx}{\textwidth}{@{}l r X@{}}
+    \toprule
+    Module & Lines & What it owns \\
+    \midrule
+    \multicolumn{3}{@{}l}{\textit{Acquisition}} \\
+    \texttt{data/ch\_bulk.py}      & 156 & Discovers, downloads and extracts the monthly Companies House bulk snapshots. \\
+    \texttt{features/ch\_api.py}   & 229 & Live Companies House API enrichment for the sampled companies. \\
+    \texttt{features/sample.py}    &  39 & Chooses which companies are worth sending to the live APIs. \\
+    \addlinespace
+    \multicolumn{3}{@{}l}{\textit{Features}} \\
+    \texttt{features/panel.py}     & 625 & Builds the 49.6\,mln-row company-month panel from the snapshots, and the backward-looking deltas on top of it. \\
+    \texttt{features/ch\_static.py}& 115 & Features computable for every company straight from the base CSV, no API call needed. \\
+    \texttt{features/charges.py}   & 757 & The Charges harvest replayed over the panel, and the as-of gate that decides when a charge becomes visible. \\
+    \texttt{features/lenders.py}   & 310 & Resolves who holds a charge into a lender dictionary, which is what makes LBG-versus-competitor features possible. \\
+    \texttt{features/contracts.py} & 455 & Public-procurement wins, joined as-of each panel month. \\
+    \texttt{features/matching.py}  & 254 & Resolves suppliers that publish no company number, via the name-and-postcode confidence ladder. \\
+    \addlinespace
+    \multicolumn{3}{@{}l}{\textit{Modelling}} \\
+    \texttt{models/targets.py}     & 810 & The four self-labelled targets, the origin grid, the negative downsampling and the modelling matrices. \\
+    \texttt{models/train.py}       & 1{,}669 & \texttt{RunConfig}, the model registry, the grouped out-of-time splitter, recalibration, SHAP dispatch and \texttt{record\_run}. \\
+    \texttt{models/report.py}      &  36 & One place figures and tables are written to, so \LaTeX{} has something to cite and no number is retyped. \\
+    \bottomrule
+  \end{tabularx}
+\end{table}

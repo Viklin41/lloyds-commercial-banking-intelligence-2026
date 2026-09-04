@@ -1,0 +1,17 @@
+feature,target,mean_abs_shap,rank,n_features,train_rows,n_nonnull,n_positive,splittable
+is_lbg_client,lending,0.0,53,54,457941,457941,6343,True
+ever_lbg_client,lending,0.000138,48,54,457941,457941,13484,True
+lbg_charge_satisfied_6m,lending,2.9e-05,52,54,457941,457941,592,True
+competitor_entered_12m,lending,0.0,54,54,457941,457941,207,True
+is_lbg_client,insolvency,0.0,51,54,520142,520142,5085,True
+ever_lbg_client,insolvency,0.0,54,54,520142,520142,10708,True
+lbg_charge_satisfied_6m,insolvency,0.0,53,54,520142,520142,343,True
+competitor_entered_12m,insolvency,0.0,52,54,520142,520142,87,False
+is_lbg_client,growth,0.0,52,54,1657611,1657611,20292,True
+ever_lbg_client,growth,0.000305,40,54,1657611,1657611,39361,True
+lbg_charge_satisfied_6m,growth,0.0,54,54,1657611,1657611,968,True
+competitor_entered_12m,growth,0.0,53,54,1657611,1657611,299,True
+is_lbg_client,voluntary_exit,0.0,53,54,11917730,11917730,103182,True
+ever_lbg_client,voluntary_exit,8.2e-05,51,54,11917730,11917730,214278,True
+lbg_charge_satisfied_6m,voluntary_exit,4.4e-05,52,54,11917730,11917730,5069,True
+competitor_entered_12m,voluntary_exit,0.0,54,54,11917730,11917730,1586,True

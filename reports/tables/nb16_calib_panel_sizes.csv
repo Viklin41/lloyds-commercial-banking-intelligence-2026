@@ -1,0 +1,5 @@
+panel,rows,total_outstanding
+lender_asof21,5134170,7694658.0
+lender_calib_lo (2d),5143307,7730004.0
+lender_calib (4d),5142357,7726510.0
+lender_calib_hi (7d),5140927,7724615.0

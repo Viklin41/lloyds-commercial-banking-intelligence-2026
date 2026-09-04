@@ -1,0 +1,143 @@
+{
+  "snapshot_date": "2026-07-31",
+  "built_from": [
+    "dashboard_bulk_gazette_2026-07.parquet",
+    "nb10_gazette_notices_thru_2026-07.csv"
+  ],
+  "company_snapshot_date": "2026-07-01",
+  "identity_snapshot_date": "2026-08-01",
+  "sources_live": [
+    "gazette",
+    "news",
+    "contracts"
+  ],
+  "sources_pending": [
+    "hiring",
+    "property",
+    "trademark",
+    "grants"
+  ],
+  "news": {
+    "source": "guardian",
+    "search_date": "2026-06-30",
+    "window_years": 3,
+    "searched": 96,
+    "with_verified_coverage": 0,
+    "with_raw_hits_rejected": 5,
+    "not_searched": 1530998
+  },
+  "signal_rows": 29673,
+  "companies_with_signal": 19525,
+  "universe": 1531094,
+  "score_models": [
+    {
+      "key": "score_lending",
+      "label": "Lending readiness",
+      "horizon": "3 months",
+      "window": "Aug 2026 to Oct 2026",
+      "event": "take on new secured borrowing",
+      "base_rate": 0.0027,
+      "hit_rate": 0.43,
+      "lift": 160,
+      "rankable": true,
+      "p100_low": 0.41,
+      "p100_high": 0.43,
+      "base_rate_pct_low": 0.26,
+      "base_rate_pct_high": 0.28,
+      "lift_low": 144,
+      "lift_high": 167,
+      "lift_about": 150,
+      "superseded_note": "hit_rate and lift are the pre-2026-08-26 single figures, retained only so an older frontend still renders"
+    },
+    {
+      "key": "score_insolvency",
+      "label": "Credit risk",
+      "horizon": "6 months",
+      "window": "Aug 2026 to Jan 2027",
+      "event": "hit a genuine insolvency event",
+      "base_rate": 0.0033,
+      "hit_rate": 0.16,
+      "lift": 45,
+      "rankable": true,
+      "p100_low": 0.14,
+      "p100_high": 0.16,
+      "base_rate_pct_low": 0.33,
+      "base_rate_pct_high": 0.33,
+      "lift_low": 42,
+      "lift_high": 49,
+      "lift_about": 45,
+      "superseded_note": "hit_rate and lift are the pre-2026-08-26 single figures, retained only so an older frontend still renders"
+    },
+    {
+      "key": "score_voluntary_exit",
+      "label": "Voluntary exit",
+      "horizon": "6 months",
+      "window": "Aug 2026 to Jan 2027",
+      "event": "have a strike-off proposal filed",
+      "base_rate": 0.077,
+      "hit_rate": 0.85,
+      "lift": 10,
+      "rankable": false,
+      "not_rankable_because": "998 of the top 1,000 scores are exact ties, and the top-100 cutoff value alone is shared by 138 companies",
+      "p100_low": 0.78,
+      "p100_high": 0.85,
+      "base_rate_pct_low": 7.22,
+      "base_rate_pct_high": 8.24,
+      "lift_low": 10,
+      "lift_high": 11,
+      "lift_about": 10,
+      "superseded_note": "hit_rate and lift are the pre-2026-08-26 single figures, retained only so an older frontend still renders"
+    },
+    {
+      "key": "score_growth",
+      "label": "Growth",
+      "horizon": "12 months",
+      "window": "Aug 2026 to Jul 2027",
+      "event": "move up a size tier",
+      "base_rate": 0.021,
+      "hit_rate": 0.22,
+      "lift": 10,
+      "rankable": true,
+      "p100_low": 0.22,
+      "p100_high": 0.22,
+      "base_rate_pct_low": 2.12,
+      "base_rate_pct_high": 2.15,
+      "lift_low": 10,
+      "lift_high": 10,
+      "lift_about": 10,
+      "superseded_note": "hit_rate and lift are the pre-2026-08-26 single figures, retained only so an older frontend still renders"
+    }
+  ],
+  "scored_companies": 1409284,
+  "unscored_companies": 121810,
+  "former_lbg": 14416,
+  "former_lbg_active": 13412,
+  "former_lbg_in_store": 14416,
+  "contracts_asof": "2026-05-31",
+  "lifecycle_counts": {
+    "Trading": 1409284,
+    "Fading": 97721,
+    "Insolvent": 23915,
+    "Distressed": 174
+  },
+  "flagged_by_lifecycle": {
+    "Insolvent": 18091,
+    "Trading": 1232,
+    "Distressed": 31,
+    "Fading": 171
+  },
+  "notice_url_stem": "https://www.thegazette.co.uk/id/notice/",
+  "reasons": {
+    "file": "shortlist_reasons_2026-07.parquet",
+    "companies_per_target": 5000,
+    "targets": [
+      "lending",
+      "insolvency",
+      "growth",
+      "voluntary_exit"
+    ],
+    "distinct_companies": 18644,
+    "reasons_per_company": 3,
+    "coverage_note": "Top 5,000 companies per target, 0.35% of the 1,409,284 scored. Absence of reasons says nothing about a company's drivers."
+  }
+}

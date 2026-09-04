@@ -1,0 +1,6 @@
+step,company_months,zero_crossing_days,moved_by
+"0. the old sweep, verbatim",14566,22.08,
+"1. + all 33 origins, not 7",60647,23.68,1.6
+2. + the real extract date,60647,23.57,-0.11
+"3. + NumMortCharges, the register the label uses",73253,5.34,-18.23
+4. + unconditioned: every company-month,4740553,1.81,-3.53

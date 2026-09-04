@@ -1,0 +1,28 @@
+\begin{table}
+\caption{Change against the control at three visibility gates, all three model families, point estimates.}
+\label{tab:19_gate_ladder_all_families}
+\begin{tabular}{lllrr}
+\toprule
+target & model & gate & d_roc_auc & d_precision_at_500 \\
+\midrule
+lending & lightgbm & 7d / 3d & -0.000027 & 0.012000 \\
+lending & logistic & 7d / 3d & 0.003578 & 0.038000 \\
+lending & mlp & 7d / 3d & 0.004516 & -0.070000 \\
+insolvency & lightgbm & 7d / 3d & 0.000720 & 0.002000 \\
+insolvency & logistic & 7d / 3d & 0.002290 & 0.010000 \\
+insolvency & mlp & 7d / 3d & -0.003892 & -0.022000 \\
+lending & lightgbm & 4d / 1d & 0.004337 & 0.050000 \\
+lending & logistic & 4d / 1d & 0.005301 & 0.030000 \\
+lending & mlp & 4d / 1d & 0.005650 & -0.028000 \\
+insolvency & lightgbm & 4d / 1d & 0.001727 & 0.020000 \\
+insolvency & logistic & 4d / 1d & 0.002256 & 0.014000 \\
+insolvency & mlp & 4d / 1d & -0.002631 & -0.014000 \\
+lending & lightgbm & 2d / 1d & 0.005633 & 0.124000 \\
+lending & logistic & 2d / 1d & 0.006953 & 0.030000 \\
+lending & mlp & 2d / 1d & 0.007695 & 0.060000 \\
+insolvency & lightgbm & 2d / 1d & 0.000601 & 0.014000 \\
+insolvency & logistic & 2d / 1d & 0.002322 & 0.014000 \\
+insolvency & mlp & 2d / 1d & -0.001866 & 0.000000 \\
+\bottomrule
+\end{tabular}
+\end{table}

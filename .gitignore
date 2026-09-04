@@ -4,14 +4,39 @@ venv/
 env/
 .env/
 
-# Environment variables
+# Environment variables and API credentials. This repository is public.
 .env
+GUARDIAN_API_KEY.txt
 
-# Data (all raw, processed, and output files)
+# The dashboard data tree, 217 MB across 15 files. Not committed: it is published
+# as a release asset and unpacked here by scripts/fetch_dashboard_data.py.
 data/
 
-# Draft code/notebooks
+# Bulk Companies House products, rebuilt by notebooks/01_base/01_companies_house.ipynb
+filtered_bb_sme_sectors.csv
+BasicCompanyDataAsOneFile-*.csv
+
+# Internal working notes, kept local. The two that a reader needs are published
+# in docs/ instead.
 drafts/
+
+# Long-running harvest logs
+logs/
+
+# Lloyds brand assets. Trademarked marks, kept local; the dashboard renders
+# without them.
+dashboard/Lloyds_Banking_Group_Logo.png
+dashboard/Lloyds-Bank-Symbol.png
+dashboard/Lloyds_intro.mp4
+dashboard/assets/horse-mark.png
+
+# Build artefacts of the handbook, design doc and manual. Only the .md sources
+# and the printed .pdf are versioned. Named one by one on purpose:
+# dashboard/index.html IS the dashboard and must stay tracked.
+dashboard/dashboard_handbook.html
+dashboard/dashboard_design.html
+dashboard/dashboard_manual.html
+dashboard/handbook_img.zip
 
 # Python cache
 __pycache__/

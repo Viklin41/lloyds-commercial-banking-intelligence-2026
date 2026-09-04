@@ -1,0 +1,28 @@
+\begin{table}
+\caption{Change against the 41-feature control across the three visibility gates, all three model families.}
+\label{tab:17_gate_ladder_all_families}
+\begin{tabular}{llllrrrr}
+\toprule
+target & model & tag & gate & roc_auc & d_roc_auc & precision_at_500 & d_precision_at_500 \\
+\midrule
+lending & lightgbm & lender_calib_hi & 7d / 3d & 0.876639 & -0.000027 & 0.294000 & 0.012000 \\
+lending & logistic & lender_calib_hi & 7d / 3d & 0.865086 & 0.003578 & 0.188000 & 0.038000 \\
+lending & mlp & lender_calib_hi & 7d / 3d & 0.871731 & 0.004516 & 0.196000 & -0.070000 \\
+insolvency & lightgbm & lender_calib_hi & 7d / 3d & 0.762240 & 0.000720 & 0.124000 & 0.002000 \\
+insolvency & logistic & lender_calib_hi & 7d / 3d & 0.734666 & 0.002290 & 0.068000 & 0.010000 \\
+insolvency & mlp & lender_calib_hi & 7d / 3d & 0.739812 & -0.003892 & 0.070000 & -0.022000 \\
+lending & lightgbm & lender_calib & 4d / 1d & 0.881003 & 0.004337 & 0.332000 & 0.050000 \\
+lending & logistic & lender_calib & 4d / 1d & 0.866809 & 0.005301 & 0.180000 & 0.030000 \\
+lending & mlp & lender_calib & 4d / 1d & 0.872865 & 0.005650 & 0.238000 & -0.028000 \\
+insolvency & lightgbm & lender_calib & 4d / 1d & 0.763247 & 0.001727 & 0.142000 & 0.020000 \\
+insolvency & logistic & lender_calib & 4d / 1d & 0.734632 & 0.002256 & 0.072000 & 0.014000 \\
+insolvency & mlp & lender_calib & 4d / 1d & 0.741073 & -0.002631 & 0.078000 & -0.014000 \\
+lending & lightgbm & lender_calib_lo & 2d / 1d & 0.882298 & 0.005633 & 0.406000 & 0.124000 \\
+lending & logistic & lender_calib_lo & 2d / 1d & 0.868462 & 0.006953 & 0.180000 & 0.030000 \\
+lending & mlp & lender_calib_lo & 2d / 1d & 0.874910 & 0.007695 & 0.326000 & 0.060000 \\
+insolvency & lightgbm & lender_calib_lo & 2d / 1d & 0.762121 & 0.000601 & 0.136000 & 0.014000 \\
+insolvency & logistic & lender_calib_lo & 2d / 1d & 0.734698 & 0.002322 & 0.072000 & 0.014000 \\
+insolvency & mlp & lender_calib_lo & 2d / 1d & 0.741838 & -0.001866 & 0.092000 & 0.000000 \\
+\bottomrule
+\end{tabular}
+\end{table}

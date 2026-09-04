@@ -1,0 +1,34 @@
+check,result,detail
+split fell back before the fix,PASS,"train=['2023-10', '2024-01', '2024-04']"
+"split still falls back after the fix (the fix is features, not origins)",PASS,
+H=12 is arithmetically infeasible,PASS,earliest legal first_test 2025-10 > max_origin(12) 2025-07
+no origin step produces a legal test origin,PASS,
+exactly nine features are 1.000 null in every train origin,PASS,"d_charges_12m, d_outstanding_12m, d_satisfied_12m, debt_ratio_trend_12m, name_changed_12m, postcode_changed_12m, segment_downgraded_12m, segment_upgraded_12m, sic_changed_12m"
+those nine are populated in both test origins,PASS,
+nine features at exactly 0.0 mean|SHAP| before,PASS,
+the zero-SHAP nine are exactly the null nine,PASS,
+no feature at 0.0 mean|SHAP| after,PASS,smallest 0.000226
+the same nine are informative for lending,PASS,"ranks [7, 8, 16, 18, 21, 22, 25, 27, 28]"
+the imputer warning is present before and absent after,PASS,
+status_changed is 1.000 null at 2023-10 (train) and 2025-07 (test),PASS,
+status_changed ranks 19 of 41 for growth,PASS,
+the run used exactly FEATURE_COLS_SHORT_HISTORY,PASS,27 features
+G3 restated: worst differential < 0.02,PASS,0.0153
+G3 as originally written would have been unpassable,PASS,worst absolute null rate 1.0000 on a correctly fixed list
+nothing but growth changed between the two runs,PASS,
+"MLP bootstrap intervals do not overlap (and this is MISLEADING, see 9b)",PASS,
+"MLP seed range exceeds its bootstrap width by more than 4x, both lists",PASS,"4.1x at 41f, 7.2x at 27f"
+"the MLP delta is smaller than the 41-feature seed range, so it is not a finding",PASS,delta 0.0075 < seed range 0.0181
+the recorded 41-feature MLP fit is the minimum of its four seeds,PASS,0.694114
+"the paired MLP delta changes sign across seeds, so it is not established",PASS,"+0.0075, +0.0283, -0.0063, -0.0101"
+exactly the nine have zero observed values in the pooled training set,PASS,9 features
+the five other dropped features DO have observed training values,PASS,"d_charges_3m, d_charges_6m, d_outstanding_3m, d_outstanding_6m, status_changed"
+"effective feature count was 32 for the dense models too, not 41",PASS,
+so before-versus-after differs by the five survivors for every family,PASS,
+"logistic delta is at least 3x its seed sd, so it survives",PASS,delta 0.0035 vs seed sd 0.0009
+LightGBM is unchanged at the scale of its own seed spread,PASS,delta -0.0010 vs seed sd 0.0006
+bootstrap is the larger uncertainty for lightgbm and logistic (so it is fine there),PASS,
+LightGBM intervals do overlap,PASS,
+H=6 honours FIRST_FULL_ORIGIN,PASS,
+H=6 split is the designed one,PASS,
+H=6 has zero margin on MIN_TRAIN_ORIGINS,PASS,

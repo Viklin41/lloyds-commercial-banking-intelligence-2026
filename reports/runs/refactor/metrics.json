@@ -1,0 +1,769 @@
+{
+  "tag": "refactor",
+  "targets": {
+    "lending": {
+      "target": "lending",
+      "tag": "refactor",
+      "horizon_m": 3,
+      "n_features": 41,
+      "models": [
+        "lightgbm",
+        "logistic",
+        "mlp"
+      ],
+      "split": {
+        "target": "lending",
+        "horizon_m": 3,
+        "train": [
+          "2024-10-01",
+          "2025-01-01",
+          "2025-04-01",
+          "2025-07-01",
+          "2025-10-01"
+        ],
+        "embargo": [],
+        "test": [
+          "2026-01-01",
+          "2026-04-01"
+        ],
+        "dropped_early": [
+          "2023-10-01",
+          "2024-01-01",
+          "2024-04-01",
+          "2024-07-01"
+        ],
+        "first_full_origin_applied": true
+      },
+      "train_rows": 214708,
+      "train_positives": 19624,
+      "best_iteration": 143,
+      "metrics": {
+        "lightgbm": {
+          "n": 2782591,
+          "positives": 7544,
+          "base_rate": 0.0027111421804875135,
+          "roc_auc": 0.8766658286449451,
+          "pr_auc": 0.0567161855358872,
+          "precision_at_100": 0.550000011920929,
+          "lift_at_100": 202.86653200240085,
+          "precision_at_500": 0.28200000524520874,
+          "lift_at_500": 104.01520336144817,
+          "precision_at_1000": 0.22200000286102295,
+          "lift_at_1000": 81.88430856145776
+        },
+        "logistic": {
+          "n": 2782591,
+          "positives": 7544,
+          "base_rate": 0.0027111421804875135,
+          "roc_auc": 0.8615083643920711,
+          "pr_auc": 0.04032434222088189,
+          "precision_at_100": 0.18000000715255737,
+          "lift_at_100": 66.39268439997124,
+          "precision_at_500": 0.15000000596046448,
+          "lift_at_500": 55.32723699997604,
+          "precision_at_1000": 0.14000000059604645,
+          "lift_at_1000": 51.63875270122198
+        },
+        "mlp": {
+          "n": 2782591,
+          "positives": 7544,
+          "base_rate": 0.0027111421804875135,
+          "roc_auc": 0.8672150617298631,
+          "pr_auc": 0.051480082649971205,
+          "precision_at_100": 0.49000000953674316,
+          "lift_at_100": 180.73563720241043,
+          "precision_at_500": 0.26600000262260437,
+          "lift_at_500": 98.11363068194846,
+          "precision_at_1000": 0.19499999284744263,
+          "lift_at_1000": 71.9254026037019
+        }
+      },
+      "calibration": {
+        "train_neg_keep_rate": 0.02848743461072445,
+        "test_base_rate": 0.0027111421804875135,
+        "models": {
+          "lightgbm": {
+            "mean_pred_raw": 0.061336951980556303,
+            "mean_pred_recalibrated": 0.003007944862531541
+          },
+          "logistic": {
+            "mean_pred_raw": 0.0639618642320467,
+            "mean_pred_recalibrated": 0.003595990840019808
+          },
+          "mlp": {
+            "mean_pred_raw": 0.054953317376330295,
+            "mean_pred_recalibrated": 0.0025304417225124848
+          }
+        }
+      }
+    },
+    "insolvency": {
+      "target": "insolvency",
+      "tag": "refactor",
+      "horizon_m": 6,
+      "n_features": 41,
+      "models": [
+        "lightgbm",
+        "logistic",
+        "mlp"
+      ],
+      "split": {
+        "target": "insolvency",
+        "horizon_m": 6,
+        "train": [
+          "2024-10-01",
+          "2025-01-01",
+          "2025-04-01"
+        ],
+        "embargo": [
+          "2025-07-01"
+        ],
+        "test": [
+          "2025-10-01",
+          "2026-01-01"
+        ],
+        "dropped_early": [
+          "2023-10-01",
+          "2024-01-01",
+          "2024-04-01",
+          "2024-07-01"
+        ],
+        "first_full_origin_applied": true
+      },
+      "train_rows": 165674,
+      "train_positives": 15022,
+      "best_iteration": 150,
+      "metrics": {
+        "lightgbm": {
+          "n": 2779612,
+          "positives": 9156,
+          "base_rate": 0.003293984802439809,
+          "roc_auc": 0.761519999902756,
+          "pr_auc": 0.016922649690566,
+          "precision_at_100": 0.1899999976158142,
+          "lift_at_100": 57.68089685024771,
+          "precision_at_500": 0.12200000137090683,
+          "lift_at_500": 37.03720833215233,
+          "precision_at_1000": 0.11299999803304672,
+          "lift_at_1000": 34.3049542758513
+        },
+        "logistic": {
+          "n": 2779612,
+          "positives": 9156,
+          "base_rate": 0.003293984802439809,
+          "roc_auc": 0.7323762884330102,
+          "pr_auc": 0.011852534198818418,
+          "precision_at_100": 0.029999999329447746,
+          "lift_at_100": 9.107509939701957,
+          "precision_at_500": 0.057999998331069946,
+          "lift_at_500": 17.60785243699672,
+          "precision_at_1000": 0.05900000035762787,
+          "lift_at_1000": 17.91143672366897
+        },
+        "mlp": {
+          "n": 2779612,
+          "positives": 9156,
+          "base_rate": 0.003293984802439809,
+          "roc_auc": 0.7437038657539965,
+          "pr_auc": 0.013452904286183858,
+          "precision_at_100": 0.07000000029802322,
+          "lift_at_100": 21.250857091439887,
+          "precision_at_500": 0.09200000017881393,
+          "lift_at_500": 27.92969782698172,
+          "precision_at_1000": 0.09399999678134918,
+          "lift_at_1000": 28.536864138451605
+        }
+      },
+      "calibration": {
+        "train_neg_keep_rate": 0.036637697368860245,
+        "test_base_rate": 0.003293984802439809,
+        "models": {
+          "lightgbm": {
+            "mean_pred_raw": 0.0800047640178392,
+            "mean_pred_recalibrated": 0.0036347265212710563
+          },
+          "logistic": {
+            "mean_pred_raw": 0.08036983274932186,
+            "mean_pred_recalibrated": 0.0034983624015794187
+          },
+          "mlp": {
+            "mean_pred_raw": 0.08028688932836554,
+            "mean_pred_recalibrated": 0.0038409514967965084
+          }
+        }
+      }
+    },
+    "voluntary_exit": {
+      "target": "voluntary_exit",
+      "tag": "refactor",
+      "horizon_m": 6,
+      "n_features": 41,
+      "models": [
+        "lightgbm",
+        "logistic",
+        "mlp"
+      ],
+      "split": {
+        "target": "voluntary_exit",
+        "horizon_m": 6,
+        "train": [
+          "2024-10-01",
+          "2025-01-01",
+          "2025-04-01"
+        ],
+        "embargo": [
+          "2025-07-01"
+        ],
+        "test": [
+          "2025-10-01",
+          "2026-01-01"
+        ],
+        "dropped_early": [
+          "2023-10-01",
+          "2024-01-01",
+          "2024-04-01",
+          "2024-07-01"
+        ],
+        "first_full_origin_applied": true
+      },
+      "train_rows": 3779912,
+      "train_positives": 343699,
+      "best_iteration": 1106,
+      "metrics": {
+        "lightgbm": {
+          "n": 2779612,
+          "positives": 214797,
+          "base_rate": 0.07727589458227158,
+          "roc_auc": 0.7928921898174184,
+          "pr_auc": 0.35120230468544306,
+          "precision_at_100": 0.8199999928474426,
+          "lift_at_100": 10.611329668586778,
+          "precision_at_500": 0.8539999723434448,
+          "lift_at_500": 11.051311368957832,
+          "precision_at_1000": 0.8550000190734863,
+          "lift_at_1000": 11.064252619724936
+        },
+        "logistic": {
+          "n": 2779612,
+          "positives": 214797,
+          "base_rate": 0.07727589458227158,
+          "roc_auc": 0.7703665910933274,
+          "pr_auc": 0.3103686395894654,
+          "precision_at_100": 0.05999999865889549,
+          "lift_at_100": 0.776438745655887,
+          "precision_at_500": 0.29600000381469727,
+          "lift_at_500": 3.830431280217166,
+          "precision_at_1000": 0.4259999990463257,
+          "lift_at_1000": 5.512715205034422
+        },
+        "mlp": {
+          "n": 2779612,
+          "positives": 214797,
+          "base_rate": 0.07727589458227158,
+          "roc_auc": 0.7811426347870846,
+          "pr_auc": 0.3382436248683284,
+          "precision_at_100": 0.5099999904632568,
+          "lift_at_100": 6.599729362178871,
+          "precision_at_500": 0.6779999732971191,
+          "lift_at_500": 8.773757676467767,
+          "precision_at_1000": 0.7680000066757202,
+          "lift_at_1000": 9.938416252924398
+        }
+      },
+      "calibration": {
+        "train_neg_keep_rate": 0.8999751806259155,
+        "test_base_rate": 0.07727589458227158,
+        "models": {
+          "lightgbm": {
+            "mean_pred_raw": 0.08799307765044208,
+            "mean_pred_recalibrated": 0.08139748787496054
+          },
+          "logistic": {
+            "mean_pred_raw": 0.09812128815604886,
+            "mean_pred_recalibrated": 0.09071236538103433
+          },
+          "mlp": {
+            "mean_pred_raw": 0.08736009091971542,
+            "mean_pred_recalibrated": 0.08069810823563092
+          }
+        }
+      }
+    },
+    "growth": {
+      "target": "growth",
+      "tag": "refactor",
+      "horizon_m": 12,
+      "n_features": 41,
+      "models": [
+        "lightgbm",
+        "logistic",
+        "mlp"
+      ],
+      "split": {
+        "target": "growth",
+        "horizon_m": 12,
+        "train": [
+          "2023-10-01",
+          "2024-01-01",
+          "2024-04-01"
+        ],
+        "embargo": [
+          "2024-07-01",
+          "2024-10-01",
+          "2025-01-01"
+        ],
+        "test": [
+          "2025-04-01",
+          "2025-07-01"
+        ],
+        "dropped_early": [],
+        "first_full_origin_applied": false
+      },
+      "train_rows": 610789,
+      "train_positives": 55564,
+      "best_iteration": 245,
+      "metrics": {
+        "lightgbm": {
+          "n": 1817119,
+          "positives": 38833,
+          "base_rate": 0.021370641887187958,
+          "roc_auc": 0.7620188930685061,
+          "pr_auc": 0.057764567612940916,
+          "precision_at_100": 0.2199999988079071,
+          "lift_at_100": 10.294496532638107,
+          "precision_at_500": 0.20200000703334808,
+          "lift_at_500": 9.45221992393454,
+          "precision_at_1000": 0.17499999701976776,
+          "lift_at_1000": 8.188803964970424
+        },
+        "logistic": {
+          "n": 1817119,
+          "positives": 38833,
+          "base_rate": 0.021370641887187958,
+          "roc_auc": 0.7289751080932065,
+          "pr_auc": 0.046768150726364546,
+          "precision_at_100": 0.07000000029802322,
+          "lift_at_100": 3.275521655715421,
+          "precision_at_500": 0.09799999743700027,
+          "lift_at_500": 4.585730178547086,
+          "precision_at_1000": 0.12700000405311584,
+          "lift_at_1000": 5.94273231115507
+        },
+        "mlp": {
+          "n": 1817119,
+          "positives": 38833,
+          "base_rate": 0.021370641887187958,
+          "roc_auc": 0.6941137681348856,
+          "pr_auc": 0.04213969802028341,
+          "precision_at_100": 0.11999999731779099,
+          "lift_at_100": 5.615179831810897,
+          "precision_at_500": 0.12800000607967377,
+          "lift_at_500": 5.989525572295132,
+          "precision_at_1000": 0.11800000071525574,
+          "lift_at_1000": 5.521593658167031
+        }
+      },
+      "calibration": {
+        "train_neg_keep_rate": 0.21120098233222961,
+        "test_base_rate": 0.021370641887187958,
+        "models": {
+          "lightgbm": {
+            "mean_pred_raw": 0.08694171404680796,
+            "mean_pred_recalibrated": 0.02114856196559358
+          },
+          "logistic": {
+            "mean_pred_raw": 0.039329492015303016,
+            "mean_pred_recalibrated": 0.009445376078278165
+          },
+          "mlp": {
+            "mean_pred_raw": 0.02477656248900569,
+            "mean_pred_recalibrated": 0.006133548481349746
+          }
+        }
+      }
+    }
+  },
+  "grouped_cv": [
+    {
+      "target": "lending",
+      "model": "lightgbm",
+      "n_splits": 3,
+      "rows": 457941,
+      "fold_roc_auc": [
+        0.8807250937766876,
+        0.8832774827508137,
+        0.8787873599543354
+      ],
+      "mean_roc_auc": 0.8809299788272789,
+      "oot_roc_auc": 0.8766658286449451,
+      "gap": 0.004264150182333726
+    },
+    {
+      "target": "insolvency",
+      "model": "lightgbm",
+      "n_splits": 3,
+      "rows": 520142,
+      "fold_roc_auc": [
+        0.7696397933273574,
+        0.7679388657700534,
+        0.7705161250577236
+      ],
+      "mean_roc_auc": 0.7693649280517114,
+      "oot_roc_auc": 0.761519999902756,
+      "gap": 0.007844928148955432
+    },
+    {
+      "target": "voluntary_exit",
+      "model": "lightgbm",
+      "n_splits": 3,
+      "rows": 2000000,
+      "fold_roc_auc": [
+        0.8137123660152966,
+        0.8140662990042004,
+        0.8147354303315636
+      ],
+      "mean_roc_auc": 0.8141713651170202,
+      "oot_roc_auc": 0.7928921898174184,
+      "gap": 0.02127917529960177
+    },
+    {
+      "target": "growth",
+      "model": "lightgbm",
+      "n_splits": 3,
+      "rows": 1657611,
+      "fold_roc_auc": [
+        0.7758397327664757,
+        0.7750720233996132,
+        0.7730937656320487
+      ],
+      "mean_roc_auc": 0.7746685072660459,
+      "oot_roc_auc": 0.7620188930685061,
+      "gap": 0.012649614197539738
+    }
+  ],
+  "direction_check": [
+    {
+      "feature": "Mortgages.NumMortCharges",
+      "shap_direction": 0.5962812335101634,
+      "logit_coef": 0.12055073106144304,
+      "agree": true,
+      "target": "lending"
+    },
+    {
+      "feature": "company_age_years",
+      "shap_direction": -0.6245260903241551,
+      "logit_coef": -0.11739709525156419,
+      "agree": true,
+      "target": "lending"
+    },
+    {
+      "feature": "days_to_next_accounts_due",
+      "shap_direction": 0.043341796995080534,
+      "logit_coef": -0.0339393609126632,
+      "agree": false,
+      "target": "lending"
+    },
+    {
+      "feature": "months_since_last_confstmt",
+      "shap_direction": -0.5355826649352117,
+      "logit_coef": -0.04849365008085688,
+      "agree": true,
+      "target": "lending"
+    },
+    {
+      "feature": "postcode_changed_12m",
+      "shap_direction": 0.5516332840085859,
+      "logit_coef": 0.09848807268931845,
+      "agree": true,
+      "target": "lending"
+    },
+    {
+      "feature": "sic_changed_12m",
+      "shap_direction": 0.31506674232814874,
+      "logit_coef": 0.11143180815255264,
+      "agree": true,
+      "target": "lending"
+    },
+    {
+      "feature": "tier_rank",
+      "shap_direction": 0.8827078117452376,
+      "logit_coef": 0.3192757589106414,
+      "agree": true,
+      "target": "lending"
+    },
+    {
+      "feature": "months_since_segment_change",
+      "shap_direction": -0.7177704003904889,
+      "logit_coef": -0.11731607852799268,
+      "agree": true,
+      "target": "lending"
+    },
+    {
+      "feature": "Mortgages.NumMortOutstanding",
+      "shap_direction": 0.5300495233924496,
+      "logit_coef": -0.0570185385461881,
+      "agree": false,
+      "target": "lending"
+    },
+    {
+      "feature": "accounts_stale_streak_months",
+      "shap_direction": -0.36422037583648836,
+      "logit_coef": -0.1322303646709939,
+      "agree": true,
+      "target": "lending"
+    },
+    {
+      "feature": "company_age_years",
+      "shap_direction": 0.746820216528245,
+      "logit_coef": 0.049135694714746506,
+      "agree": true,
+      "target": "insolvency"
+    },
+    {
+      "feature": "months_since_last_accounts_filing",
+      "shap_direction": 0.27538794636663144,
+      "logit_coef": -0.00996527213783315,
+      "agree": false,
+      "target": "insolvency"
+    },
+    {
+      "feature": "months_since_last_confstmt",
+      "shap_direction": 0.6859610625670474,
+      "logit_coef": 0.014829362841288014,
+      "agree": true,
+      "target": "insolvency"
+    },
+    {
+      "feature": "days_to_next_accounts_due",
+      "shap_direction": -0.3558510566307241,
+      "logit_coef": 0.04565899050897881,
+      "agree": false,
+      "target": "insolvency"
+    },
+    {
+      "feature": "Mortgages.NumMortCharges",
+      "shap_direction": 0.5427058444467094,
+      "logit_coef": -0.07168752971246074,
+      "agree": false,
+      "target": "insolvency"
+    },
+    {
+      "feature": "segment_upgraded_12m",
+      "shap_direction": -0.10094051487596581,
+      "logit_coef": 0.013338477144092902,
+      "agree": false,
+      "target": "insolvency"
+    },
+    {
+      "feature": "tier_rank",
+      "shap_direction": 0.6842981273343502,
+      "logit_coef": -0.1650878024141117,
+      "agree": false,
+      "target": "insolvency"
+    },
+    {
+      "feature": "months_since_segment_change",
+      "shap_direction": -0.5879728235682601,
+      "logit_coef": 0.0616026342787621,
+      "agree": false,
+      "target": "insolvency"
+    },
+    {
+      "feature": "months_in_current_status",
+      "shap_direction": 0.03340949611560146,
+      "logit_coef": -0.07450742936457984,
+      "agree": false,
+      "target": "insolvency"
+    },
+    {
+      "feature": "postcode_changed_12m",
+      "shap_direction": 0.5529752990111388,
+      "logit_coef": 0.06528522293019785,
+      "agree": true,
+      "target": "insolvency"
+    },
+    {
+      "feature": "months_since_last_confstmt",
+      "shap_direction": 0.944977658027108,
+      "logit_coef": 0.3120773153010952,
+      "agree": true,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "accounts_stale_streak_months",
+      "shap_direction": 0.6901891429872206,
+      "logit_coef": 0.830876089157313,
+      "agree": true,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "days_to_next_accounts_due",
+      "shap_direction": -0.5580901288510625,
+      "logit_coef": -0.11157371451804532,
+      "agree": true,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "company_age_years",
+      "shap_direction": -0.46813070799642115,
+      "logit_coef": -0.361750240975277,
+      "agree": true,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "months_since_last_accounts_filing",
+      "shap_direction": 0.22929862508973944,
+      "logit_coef": 0.002678326924416906,
+      "agree": true,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "confstmt_late",
+      "shap_direction": 0.48522536581117953,
+      "logit_coef": 0.2298084734744115,
+      "agree": true,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "months_in_current_status",
+      "shap_direction": -0.15321231076278707,
+      "logit_coef": 0.07129758798359606,
+      "agree": false,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "Mortgages.NumMortCharges",
+      "shap_direction": -0.42327596591747274,
+      "logit_coef": -0.03416716375317173,
+      "agree": true,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "ever_distressed_before",
+      "shap_direction": 0.41957571308164426,
+      "logit_coef": 0.20876344476243397,
+      "agree": true,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "tier_rank",
+      "shap_direction": -0.8505375458078419,
+      "logit_coef": -0.3601841774640862,
+      "agree": true,
+      "target": "voluntary_exit"
+    },
+    {
+      "feature": "tier_rank",
+      "shap_direction": -0.8086249720171381,
+      "logit_coef": -1.6251468997055891,
+      "agree": true,
+      "target": "growth"
+    },
+    {
+      "feature": "months_since_last_accounts_filing",
+      "shap_direction": 0.8628434749314946,
+      "logit_coef": 0.1442367532437727,
+      "agree": true,
+      "target": "growth"
+    },
+    {
+      "feature": "months_since_segment_change",
+      "shap_direction": -0.4000829203838891,
+      "logit_coef": -0.3318928281418715,
+      "agree": true,
+      "target": "growth"
+    },
+    {
+      "feature": "Mortgages.NumMortCharges",
+      "shap_direction": 0.5697035510781521,
+      "logit_coef": 0.07997207741850543,
+      "agree": true,
+      "target": "growth"
+    },
+    {
+      "feature": "days_to_next_accounts_due",
+      "shap_direction": -0.3127029182612255,
+      "logit_coef": -0.24423121365659894,
+      "agree": true,
+      "target": "growth"
+    },
+    {
+      "feature": "company_age_years",
+      "shap_direction": -0.6614616125460835,
+      "logit_coef": -0.09221915276883486,
+      "agree": true,
+      "target": "growth"
+    },
+    {
+      "feature": "months_in_current_status",
+      "shap_direction": 0.044079638793599454,
+      "logit_coef": 0.06681054474215771,
+      "agree": true,
+      "target": "growth"
+    },
+    {
+      "feature": "months_since_last_confstmt",
+      "shap_direction": -0.027096038481509373,
+      "logit_coef": -0.029126413090495736,
+      "agree": true,
+      "target": "growth"
+    },
+    {
+      "feature": "debt_ratio",
+      "shap_direction": 0.504502451339448,
+      "logit_coef": 0.23905501002621202,
+      "agree": true,
+      "target": "growth"
+    },
+    {
+      "feature": "d_charges_6m",
+      "shap_direction": -0.1544061343744468,
+      "logit_coef": 0.0017502769814203853,
+      "agree": false,
+      "target": "growth"
+    }
+  ],
+  "tuning": [
+    {
+      "target": "lending",
+      "model": "logistic",
+      "n_folds": 3,
+      "best_params": {
+        "clf__C": 1.0
+      },
+      "best_cv_roc_auc": 0.8666740399825524
+    },
+    {
+      "target": "lending",
+      "model": "lightgbm",
+      "n_folds": 3,
+      "best_params": {
+        "num_leaves": 31,
+        "min_child_samples": 100,
+        "learning_rate": 0.05
+      },
+      "best_cv_roc_auc": 0.8770066204755254
+    },
+    {
+      "target": "insolvency",
+      "model": "logistic",
+      "n_folds": 1,
+      "best_params": {
+        "clf__C": 1.0
+      },
+      "best_cv_roc_auc": 0.7339894832926233
+    },
+    {
+      "target": "insolvency",
+      "model": "lightgbm",
+      "n_folds": 1,
+      "best_params": {
+        "num_leaves": 127,
+        "min_child_samples": 500,
+        "learning_rate": 0.03
+      },
+      "best_cv_roc_auc": 0.7489504826001865
+    }
+  ],
+  "scores": "data/processed/scores/scores_refactor_2026-07.parquet"
+}
